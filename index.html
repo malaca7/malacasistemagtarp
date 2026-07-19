@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Treinamento RP | Simuladores de Roubo</title>
+    <meta name="description" content="Treine suas habilidades para roleplay. Simulador de lockpick, decodificação de cofre (caixinha) e hacking de digital.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Link para CSS -->
+    
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" crossorigin href="/malacasistemagtarp/assets/index-C-jHXvTl.css">
+</head>
+<body>
+    <!-- Canvas de Fundo Estrelado -->
+    <canvas id="starfield-bg"></canvas>
+
+    <div class="home-container">
+        <header class="home-header">
+            <div class="home-logo">
+                <span class="logo-accent">★</span>
+                <h1>MALACA <span class="cyan-glow-text">SYSTEM</span></h1>
+            </div>
+            <p class="home-subtitle">PORTAL DE TREINAMENTO DE HABILIDADES DE INVASÃO</p>
+        </header>
+
+        <main class="home-grid">
+            <!-- Card 1: Lockpick Simulator -->
+            <div class="simulator-card lockpick-card">
+                <div class="card-glow"></div>
+                <div class="card-content">
+                    <div class="card-icon-wrapper">
+                        <i class="fa-solid fa-key"></i>
+                    </div>
+                    <h2>LOCKPICK SIMULATOR</h2>
+                    <p class="card-desc">Arrombamento eletrônico avançado inspirado em Starfield. Gire e encaixe os pinos corretos nas ranhuras de cada camada para destravar.</p>
+                    <div class="card-details">
+                        <span><i class="fa-solid fa-gamepad"></i> 5 Níveis</span>
+                        <span><i class="fa-solid fa-keyboard"></i> A/D/Q/E/W/S/Enter</span>
+                    </div>
+                    <a href="lockpick.html" class="play-btn">
+                        <span>JOGAR</span> <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Card 2: Caixinha Simulator (Safe Cracking) -->
+            <div class="simulator-card safe-card">
+                <div class="card-glow"></div>
+                <div class="card-content">
+                    <div class="card-icon-wrapper">
+                        <i class="fa-solid fa-vault"></i>
+                    </div>
+                    <h2>CAIXINHA ELETRÔNICO</h2>
+                    <p class="card-desc">O clássico minijogo de arrombamento de cofre (caixinha). Gire o dial analógico para a esquerda ou direita e sinta a vibração mecânica no segredo correto.</p>
+                    <div class="card-details">
+                        <span><i class="fa-solid fa-gauge-high"></i> Feedback Tátil</span>
+                        <span><i class="fa-solid fa-keyboard"></i> A / D / Mouse</span>
+                    </div>
+                    <a href="caixinha.html" class="play-btn">
+                        <span>JOGAR</span> <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Card 3: Hacking Simulator (Cayo Perico Fingerprint) -->
+            <div class="simulator-card hack-card">
+                <div class="card-glow"></div>
+                <div class="card-content">
+                    <div class="card-icon-wrapper">
+                        <i class="fa-solid fa-fingerprint"></i>
+                    </div>
+                    <h2>DECODIFICADOR BIOMÉTRICO</h2>
+                    <p class="card-desc">Hacking de clonagem de digital estilo Cayo Perico. Analise o alvo biométrico e selecione os fragmentos correspondentes do topo à base para invadir o banco de dados.</p>
+                    <div class="card-details">
+                        <span><i class="fa-solid fa-microchip"></i> Hacking de Digital</span>
+                        <span><i class="fa-solid fa-keyboard"></i> Q / E / W / S / Enter</span>
+                    </div>
+                    <a href="hacking.html" class="play-btn">
+                        <span>JOGAR</span> <i class="fa-solid fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </main>
+
+        <footer class="home-footer">
+            <p>Malaca System &copy; 2026. Desenvolvido para simulação e aprimoramento de reflexos em servidores de Roleplay.</p>
+        </footer>
+    </div>
+
+    <!-- Script de Estrelas de Fundo na Home -->
+    <script>
+        const bgCanvas = document.getElementById('starfield-bg');
+        const bgCtx = bgCanvas.getContext('2d');
+        let stars = [];
+
+        function resizeBgCanvas() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+            initStars();
+        }
+
+        function initStars() {
+            stars = [];
+            const count = Math.floor((bgCanvas.width * bgCanvas.height) / 18000);
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * bgCanvas.width,
+                    y: Math.random() * bgCanvas.height,
+                    size: Math.random() * 1.5 + 0.5,
+                    twinkleSpeed: Math.random() * 0.02 + 0.005,
+                    phase: Math.random() * Math.PI
+                });
+            }
+        }
+
+        function animateStars() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            stars.forEach(star => {
+                star.phase += star.twinkleSpeed;
+                const opacity = (Math.sin(star.phase) + 1) / 2 * 0.7 + 0.3;
+                bgCtx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.65})`;
+                bgCtx.beginPath();
+                bgCtx.arc(star.x, star.y, star.size, 0, 2 * Math.PI);
+                bgCtx.fill();
+            });
+            requestAnimationFrame(animateStars);
+        }
+
+        window.addEventListener('load', () => {
+            resizeBgCanvas();
+            window.addEventListener('resize', resizeBgCanvas);
+            requestAnimationFrame(animateStars);
+        });
+    </script>
+</body>
+</html>
