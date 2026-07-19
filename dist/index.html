@@ -3,177 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Starfield Digipick Simulator | Treino de Arrombamento</title>
-    <meta name="description" content="Simulador e treinador do minijogo de arrombamento (Digipick) do Starfield. Pratique nos modos Novato, Avançado, Perito e Mestre, além do Desafio Diário.">
+    <title>Portal de Treinamento RP | Simuladores de Roubo</title>
+    <meta name="description" content="Treine suas habilidades para roleplay. Simulador de lockpick, decodificação de cofre (caixinha) e hacking de digital.">
     
-    <!-- Google Fonts para estilo futurista/Sci-Fi -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     
-    <!-- Link para a folha de estilo -->
+    <!-- Link para CSS -->
     
-    <!-- FontAwesome para ícones premium -->
+    <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script type="module" crossorigin src="/assets/index-BiPi1K1Z.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-0rdgOW68.css">
+  <link rel="stylesheet" crossorigin href="/malacasistemagtarp/assets/index-C-jHXvTl.css">
 </head>
 <body>
-    <!-- Canvas de Fundo para o efeito de estrelas -->
+    <!-- Canvas de Fundo Estrelado -->
     <canvas id="starfield-bg"></canvas>
 
-    <div class="app-container">
-        <!-- HEADER -->
-        <header class="game-header">
-            <div class="logo-area">
-                <span class="starfield-badge">★</span>
-                <h1>DIGIPICK <span class="accent-text">SIMULATOR</span></h1>
+    <div class="home-container">
+        <header class="home-header">
+            <div class="home-logo">
+                <span class="logo-accent">★</span>
+                <h1>MALACA <span class="cyan-glow-text">SYSTEM</span></h1>
             </div>
-            
-            <div class="difficulty-selector">
-                <button class="diff-btn active" data-difficulty="novice" id="btn-novice">NOVATO</button>
-                <button class="diff-btn" data-difficulty="advanced" id="btn-advanced">AVANÇADO</button>
-                <button class="diff-btn" data-difficulty="expert" id="btn-expert">PERITO</button>
-                <button class="diff-btn" data-difficulty="master" id="btn-master">MESTRE</button>
-                <button class="diff-btn daily-btn" data-difficulty="daily" id="btn-daily">
-                    <i class="fa-solid fa-calendar-day"></i> DESAFIO DIÁRIO
-                </button>
-            </div>
+            <p class="home-subtitle">PORTAL DE TREINAMENTO DE HABILIDADES DE INVASÃO</p>
         </header>
 
-        <!-- MAIN LAYOUT -->
-        <main class="game-layout">
-            <!-- PAINEL ESQUERDO: Estatísticas e Controles -->
-            <section class="panel left-panel" id="stats-panel">
-                <div class="panel-header">
-                    <h2><i class="fa-solid fa-gauge-high"></i> PAINEL DE CONTROLE</h2>
+        <main class="home-grid">
+            <!-- Card 1: Lockpick Simulator -->
+            <div class="simulator-card lockpick-card">
+                <div class="card-glow"></div>
+                <div class="card-content">
+                    <div class="card-icon-wrapper">
+                        <i class="fa-solid fa-key"></i>
+                    </div>
+                    <h2>LOCKPICK SIMULATOR</h2>
+                    <p class="card-desc">Arrombamento eletrônico avançado inspirado em Starfield. Gire e encaixe os pinos corretos nas ranhuras de cada camada para destravar.</p>
+                    <div class="card-details">
+                        <span><i class="fa-solid fa-gamepad"></i> 5 Níveis</span>
+                        <span><i class="fa-solid fa-keyboard"></i> A/D/Q/E/W/S/Enter</span>
+                    </div>
+                    <a href="lockpick.html" class="play-btn">
+                        <span>JOGAR</span> <i class="fa-solid fa-chevron-right"></i>
+                    </a>
                 </div>
-                
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <span class="stat-label">TEMPO ELAPISADO</span>
-                        <span class="stat-value" id="timer-val">00:00</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-label">DIGIPICKS RESTANTES</span>
-                        <span class="stat-value" id="picks-val">99</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-label">DESFAZER (UNDO)</span>
-                        <span class="stat-value text-accent" id="undo-val">∞</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-label">AUTO-SLOTS</span>
-                        <span class="stat-value" id="auto-val">3</span>
-                    </div>
-                </div>
+            </div>
 
-                <div class="daily-streak-card" id="streak-card" style="display: none;">
-                    <div class="streak-header">
-                        <i class="fa-solid fa-fire text-warning"></i>
-                        <span>SEQUÊNCIA DIÁRIA</span>
+            <!-- Card 2: Caixinha Simulator (Safe Cracking) -->
+            <div class="simulator-card safe-card">
+                <div class="card-glow"></div>
+                <div class="card-content">
+                    <div class="card-icon-wrapper">
+                        <i class="fa-solid fa-vault"></i>
                     </div>
-                    <div class="streak-content">
-                        <span class="streak-days" id="streak-val">0 dias</span>
-                        <span class="streak-desc" id="streak-desc">Complete o desafio de hoje!</span>
+                    <h2>CAIXINHA ELETRÔNICO</h2>
+                    <p class="card-desc">O clássico minijogo de arrombamento de cofre (caixinha). Gire o dial analógico para a esquerda ou direita e sinta a vibração mecânica no segredo correto.</p>
+                    <div class="card-details">
+                        <span><i class="fa-solid fa-gauge-high"></i> Feedback Tátil</span>
+                        <span><i class="fa-solid fa-keyboard"></i> A / D / Mouse</span>
                     </div>
+                    <a href="caixinha.html" class="play-btn">
+                        <span>JOGAR</span> <i class="fa-solid fa-chevron-right"></i>
+                    </a>
                 </div>
+            </div>
 
-                <div class="game-options panel-section">
-                    <h3>CONFIGURAÇÕES</h3>
-                    <div class="option-row">
-                        <label for="opt-sound"><i class="fa-solid fa-volume-high"></i> Efeitos Sonoros</label>
-                        <input type="checkbox" id="opt-sound" checked class="toggle-switch">
+            <!-- Card 3: Hacking Simulator (Cayo Perico Fingerprint) -->
+            <div class="simulator-card hack-card">
+                <div class="card-glow"></div>
+                <div class="card-content">
+                    <div class="card-icon-wrapper">
+                        <i class="fa-solid fa-fingerprint"></i>
                     </div>
-                    <div class="option-row">
-                        <label for="opt-helper"><i class="fa-solid fa-eye"></i> Indicador de Anéis (Rank 2)</label>
-                        <input type="checkbox" id="opt-helper" checked class="toggle-switch">
+                    <h2>DECODIFICADOR BIOMÉTRICO</h2>
+                    <p class="card-desc">Hacking de clonagem de digital estilo Cayo Perico. Analise o alvo biométrico e selecione os fragmentos correspondentes do topo à base para invadir o banco de dados.</p>
+                    <div class="card-details">
+                        <span><i class="fa-solid fa-microchip"></i> Hacking de Digital</span>
+                        <span><i class="fa-solid fa-keyboard"></i> Q / E / W / S / Enter</span>
                     </div>
+                    <a href="hacking.html" class="play-btn">
+                        <span>JOGAR</span> <i class="fa-solid fa-chevron-right"></i>
+                    </a>
                 </div>
-
-                <div class="shortcuts-guide panel-section">
-                    <h3>ATALHOS DO TECLADO</h3>
-                    <ul class="shortcuts-list">
-                        <li><kbd>A</kbd> / <kbd>D</kbd> ou <kbd>←</kbd> / <kbd>→</kbd> <span>Rotacionar Chave</span></li>
-                        <li><kbd>W</kbd> / <kbd>S</kbd> ou <kbd>↑</kbd> / <kbd>↓</kbd> <span>Selecionar Chave</span></li>
-                        <li><kbd>Espaço</kbd> ou <kbd>Enter</kbd> <span>Encaixar Chave</span></li>
-                        <li><kbd>U</kbd> ou <kbd>Backspace</kbd> <span>Desfazer Jogada</span></li>
-                        <li><kbd>R</kbd> <span>Reiniciar Jogo</span></li>
-                        <li><kbd>F</kbd> <span>Usar Auto-Slot</span></li>
-                    </ul>
-                </div>
-            </section>
-
-            <!-- PAINEL CENTRAL: O Dispositivo do Digipick -->
-            <section class="panel center-panel">
-                <div class="pick-device-wrapper">
-                    <!-- Informações do Anel Ativo -->
-                    <div class="device-status">
-                        <span class="status-indicator active" id="lock-status-indicator"></span>
-                        <span id="lock-status-text">DISPOSITIVO ATIVO</span>
-                    </div>
-
-                    <!-- Canvas do Digipick -->
-                    <div class="canvas-container">
-                        <canvas id="digipick-canvas" width="600" height="600"></canvas>
-                        
-                        <!-- Overlay de Sucesso -->
-                        <div class="success-overlay" id="success-overlay">
-                            <div class="success-box">
-                                <div class="lock-icon-wrapper animate-pulse">
-                                    <i class="fa-solid fa-lock-open"></i>
-                                </div>
-                                <h2>ACESSO CONCEDIDO</h2>
-                                <p id="success-message">Dispositivo desbloqueado com sucesso.</p>
-                                <div class="success-stats">
-                                    <div>Tempo: <strong id="succ-time">00:00</strong></div>
-                                    <div>Chaves Usadas: <strong id="succ-keys">0</strong></div>
-                                </div>
-                                <button class="btn btn-primary" id="btn-next-puzzle">NOVO QUEBRA-CABEÇA</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Controles Móveis/Mouse na Base do Dispositivo -->
-                    <div class="device-buttons">
-                        <button class="action-btn red-btn" id="btn-reset" title="Reiniciar Dispositivo">
-                            <i class="fa-solid fa-arrow-rotate-left"></i> REINICIAR
-                        </button>
-                        <button class="action-btn" id="btn-undo" title="Desfazer Última Ação">
-                            <i class="fa-solid fa-reply"></i> DESFAZER
-                        </button>
-                        <button class="action-btn cyan-btn" id="btn-auto" title="Revelar uma Chave Correta">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> AUTO-SLOT
-                        </button>
-                        <button class="action-btn primary-btn" id="btn-slot" title="Encaixar Chave Atual">
-                            <i class="fa-solid fa-circle-check"></i> ENCAIXAR CHAVE
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- PAINEL DIREITO: Lista de Chaves Disponíveis -->
-            <section class="panel right-panel">
-                <div class="panel-header">
-                    <h2><i class="fa-solid fa-key"></i> CHAVES DISPONÍVEIS</h2>
-                </div>
-                
-                <div class="keys-list" id="keys-container">
-                    <!-- As chaves serão geradas dinamicamente via JS -->
-                </div>
-
-                <div class="controls-hint">
-                    <p><i class="fa-solid fa-circle-info"></i> Selecione uma chave à direita e rotacione para encaixar nos slots vazios.</p>
-                </div>
-            </section>
+            </div>
         </main>
-        
-        <!-- FOOTER -->
-        <footer class="game-footer">
-            <p>Criado em homenagem a Starfield. Baseado no simulador de BB_Dev.</p>
+
+        <footer class="home-footer">
+            <p>Malaca System &copy; 2026. Desenvolvido para simulação e aprimoramento de reflexos em servidores de Roleplay.</p>
         </footer>
     </div>
 
-    <!-- Script principal do jogo -->
+    <!-- Script de Estrelas de Fundo na Home -->
+    <script>
+        const bgCanvas = document.getElementById('starfield-bg');
+        const bgCtx = bgCanvas.getContext('2d');
+        let stars = [];
+
+        function resizeBgCanvas() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+            initStars();
+        }
+
+        function initStars() {
+            stars = [];
+            const count = Math.floor((bgCanvas.width * bgCanvas.height) / 18000);
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * bgCanvas.width,
+                    y: Math.random() * bgCanvas.height,
+                    size: Math.random() * 1.5 + 0.5,
+                    twinkleSpeed: Math.random() * 0.02 + 0.005,
+                    phase: Math.random() * Math.PI
+                });
+            }
+        }
+
+        function animateStars() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            stars.forEach(star => {
+                star.phase += star.twinkleSpeed;
+                const opacity = (Math.sin(star.phase) + 1) / 2 * 0.7 + 0.3;
+                bgCtx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.65})`;
+                bgCtx.beginPath();
+                bgCtx.arc(star.x, star.y, star.size, 0, 2 * Math.PI);
+                bgCtx.fill();
+            });
+            requestAnimationFrame(animateStars);
+        }
+
+        window.addEventListener('load', () => {
+            resizeBgCanvas();
+            window.addEventListener('resize', resizeBgCanvas);
+            requestAnimationFrame(animateStars);
+        });
+    </script>
 </body>
 </html>

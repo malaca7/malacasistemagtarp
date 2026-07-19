@@ -35,20 +35,21 @@
         <!-- HUD Centralizado -->
         <main class="hud-container hacking-hud-container">
             <!-- Dispositivo de Hacking de Digital -->
-            <div class="hacking-device-wrapper">
-                <!-- Painel da Esquerda: Digital Alvo (Gabarito) -->
-                <div class="hacking-panel target-panel">
-                    <div class="hacking-panel-title">BIOMETRIA ALVO</div>
-                    <div class="fingerprint-canvas-container">
-                        <canvas id="target-fingerprint-canvas" width="220" height="380"></canvas>
-                    </div>
+            <div class="hacking-device-wrapper" style="max-width: 800px; width: 100%; border-radius: 8px; background: #0f121b; border: 1px solid rgba(0, 229, 255, 0.2); padding: 20px;">
+                
+                <div style="width: 100%; border-bottom: 1px solid rgba(255, 255, 255, 0.05); text-align: center; padding-bottom: 15px; margin-bottom: 25px;">
+                    <h2 style="font-size: 1.4rem; font-weight: 500; margin: 0; color: #dcdcdc; font-family: 'Inter', sans-serif;">HACKING DEVICE</h2>
                 </div>
 
-                <!-- Painel da Direita: Seletores Interativos -->
-                <div class="hacking-panel interactive-panel">
-                    <div class="hacking-panel-title">SELETORES DE FRAGMENTO</div>
-                    <div class="fingerprint-canvas-container">
-                        <canvas id="interactive-fingerprint-canvas" width="220" height="380"></canvas>
+                <div class="nopixel-hacking-container" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                    
+                    <div class="hacking-header" style="margin-bottom: 20px; text-align: center;">
+                        <div class="target-label" style="color: #00e5ff; font-family: monospace; font-size: 1.2rem; margin-bottom: 10px;">TARGET IP:</div>
+                        <div class="target-code" id="target-code" style="color: white; font-family: monospace; font-size: 2rem; letter-spacing: 5px;">LOADING...</div>
+                    </div>
+
+                    <div class="hacking-grid" id="hacking-grid" style="display: grid; gap: 8px; justify-content: center; width: 100%;">
+                        <!-- Gerado via JS -->
                     </div>
                 </div>
 
@@ -58,8 +59,8 @@
                         <div class="lock-icon-wrapper animate-pulse" style="border-color: var(--color-success); color: var(--color-success);">
                             <i class="fa-solid fa-circle-check"></i>
                         </div>
-                        <h2 style="color: var(--color-success);">SISTEMA INVASO</h2>
-                        <p id="success-message">A assinatura biométrica coincide.</p>
+                        <h2 style="color: var(--color-success);">BYPASS CONCLUÍDO</h2>
+                        <p id="success-message">Acesso ao servidor garantido.</p>
                         <div class="success-stats">
                             <div>Tempo: <strong id="succ-time">00:00</strong></div>
                             <div>Tentativas: <strong id="succ-attempts">0</strong></div>
@@ -67,12 +68,24 @@
                         <button class="btn btn-primary" id="btn-next-puzzle">NOVO HACK</button>
                     </div>
                 </div>
+
+                <!-- Overlay de Falha -->
+                <div class="success-overlay" id="fail-overlay" style="background: rgba(255, 23, 68, 0.15); backdrop-filter: blur(8px);">
+                    <div class="success-box">
+                        <div class="lock-icon-wrapper" style="border-color: var(--color-error); color: var(--color-error);">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <h2 style="color: var(--color-error);">FALHA NA CONEXÃO</h2>
+                        <p id="fail-message">O tempo esgotou ou você errou o código.</p>
+                        <button class="btn" style="border-color: var(--color-error); color: var(--color-error);" id="btn-retry-puzzle">TENTAR NOVAMENTE</button>
+                    </div>
+                </div>
             </div>
 
             <!-- Painel de Controle Inferior -->
             <div class="hud-bottom-panel">
                 <div class="hud-panel-header">
-                    <div class="hud-title">DECODIFICADOR BIOMÉTRICO</div>
+                    <div class="hud-title">HACKING DEVICE</div>
                     <div class="hud-stats">
                         <div class="hud-stat-box timer-box" id="timer-val">00:00</div>
                         <div class="hud-stat-box picks-box" id="picks-val">5</div>
@@ -83,24 +96,6 @@
                 <div class="hud-actions-footer">
                     <button class="hud-footer-btn" id="btn-stop-game" title="Parar (Espaço)" style="color: #ff3333; border-color: rgba(255,51,51,0.3);">
                         <i class="fa-solid fa-stop"></i> ESPAÇO
-                    </button>
-                    <button class="hud-footer-btn" id="btn-reset" title="Reiniciar (Esc)">
-                        <i class="fa-solid fa-arrow-rotate-left"></i> ESC
-                    </button>
-                    <button class="hud-footer-btn" id="btn-prev-slice" title="Fatia Anterior (W)">
-                        <i class="fa-solid fa-chevron-up"></i> W (SUBIR)
-                    </button>
-                    <button class="hud-footer-btn" id="btn-next-slice" title="Próxima Fatia (S)">
-                        <i class="fa-solid fa-chevron-down"></i> S (DESCER)
-                    </button>
-                    <button class="hud-footer-btn" id="btn-prev-opt" title="Opção Anterior (A)">
-                        <i class="fa-solid fa-chevron-left"></i> A (ESQ)
-                    </button>
-                    <button class="hud-footer-btn" id="btn-next-opt" title="Próxima Opção (D)">
-                        <i class="fa-solid fa-chevron-right"></i> D (DIR)
-                    </button>
-                    <button class="hud-footer-btn slot-btn" id="btn-slot" title="Confirmar Alinhamento (Enter)">
-                        <i class="fa-solid fa-circle-check"></i> ENTER
                     </button>
                 </div>
             </div>
@@ -118,9 +113,9 @@
             <div class="drawer-section">
                 <h4>DIFICULDADE</h4>
                 <div class="drawer-difficulty-selector">
-                    <button class="diff-btn active" data-difficulty="easy" id="btn-easy">FÁCIL (4 FRAGMENTOS)</button>
-                    <button class="diff-btn" data-difficulty="medium" id="btn-medium">MÉDIO (6 FRAGMENTOS)</button>
-                    <button class="diff-btn" data-difficulty="hard" id="btn-hard">DIFÍCIL (8 FRAGMENTOS)</button>
+                    <button class="diff-btn active" data-difficulty="easy" id="btn-easy">FÁCIL</button>
+                    <button class="diff-btn" data-difficulty="medium" id="btn-medium">MÉDIO</button>
+                    <button class="diff-btn" data-difficulty="hard" id="btn-hard">DIFÍCIL</button>
                 </div>
             </div>
 
@@ -137,17 +132,16 @@
             <div class="drawer-section">
                 <h4>CONTROLES RÁPIDOS</h4>
                 <ul class="shortcuts-list-drawer">
-                    <li><kbd>W</kbd> / <kbd>S</kbd> <span>Selecionar Fatia (Cima/Baixo)</span></li>
-                    <li><kbd>A</kbd> / <kbd>D</kbd> <span>Alternar Fragmento (Esq/Dir)</span></li>
-                    <li><kbd>Enter</kbd> <span>Confirmar e Invadir</span></li>
-                    <li><kbd>Esc</kbd> <span>Reiniciar Hacking</span></li>
+                    <li><kbd>Mouse</kbd> <span>Clicar no bloco correto</span></li>
+                    <li><kbd>Enter</kbd> / <kbd>Espaço</kbd> <span>Novo Jogo (se perder/ganhar)</span></li>
+                    <li><kbd>Espaço</kbd> <span>Stop (Cancel)</span></li>
                 </ul>
             </div>
             
             <!-- Descrição instrutiva -->
             <div class="drawer-section" style="margin-top: 10px;">
                 <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
-                    <i class="fa-solid fa-circle-info"></i> <strong>Instruções:</strong> A digital da esquerda é o gabarito correto. Na direita, as fatias horizontais estão fora de ordem ou incorretas. Selecione cada fatia (indicada pela cor ciano destacada) e use <strong>A/D</strong> para rotacionar as opções de desenhos até que as linhas fluam e coincidam perfeitamente com a digital da esquerda! Quando tudo alinhar, pressione <strong>Enter</strong>.
+                    <i class="fa-solid fa-circle-info"></i> <strong>Instruções:</strong> No topo da tela aparece o <strong>TARGET IP</strong> que você precisa encontrar. Olhe rapidamente a malha de códigos embaralhados (que mudam a cada poucos segundos) e clique no bloco exato que contém aquele IP antes que o tempo se esgote!
                 </p>
             </div>
         </div>
