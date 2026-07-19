@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starfield Digipick Simulator | Treino de Arrombamento</title>
+    <meta name="description" content="Simulador e treinador do minijogo de arrombamento (Digipick) do Starfield. Pratique nos modos Novato, Avançado, Perito e Mestre, além do Desafio Diário.">
+    
+    <!-- Google Fonts para estilo futurista/Sci-Fi -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Link para a folha de estilo -->
+    
+    <!-- FontAwesome para ícones premium -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" crossorigin src="/assets/index-BiPi1K1Z.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-0rdgOW68.css">
+</head>
+<body>
+    <!-- Canvas de Fundo para o efeito de estrelas -->
+    <canvas id="starfield-bg"></canvas>
+
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="game-header">
+            <div class="logo-area">
+                <span class="starfield-badge">★</span>
+                <h1>DIGIPICK <span class="accent-text">SIMULATOR</span></h1>
+            </div>
+            
+            <div class="difficulty-selector">
+                <button class="diff-btn active" data-difficulty="novice" id="btn-novice">NOVATO</button>
+                <button class="diff-btn" data-difficulty="advanced" id="btn-advanced">AVANÇADO</button>
+                <button class="diff-btn" data-difficulty="expert" id="btn-expert">PERITO</button>
+                <button class="diff-btn" data-difficulty="master" id="btn-master">MESTRE</button>
+                <button class="diff-btn daily-btn" data-difficulty="daily" id="btn-daily">
+                    <i class="fa-solid fa-calendar-day"></i> DESAFIO DIÁRIO
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT -->
+        <main class="game-layout">
+            <!-- PAINEL ESQUERDO: Estatísticas e Controles -->
+            <section class="panel left-panel" id="stats-panel">
+                <div class="panel-header">
+                    <h2><i class="fa-solid fa-gauge-high"></i> PAINEL DE CONTROLE</h2>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-label">TEMPO ELAPISADO</span>
+                        <span class="stat-value" id="timer-val">00:00</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">DIGIPICKS RESTANTES</span>
+                        <span class="stat-value" id="picks-val">99</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">DESFAZER (UNDO)</span>
+                        <span class="stat-value text-accent" id="undo-val">∞</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">AUTO-SLOTS</span>
+                        <span class="stat-value" id="auto-val">3</span>
+                    </div>
+                </div>
+
+                <div class="daily-streak-card" id="streak-card" style="display: none;">
+                    <div class="streak-header">
+                        <i class="fa-solid fa-fire text-warning"></i>
+                        <span>SEQUÊNCIA DIÁRIA</span>
+                    </div>
+                    <div class="streak-content">
+                        <span class="streak-days" id="streak-val">0 dias</span>
+                        <span class="streak-desc" id="streak-desc">Complete o desafio de hoje!</span>
+                    </div>
+                </div>
+
+                <div class="game-options panel-section">
+                    <h3>CONFIGURAÇÕES</h3>
+                    <div class="option-row">
+                        <label for="opt-sound"><i class="fa-solid fa-volume-high"></i> Efeitos Sonoros</label>
+                        <input type="checkbox" id="opt-sound" checked class="toggle-switch">
+                    </div>
+                    <div class="option-row">
+                        <label for="opt-helper"><i class="fa-solid fa-eye"></i> Indicador de Anéis (Rank 2)</label>
+                        <input type="checkbox" id="opt-helper" checked class="toggle-switch">
+                    </div>
+                </div>
+
+                <div class="shortcuts-guide panel-section">
+                    <h3>ATALHOS DO TECLADO</h3>
+                    <ul class="shortcuts-list">
+                        <li><kbd>A</kbd> / <kbd>D</kbd> ou <kbd>←</kbd> / <kbd>→</kbd> <span>Rotacionar Chave</span></li>
+                        <li><kbd>W</kbd> / <kbd>S</kbd> ou <kbd>↑</kbd> / <kbd>↓</kbd> <span>Selecionar Chave</span></li>
+                        <li><kbd>Espaço</kbd> ou <kbd>Enter</kbd> <span>Encaixar Chave</span></li>
+                        <li><kbd>U</kbd> ou <kbd>Backspace</kbd> <span>Desfazer Jogada</span></li>
+                        <li><kbd>R</kbd> <span>Reiniciar Jogo</span></li>
+                        <li><kbd>F</kbd> <span>Usar Auto-Slot</span></li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- PAINEL CENTRAL: O Dispositivo do Digipick -->
+            <section class="panel center-panel">
+                <div class="pick-device-wrapper">
+                    <!-- Informações do Anel Ativo -->
+                    <div class="device-status">
+                        <span class="status-indicator active" id="lock-status-indicator"></span>
+                        <span id="lock-status-text">DISPOSITIVO ATIVO</span>
+                    </div>
+
+                    <!-- Canvas do Digipick -->
+                    <div class="canvas-container">
+                        <canvas id="digipick-canvas" width="600" height="600"></canvas>
+                        
+                        <!-- Overlay de Sucesso -->
+                        <div class="success-overlay" id="success-overlay">
+                            <div class="success-box">
+                                <div class="lock-icon-wrapper animate-pulse">
+                                    <i class="fa-solid fa-lock-open"></i>
+                                </div>
+                                <h2>ACESSO CONCEDIDO</h2>
+                                <p id="success-message">Dispositivo desbloqueado com sucesso.</p>
+                                <div class="success-stats">
+                                    <div>Tempo: <strong id="succ-time">00:00</strong></div>
+                                    <div>Chaves Usadas: <strong id="succ-keys">0</strong></div>
+                                </div>
+                                <button class="btn btn-primary" id="btn-next-puzzle">NOVO QUEBRA-CABEÇA</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Controles Móveis/Mouse na Base do Dispositivo -->
+                    <div class="device-buttons">
+                        <button class="action-btn red-btn" id="btn-reset" title="Reiniciar Dispositivo">
+                            <i class="fa-solid fa-arrow-rotate-left"></i> REINICIAR
+                        </button>
+                        <button class="action-btn" id="btn-undo" title="Desfazer Última Ação">
+                            <i class="fa-solid fa-reply"></i> DESFAZER
+                        </button>
+                        <button class="action-btn cyan-btn" id="btn-auto" title="Revelar uma Chave Correta">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> AUTO-SLOT
+                        </button>
+                        <button class="action-btn primary-btn" id="btn-slot" title="Encaixar Chave Atual">
+                            <i class="fa-solid fa-circle-check"></i> ENCAIXAR CHAVE
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAINEL DIREITO: Lista de Chaves Disponíveis -->
+            <section class="panel right-panel">
+                <div class="panel-header">
+                    <h2><i class="fa-solid fa-key"></i> CHAVES DISPONÍVEIS</h2>
+                </div>
+                
+                <div class="keys-list" id="keys-container">
+                    <!-- As chaves serão geradas dinamicamente via JS -->
+                </div>
+
+                <div class="controls-hint">
+                    <p><i class="fa-solid fa-circle-info"></i> Selecione uma chave à direita e rotacione para encaixar nos slots vazios.</p>
+                </div>
+            </section>
+        </main>
+        
+        <!-- FOOTER -->
+        <footer class="game-footer">
+            <p>Criado em homenagem a Starfield. Baseado no simulador de BB_Dev.</p>
+        </footer>
+    </div>
+
+    <!-- Script principal do jogo -->
+</body>
+</html>
