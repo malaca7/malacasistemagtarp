@@ -236,8 +236,10 @@ function generatePuzzle(difficulty, seed = null) {
     else state.timeLimit = 60;
     
     function generateSpacedKeyPins(pinCount) {
-        const count = (pinCount === 3) ? 3 : 2;
-        if (count === 2) {
+        if (pinCount === 1) {
+            const p1 = Math.floor(state.randomFn() * 32);
+            return [p1];
+        } else if (pinCount === 2) {
             const p1 = Math.floor(state.randomFn() * 32);
             const dist = 5 + Math.floor(state.randomFn() * 12);
             const p2 = (p1 + dist) % 32;
@@ -256,31 +258,41 @@ function generatePuzzle(difficulty, seed = null) {
     const solutionKeys = [];
     
     for (let r = 0; r < numRings; r++) {
-        // Todas as chaves têm estritamente 2 ou 3 pinos distantes
-        const p1 = (state.randomFn() < 0.5) ? 2 : 3;
-        const p2 = (state.randomFn() < 0.5) ? 2 : 3;
-        
-        const basePins1 = generateSpacedKeyPins(p1);
-        const basePins2 = generateSpacedKeyPins(p2);
+        // Cada etapa tem exatamente: 1 chave com 3 pinos, 1 chave com 2 pinos e 1 chave com 1 pino
+        const basePins1 = generateSpacedKeyPins(3);
+        const basePins2 = generateSpacedKeyPins(2);
+        const basePins3 = generateSpacedKeyPins(1);
         
         const r1 = Math.floor(state.randomFn() * 32);
         const ringPins1 = basePins1.map(p => (p + r1) % 32);
         
         let r2 = Math.floor(state.randomFn() * 32);
-        let attempts = 0;
-        while (attempts < 50) {
+        let attempts2 = 0;
+        while (attempts2 < 50) {
             const ringPins2 = basePins2.map(p => (p + r2) % 32);
             const hasOverlap = ringPins1.some(p => ringPins2.includes(p));
             if (!hasOverlap) break;
             r2 = Math.floor(state.randomFn() * 32);
-            attempts++;
+            attempts2++;
         }
-        
         const ringPins2 = basePins2.map(p => (p + r2) % 32);
+        
+        let r3 = Math.floor(state.randomFn() * 32);
+        let attempts3 = 0;
+        while (attempts3 < 50) {
+            const ringPins3 = basePins3.map(p => (p + r3) % 32);
+            const combined12 = [...ringPins1, ...ringPins2];
+            const hasOverlap = combined12.some(p => ringPins3.includes(p));
+            if (!hasOverlap) break;
+            r3 = Math.floor(state.randomFn() * 32);
+            attempts3++;
+        }
+        const ringPins3 = basePins3.map(p => (p + r3) % 32);
         
         const notches = Array(32).fill(false);
         ringPins1.forEach(p => notches[p] = true);
         ringPins2.forEach(p => notches[p] = true);
+        ringPins3.forEach(p => notches[p] = true);
         
         state.rings.push({
             notches: notches,
@@ -304,12 +316,22 @@ function generatePuzzle(difficulty, seed = null) {
             ringIndex: r,
             used: false
         });
+        
+        solutionKeys.push({
+            basePins: basePins3,
+            rotation: 0,
+            solvedRotation: r3,
+            isSolution: true,
+            ringIndex: r,
+            used: false
+        });
     }
     
-    // Gerar chaves falsas (duds) com 2 ou 3 pinos distantes
+    // Gerar chaves falsas (duds) com distribuição de 3, 2 e 1 pinos
     const dudKeys = [];
+    const dudCounts = [3, 2, 1];
     for (let d = 0; d < numDuds; d++) {
-        const dp = (state.randomFn() < 0.5) ? 2 : 3;
+        const dp = dudCounts[d % dudCounts.length];
         const basePins = generateSpacedKeyPins(dp);
         
         dudKeys.push({
