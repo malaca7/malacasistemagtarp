@@ -295,8 +295,9 @@ function failGame(msg = 'O tempo esgotou ou você errou.') {
         }
     }
     
-    document.getElementById('fail-message').textContent = msg;
-    document.getElementById('fail-overlay').classList.add('show');
+    // Garantir que a mensagem de erro pop-up NÃO apareça por cima
+    const failOverlay = document.getElementById('fail-overlay');
+    if (failOverlay) failOverlay.classList.remove('show');
 }
 
 function startTimer() {
@@ -329,7 +330,14 @@ function updateHUD() {
 window.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
     
-    if (state.gameState === 'won' || state.gameState === 'lost') {
+    // Quando perdeu, QUALQUER TECLA pressionada reinicia o teste instantaneamente
+    if (state.gameState === 'lost') {
+        e.preventDefault();
+        initGame();
+        return;
+    }
+    
+    if (state.gameState === 'won') {
         if (key === 'enter' || key === ' ') {
             e.preventDefault();
             initGame();
