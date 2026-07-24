@@ -457,10 +457,21 @@ body {
     background: transparent;
 }
 
-/* BANNER DE NOTIFICAÇÕES ACIMA DO SISTEMA */
+/* BANNER DE NOTIFICAÇÕES ACIMA DO SISTEMA (NUNCA COMPRIME O SISTEMA) */
 .top-status-banner {
     width: 100%;
+    min-height: 52px;
     margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Os dispositivos NUNCA encolhem ou comprimem ao exibir mensagens */
+.lockpick-device-wrapper,
+.caixinha-device-wrapper,
+.hacking-device-wrapper {
+    flex-shrink: 0 !important;
 }
 
 .success-overlay {
@@ -2209,27 +2220,50 @@ body {
     gap: 6px;
 }
 
-/* --- OTIMIZAÇÃO RESPONSIVA E PROPORCIONAL DE TELA --- */
-.hacking-page-body, body {
-    height: 100vh;
+/* --- OTIMIZAÇÃO RESPONSIVA E ELIMINAÇÃO DE BARRAS DE ROLAGEM INTERNAS --- */
+html, body, .hacking-page-body {
     min-height: 100vh;
-    overflow: hidden;
+    height: auto !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important; /* Se precisar de barra de rolagem, é a da página completa */
 }
 
 .app-container {
-    height: 100vh;
-    max-height: 100vh;
-    padding: 10px 15px;
+    min-height: 100vh;
+    height: auto !important;
+    max-height: none !important;
+    padding: 20px 15px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    overflow: hidden;
+    overflow: visible !important;
+}
+
+/* Remover barra de rolagem de todos os containers de sistemas internos */
+.hud-container,
+.lockpick-device-wrapper,
+.caixinha-device-wrapper,
+.hacking-device-wrapper,
+.character-soup-grid,
+.typing-sequence-container,
+.on-screen-settings-panel,
+.hud-bottom-panel {
+    max-height: none !important;
+    overflow: visible !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+.hud-container::-webkit-scrollbar,
+.lockpick-device-wrapper::-webkit-scrollbar,
+.caixinha-device-wrapper::-webkit-scrollbar,
+.hacking-device-wrapper::-webkit-scrollbar,
+.character-soup-grid::-webkit-scrollbar {
+    display: none !important;
 }
 
 .hud-container {
-    max-height: 98vh;
-    overflow-y: auto;
     width: 100%;
     max-width: 620px;
     justify-content: center;

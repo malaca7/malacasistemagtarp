@@ -132,6 +132,25 @@ function renderSequence() {
 }
 
 // --- GERAÇÃO DO NÍVEL ---
+function getDurationForRound() {
+    let baseMs = 8000;
+    if (state.difficulty === 'easy') baseMs = 10000;
+    if (state.difficulty === 'hard') baseMs = 5000;
+    
+    let speedMult = 1.0;
+    if (state.hacksCompleted === 1) speedMult = 1.2;
+    else if (state.hacksCompleted >= 2) speedMult = 1.4;
+    
+    const durationMs = Math.round(baseMs / speedMult);
+    
+    const levelVal = document.getElementById('level-val');
+    if (levelVal) {
+        levelVal.textContent = `TEMPO: ${(durationMs / 1000).toFixed(1)}s (${speedMult.toFixed(1)}x)`;
+    }
+    
+    return durationMs;
+}
+
 function generatePuzzle(difficulty) {
     state.difficulty = difficulty || 'medium';
     
@@ -166,6 +185,7 @@ function generatePuzzle(difficulty) {
     }
     
     renderSequence();
+    updateActiveSquare();
     
     // Limpar barra de tempo e contador
     clearInterval(state.timerInterval);
@@ -185,9 +205,7 @@ function generatePuzzle(difficulty) {
         instructionVal.style.color = COLORS.green;
         
         // Se já está jogando e geramos um novo nível, iniciar timer novamente
-        let durationMs = 8000;
-        if (state.difficulty === 'easy') durationMs = 10000;
-        if (state.difficulty === 'hard') durationMs = 5000;
+        const durationMs = getDurationForRound();
         startTimer(durationMs, () => {
             if (state.gameState === 'playing') failGame();
         });
@@ -223,11 +241,8 @@ function startGame() {
     }
     instructionVal.style.color = COLORS.green;
     
-    // Iniciar timer
-    let durationMs = 8000;
-    if (state.difficulty === 'easy') durationMs = 10000;
-    if (state.difficulty === 'hard') durationMs = 5000;
-    
+    // Iniciar timer com a velocidade do teste 1 (1x)
+    const durationMs = getDurationForRound();
     startTimer(durationMs, () => {
         if (state.gameState === 'playing') {
             failGame();
