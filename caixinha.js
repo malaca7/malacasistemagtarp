@@ -188,12 +188,23 @@ function generatePuzzle(difficulty) {
     renderSequence();
     updateActiveSquare();
     
-    // Limpar barra de tempo e contador
-    clearInterval(state.timerInterval);
-    timerFill.style.width = '100%';
-    timerFill.style.background = '#4a4a4a'; // cinza neutro antes de iniciar
-    counterVal.textContent = `0/${SEQUENCE_LENGTH}`;
-    
+    if (instructionVal) {
+        if (state.gameState !== 'playing') {
+            instructionVal.textContent = "AGUARDANDO INÍCIO";
+            instructionVal.style.color = COLORS.cyan;
+        } else {
+            if (state.gameMode === 'standard') {
+                instructionVal.textContent = `ACERTOS: ${state.hacksCompleted} / 3`;
+            } else {
+                instructionVal.textContent = `ACERTOS: ${state.hacksCompleted}`;
+            }
+            instructionVal.style.color = COLORS.green;
+            
+            const durationMs = getDurationForRound();
+            startTimer(durationMs, () => {
+                if (state.gameState === 'playing') failGame();
+            });
+        }
     }
 }
 
@@ -362,58 +373,56 @@ function startTimer(durationMs, onComplete) {
     state.timeRemaining = durationMs;
     
     const startTime = performance.now();
-    timerFill.style.background = COLORS.green;
+    if (timerFill) {
+        timerFill.style.width = '100%';
+        timerFill.style.background = COLORS.green;
+    }
     
     state.timerInterval = setInterval(() => {
         const elapsed = performance.now() - startTime;
         state.timeRemaining = Math.max(0, durationMs - elapsed);
         
         const pct = (state.timeRemaining / durationMs) * 100;
-        timerFill.style.width = `${pct}%`;
-        
-        if (pct < 25) {
-            timerFill.style.background = COLORS.error;
+        if (timerFill) {
+            timerFill.style.width = `${pct}%`;
+            if (pct < 25) {
+                timerFill.style.background = COLORS.error;
+            }
         }
         
         if (state.timeRemaining <= 0) {
             clearInterval(state.timerInterval);
             onComplete();
         }
-    }, 16); // ~60fps
+    }, 16);
 }
 
 // --- EVENTOS E INICIALIZAÇÃO ---
 window.addEventListener('keydown', (e) => {
-    // Tecla apertada em upper case
     const key = e.key.toUpperCase();
     
-    // ESPAÇO (' ') E ENTER
     if (key === 'ENTER' || key === ' ') {
-        e.preventDefault(); // Evitar scroll de tela no espaço
+        e.preventDefault();
         if (state.gameState === 'playing') {
-            failGame(); // Pausar/Stop equivale a falhar e cancelar o treino
-        } else if (state.gameState === 'waiting' || state.gameState === 'won' || state.gameState === 'lost') {
-            if (state.gameState === 'won' || state.gameState === 'lost') {
-                generatePuzzle(state.difficulty);
-            } else {
-                startGame();
-            }
+            failGame();
+        } else {
+            startGame();
         }
         return;
     }
     
-    if (state.gameState === 'playing') {
-        // Ignorar teclas que não importam
-        if (ALLOWED_KEYS.includes(key)) {
-            handleKeyPress(key);
-            e.preventDefault();
+    if (ALLOWED_KEYS.includes(key)) {
+        e.preventDefault();
+        if (state.gameState !== 'playing') {
+            startGame();
         }
+        handleKeyPress(key);
         return;
     }
     
     if (key === 'ESCAPE') {
-        generatePuzzle(state.difficulty);
         e.preventDefault();
+        generatePuzzle(state.difficulty);
     }
 });
 
