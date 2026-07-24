@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig({
-  base: './', // Caminho relativo para funcionar tanto com domínio customizado quanto com GitHub Pages
+  base: '/', // Permite navegação pelas páginas (.html) tanto no servidor local quanto em produção
   build: {
     outDir: 'dist',
     rollupOptions: {
