@@ -133,9 +133,9 @@ function renderSequence() {
 
 // --- GERAÇÃO DO NÍVEL ---
 function getDurationForRound() {
-    let baseMs = 8000;
-    if (state.difficulty === 'easy') baseMs = 10000;
-    if (state.difficulty === 'hard') baseMs = 5000;
+    let baseMs = 9000;
+    if (state.difficulty === 'easy') baseMs = 12000;
+    if (state.difficulty === 'hard') baseMs = 6500;
     
     let speedMult = 1.0;
     if (state.hacksCompleted === 1) speedMult = 1.2;
@@ -154,9 +154,9 @@ function getDurationForRound() {
 function generatePuzzle(difficulty) {
     state.difficulty = difficulty || 'medium';
     
-    let timeLimitText = '8s';
-    if (state.difficulty === 'easy') timeLimitText = '10s';
-    if (state.difficulty === 'hard') timeLimitText = '5s';
+    let timeLimitText = '9s';
+    if (state.difficulty === 'easy') timeLimitText = '12s';
+    if (state.difficulty === 'hard') timeLimitText = '6.5s';
     
     const levelValEl = document.getElementById('level-val');
     if (levelValEl) levelValEl.textContent = `TEMPO: ${timeLimitText}`;

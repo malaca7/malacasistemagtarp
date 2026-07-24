@@ -200,40 +200,35 @@ function generatePuzzle(difficulty, seed = null) {
         state.randomFn = Math.random;
     }
     
-    // Parâmetros de dificuldade
-    let numRings = 3; // "fazer 3 estagios" em todos
-    let numDuds = 1;  // > 5 opções (3 anéis * 2 chaves = 6 + duds)
+    // Parâmetros de dificuldade reformulados para excelente jogabilidade
+    let numRings = 2;
+    let numDuds = 1;
     
     if (difficulty === 'novice') {
-        numDuds = 1; // Total 7 opções
+        numRings = 2;
+        numDuds = 1;
+        state.timeLimit = 120;
         state.digipicksCount = 99;
-        state.autoSlotsCount = 3;
+        state.autoSlotsCount = 5;
     } else if (difficulty === 'advanced') {
-        numDuds = 3; // Total 9 opções
+        numRings = 2;
+        numDuds = 2;
+        state.timeLimit = 90;
         state.digipicksCount = 99;
         state.autoSlotsCount = 3;
     } else if (difficulty === 'expert') {
-        numDuds = 5; // Total 11 opções
+        numRings = 3;
+        numDuds = 2;
+        state.timeLimit = 75;
         state.digipicksCount = 99;
         state.autoSlotsCount = 3;
     } else if (difficulty === 'master' || difficulty === 'daily') {
-        numDuds = 6; // Total 12 opções
+        numRings = 3;
+        numDuds = 3;
+        state.timeLimit = 60;
         state.digipicksCount = (difficulty === 'daily') ? 1 : 99; 
         state.autoSlotsCount = (difficulty === 'daily') ? 0 : 3;
     }
-
-    state.rings = [];
-    state.keys = [];
-    state.activeRingIndex = 0;
-    state.history = [];
-    state.gameWon = false;
-    state.gameLost = false;
-    
-    // Set time limit based on difficulty
-    if (difficulty === 'novice') state.timeLimit = 60;
-    else if (difficulty === 'advanced') state.timeLimit = 45;
-    else if (difficulty === 'expert') state.timeLimit = 30;
-    else state.timeLimit = 60;
     
     function generateSpacedKeyPins(pinCount) {
         if (pinCount === 1) {

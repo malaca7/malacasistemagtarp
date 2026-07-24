@@ -2,7 +2,7 @@
 const state = {
     gameState: 'waiting', // waiting, playing, won, lost
     timer: 0,
-    timeLimit: 15,
+    timeLimit: 20,
     timerInterval: null,
     scrambleInterval: null,
     startTime: 0,
