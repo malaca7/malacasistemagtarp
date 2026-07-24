@@ -282,8 +282,7 @@ function generatePuzzle(difficulty, seed = null) {
         let success = false;
         let attempts = 0;
         
-        while (!success && attempts < 500) {
-            attempts++;
+        while (!success) {
             let p1 = 2, p2 = 2;
             if (difficulty === 'novice') {
                 p1 = 2;
