@@ -70,14 +70,10 @@ function playSound(type) {
     }
 }
 
+let activeSetChars = "";
+
 function getRandomChar() {
-    let chars;
-    if (state.charSet === 'all') {
-        chars = ALL_CHARS_COMBINED;
-    } else {
-        chars = CHARACTER_SETS[state.charSet] || CHARACTER_SETS.numeric;
-    }
-    return chars.charAt(Math.floor(Math.random() * chars.length));
+    return activeSetChars.charAt(Math.floor(Math.random() * activeSetChars.length));
 }
 
 function initGame() {
@@ -87,6 +83,15 @@ function initGame() {
     
     document.getElementById('success-overlay').classList.remove('show');
     document.getElementById('fail-overlay').classList.remove('show');
+    
+    // Se 'all' (Misto) estiver selecionado, escolhe 1 conjunto aleatório para este teste
+    if (state.charSet === 'all') {
+        const keys = Object.keys(CHARACTER_SETS);
+        const randomKey = keys[Math.floor(Math.random() * keys.length)];
+        activeSetChars = CHARACTER_SETS[randomKey];
+    } else {
+        activeSetChars = CHARACTER_SETS[state.charSet] || CHARACTER_SETS.numeric;
+    }
     
     // Gerar target string
     state.targetChars = [];
@@ -136,19 +141,6 @@ function renderGrid() {
             }
         }
         
-        // Eventos de Mouse
-        cell.addEventListener('mouseenter', () => {
-            if (state.gameState !== 'playing') return;
-            state.cursorPos = i;
-            playSound('move');
-            updateCursorHighlight();
-        });
-        
-        cell.addEventListener('click', () => {
-            if (state.gameState !== 'playing') return;
-            submitSelection();
-        });
-        
         gridEl.appendChild(cell);
     }
 }
@@ -158,20 +150,30 @@ function startScrambler() {
     state.scrambleInterval = setInterval(() => {
         if (state.gameState !== 'playing') return;
         
-        // Randomizar células falsas continuamente para dificultar a busca
+        // 1. Mover a sequência correta 1 por 1 para a esquerda (subindo a linha ao estourar)
+        const maxStartPos = state.gridSize - state.targetLength;
+        state.correctPos--;
+        if (state.correctPos < 0) {
+            state.correctPos = maxStartPos;
+        }
+        
+        // 2. Deslocar toda a malha em ordem: o primeiro símbolo vai exatamente para o final
+        const firstChar = state.gridChars.shift();
+        state.gridChars.push(firstChar);
+        
+        // 3. Garantir a sequência gabarito na posição exata
+        for (let i = 0; i < state.targetLength; i++) {
+            state.gridChars[state.correctPos + i] = state.targetChars[i];
+        }
+        
+        // 4. Atualizar os textos das células no DOM
         const cells = document.querySelectorAll('.char-cell');
         for (let i = 0; i < state.gridSize; i++) {
-            // Não alterar a sequência gabarito verdadeira
-            if (i < state.correctPos || i >= state.correctPos + state.targetLength) {
-                if (Math.random() > 0.6) {
-                    state.gridChars[i] = getRandomChar();
-                    if (cells[i]) {
-                        cells[i].textContent = state.gridChars[i];
-                    }
-                }
+            if (cells[i]) {
+                cells[i].textContent = state.gridChars[i];
             }
         }
-    }, 500); // Passando/mudando a cada 500ms
+    }, 1500); // Passo ordenado a cada 1.5s
 }
 
 function stopScrambler() {

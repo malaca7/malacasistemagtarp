@@ -2045,7 +2045,7 @@ body {
     font-size: 1.4rem !important;
     font-weight: bold !important;
     border-radius: 4px !important;
-    cursor: pointer !important;
+    cursor: default !important;
     transition: background 0.1s, color 0.1s, border-color 0.1s !important;
 }
 
@@ -2184,31 +2184,38 @@ body {
     max-height: 98vh;
     overflow-y: auto;
     width: 100%;
+    max-width: 620px;
     justify-content: center;
 }
 
+.hacking-hud-container {
+    max-width: 920px !important;
+}
+
 .lockpick-device-wrapper {
-    width: min(360px, 70vw);
-    height: min(360px, 70vw);
+    width: min(420px, 80vw);
+    height: min(420px, 80vw);
 }
 
 .character-soup-grid {
-    gap: 6px !important;
-    padding: 8px !important;
+    gap: 8px !important;
+    padding: 12px !important;
+    max-width: 880px !important;
 }
 
 .char-cell {
-    font-size: clamp(1rem, 2vw, 1.3rem) !important;
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem) !important;
+    padding: 2px !important;
 }
 
 .hacking-target-panel {
-    margin-bottom: 15px !important;
-    padding: 10px 20px !important;
+    margin-bottom: 18px !important;
+    padding: 14px 24px !important;
 }
 
 .target-code-display {
-    font-size: clamp(1.6rem, 3.5vw, 2.2rem) !important;
-    letter-spacing: 8px !important;
+    font-size: clamp(2.2rem, 4.5vw, 3rem) !important;
+    letter-spacing: 10px !important;
 }
 
 /* Esconder botões de menu/drawer já que tudo é no meio da tela */
