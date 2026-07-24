@@ -230,6 +230,20 @@ function generatePuzzle(difficulty, seed = null) {
         state.autoSlotsCount = (difficulty === 'daily') ? 0 : 3;
     }
     
+    function keyFitsNotchesAtAnyRotation(basePins, notches) {
+        for (let rot = 0; rot < 32; rot++) {
+            let fits = true;
+            for (let p of basePins) {
+                if (!notches[(p + rot) % 32]) {
+                    fits = false;
+                    break;
+                }
+            }
+            if (fits) return true;
+        }
+        return false;
+    }
+
     function generateSpacedKeyPins(pinCount) {
         const count = Math.max(2, Math.min(4, pinCount));
         const positions = [];
@@ -255,7 +269,7 @@ function generatePuzzle(difficulty, seed = null) {
         return positions.sort((a, b) => a - b);
     }
     
-    // Gerar chaves de solução e anéis (Exatamente 2 chaves por anel)
+    // Gerar chaves de solução e anéis (Exatamente 2 chaves por anel sem interferência entre etapas)
     const solutionKeys = [];
     
     for (let r = 0; r < numRings; r++) {
@@ -263,10 +277,12 @@ function generatePuzzle(difficulty, seed = null) {
         let r1, r2;
         let ringPins1, ringPins2;
         let success = false;
+        let attempts = 0;
         
-        while (!success) {
-            const p1 = Math.floor(state.randomFn() * 3) + 2; // 2..4
-            const p2 = Math.floor(state.randomFn() * 3) + 2; // 2..4
+        while (!success && attempts < 500) {
+            attempts++;
+            const p1 = Math.floor(state.randomFn() * 3) + 2;
+            const p2 = Math.floor(state.randomFn() * 3) + 2;
             
             basePins1 = generateSpacedKeyPins(p1);
             basePins2 = generateSpacedKeyPins(p2);
@@ -279,7 +295,22 @@ function generatePuzzle(difficulty, seed = null) {
             
             const allPos = [...ringPins1, ...ringPins2];
             const uniquePos = new Set(allPos);
-            if (uniquePos.size === (basePins1.length + basePins2.length)) {
+            if (uniquePos.size !== (basePins1.length + basePins2.length)) {
+                continue;
+            }
+            
+            // Garantir que as chaves do anel r não caibam em anéis anteriores prevR < r
+            let stealsPreviousRing = false;
+            for (let prevR = 0; prevR < r; prevR++) {
+                const prevNotches = state.rings[prevR].initialNotches;
+                if (keyFitsNotchesAtAnyRotation(basePins1, prevNotches) || 
+                    keyFitsNotchesAtAnyRotation(basePins2, prevNotches)) {
+                    stealsPreviousRing = true;
+                    break;
+                }
+            }
+            
+            if (!stealsPreviousRing) {
                 success = true;
             }
         }
@@ -316,7 +347,15 @@ function generatePuzzle(difficulty, seed = null) {
     const dudKeys = [];
     for (let d = 0; d < numDuds; d++) {
         const dp = Math.floor(state.randomFn() * 3) + 2;
-        const basePins = generateSpacedKeyPins(dp);
+        let basePins = generateSpacedKeyPins(dp);
+        
+        let dudAttempts = 0;
+        while (dudAttempts < 50) {
+            let fitsAnyRing = state.rings.some(ring => keyFitsNotchesAtAnyRotation(basePins, ring.initialNotches));
+            if (!fitsAnyRing) break;
+            basePins = generateSpacedKeyPins(dp);
+            dudAttempts++;
+        }
         
         dudKeys.push({
             basePins: basePins,
