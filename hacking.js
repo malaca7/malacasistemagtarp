@@ -1,4 +1,4 @@
-// NoPixel Hacking Device Minigame (Sharkiller Replica)
+// Simulador de Hacking e Decodificação
 const state = {
     gameState: 'waiting', // waiting, playing, won, lost
     timer: 0,
@@ -307,17 +307,12 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-// Event Listeners do Drawer / Botões
+// Event Listeners do Jogo
 document.getElementById('btn-stop-game').addEventListener('click', () => {
     if (state.gameState === 'playing') failGame('Hack interrompido.');
 });
 document.getElementById('btn-next-puzzle').addEventListener('click', initGame);
 document.getElementById('btn-retry-puzzle').addEventListener('click', initGame);
-
-// Drawer Toggle
-const drawer = document.getElementById('settings-drawer');
-document.getElementById('menu-toggle').addEventListener('click', () => drawer.classList.add('open'));
-document.getElementById('close-drawer').addEventListener('click', () => drawer.classList.remove('open'));
 
 // Configuração: Tipo de Caracteres
 document.querySelectorAll('.charset-btn').forEach(btn => {

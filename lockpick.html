@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Starfield Digipick Simulator | GTA V HUD Edition</title>
-    <meta name="description" content="Simulador e treinador do minijogo de arrombamento (Digipick) do Starfield com design de HUD FiveM.">
+    <title>Lockpick Simulator | Portal de Treinamento</title>
+    <meta name="description" content="Simulador e treinador do minijogo de arrombamento Lockpick.">
     
-    <!-- Google Fonts para estilo futurista/Sci-Fi -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
@@ -26,20 +26,32 @@
         <i class="fa-solid fa-house"></i>
     </a>
 
-    <!-- Botão flutuante para abrir o menu/ajustes (oculto no gameplay principal) -->
-    <button class="menu-toggle-btn" id="menu-toggle" title="Abrir Painel & Dificuldades">
-        <i class="fa-solid fa-gear"></i>
-    </button>
-
     <div class="app-container">
-        <!-- Status do Dispositivo (mantidos para o JS mas ocultos para o visual clean) -->
+        <!-- Status do Dispositivo -->
         <div class="device-status" style="display: none;">
             <span class="status-indicator active" id="lock-status-indicator"></span>
             <span id="lock-status-text">DISPOSITIVO ATIVO</span>
         </div>
 
-        <!-- HUD Centralizado conforme a imagem -->
+        <!-- HUD Centralizado -->
         <main class="hud-container">
+            
+            <!-- SELETOR DE DIFICULDADE NO MEIO DA TELA -->
+            <div class="on-screen-settings-panel lockpick-settings">
+                <div class="setting-row-center">
+                    <span class="setting-label"><i class="fa-solid fa-gauge-high"></i> DIFICULDADE:</span>
+                    <div class="drawer-difficulty-selector flex-row-buttons">
+                        <button class="diff-btn active" data-difficulty="novice" id="btn-novice">NOVATO</button>
+                        <button class="diff-btn" data-difficulty="advanced" id="btn-advanced">AVANÇADO</button>
+                        <button class="diff-btn" data-difficulty="expert" id="btn-expert">PERITO</button>
+                        <button class="diff-btn" data-difficulty="master" id="btn-master">MESTRE</button>
+                        <button class="diff-btn daily-btn" data-difficulty="daily" id="btn-daily">
+                            <i class="fa-solid fa-calendar-day"></i> DIÁRIO
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- 1. O Dispositivo Circular de Lockpick -->
             <div class="lockpick-device-wrapper">
                 <div class="canvas-container">
@@ -76,22 +88,22 @@
                 </div>
             </div>
 
-            <!-- 2. O Painel de Controle Inferior (Idêntico à Emagem) -->
+            <!-- 2. O Painel de Controle Inferior -->
             <div class="hud-bottom-panel">
                 <div class="hud-panel-header">
-                    <div class="hud-title">LOCKPICK</div>
+                    <div class="hud-title">LOCKPICK SIMULATOR</div>
                     <div class="hud-stats">
                         <div class="hud-stat-box timer-box" id="timer-val">00:00</div>
                         <div class="hud-stat-box picks-box" id="picks-val">99</div>
                     </div>
                 </div>
                 
-                <!-- Grade de Chaves (círculos desenhados dinamicamente) -->
+                <!-- Grade de Chaves -->
                 <div class="hud-keys-grid" id="keys-container">
                     <!-- Gerado dinamicamente via JS -->
                 </div>
                 
-                <!-- Atalhos / Botões de Ação para Mouse/Mobile na Base -->
+                <!-- Atalhos / Botões de Ação na Base -->
                 <div class="hud-actions-footer">
                     <button class="hud-footer-btn" id="btn-stop-game" title="Parar (Espaço)" style="color: #ff3333; border-color: rgba(255,51,51,0.3);">
                         <i class="fa-solid fa-stop"></i> ESPAÇO
@@ -113,109 +125,7 @@
         </main>
     </div>
 
-    <!-- PAINEL LATERAL (DRAWER): Ajustes, Sequência Diária e Dificuldade -->
-    <div class="settings-drawer" id="settings-drawer">
-        <div class="drawer-header">
-            <h3><i class="fa-solid fa-sliders"></i> AJUSTES DO SIMULADOR</h3>
-            <button class="close-drawer-btn" id="close-drawer"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="drawer-body">
-            <!-- Seleção de Dificuldade -->
-            <div class="drawer-section">
-                <h4>DIFICULDADE</h4>
-                <div class="drawer-difficulty-selector">
-                    <button class="diff-btn active" data-difficulty="novice" id="btn-novice">NOVATO</button>
-                    <button class="diff-btn" data-difficulty="advanced" id="btn-advanced">AVANÇADO</button>
-                    <button class="diff-btn" data-difficulty="expert" id="btn-expert">PERITO</button>
-                    <button class="diff-btn" data-difficulty="master" id="btn-master">MESTRE</button>
-                    <button class="diff-btn daily-btn" data-difficulty="daily" id="btn-daily">
-                        <i class="fa-solid fa-calendar-day"></i> DESAFIO DIÁRIO
-                    </button>
-                </div>
-            </div>
-
-            <!-- Sequência Diária -->
-            <div class="drawer-section" id="streak-section" style="display: none;">
-                <h4>SEQUÊNCIA DIÁRIA</h4>
-                <div class="daily-streak-card" id="streak-card">
-                    <div class="streak-header">
-                        <i class="fa-solid fa-fire text-warning"></i>
-                        <span id="streak-val">0 dias</span>
-                    </div>
-                    <p class="streak-desc" id="streak-desc">Complete o desafio de hoje!</p>
-                </div>
-            </div>
-
-            <!-- Opções Visuais/Sonoras -->
-            <div class="drawer-section">
-                <h4>CONFIGURAÇÕES</h4>
-                <div class="option-row">
-                    <label for="opt-sound"><i class="fa-solid fa-volume-high"></i> Efeitos Sonoros</label>
-                    <input type="checkbox" id="opt-sound" checked class="toggle-switch">
-                </div>
-                <div class="option-row">
-                    <label for="opt-helper"><i class="fa-solid fa-eye"></i> Dicas de Anéis (Rank 2)</label>
-                    <input type="checkbox" id="opt-helper" checked class="toggle-switch">
-                </div>
-            </div>
-
-            <!-- Guia de Controles Rápido -->
-            <div class="drawer-section">
-                <h4>CONTROLES DO SISTEMA</h4>
-                <ul class="shortcuts-list-drawer">
-                    <li><kbd>A</kbd> / <kbd>D</kbd> <span>Girar objeto</span></li>
-                    <li><kbd>Q</kbd> / <kbd>E</kbd> / <kbd>W</kbd> / <kbd>S</kbd> <span>Alternar itens</span></li>
-                    <li><kbd>Enter</kbd> / <kbd>Click</kbd> <span>Encaixar item</span></li>
-                    <li><kbd>R</kbd> <span>Remover item</span></li>
-                    <li><kbd>Tab</kbd> <span>Auto-Slot</span></li>
-                    <li><kbd>Esc</kbd> <span>Reiniciar</span></li>
-                </ul>
-            </div>
-        </div>
-    </div>
-
-    <!-- OVERLAY DE AJUDA RÁPIDA (Toggle por ?) -->
-    <div class="help-overlay" id="help-overlay">
-        <div class="help-box">
-            <div class="help-title">
-                <i class="fa-solid fa-gamepad"></i>
-                <h2>CONTROLES</h2>
-            </div>
-            <div class="help-controls-grid">
-                <div class="help-control-item">
-                    <div class="help-keys"><kbd>A</kbd> / <kbd>D</kbd></div>
-                    <div class="help-desc">Girar item</div>
-                </div>
-                <div class="help-control-item">
-                    <div class="help-keys"><kbd>Q</kbd> / <kbd>E</kbd> / <kbd>W</kbd> / <kbd>S</kbd></div>
-                    <div class="help-desc">Alternar itens</div>
-                </div>
-                <div class="help-control-item">
-                    <div class="help-keys"><kbd>Enter</kbd> / <kbd>Click</kbd></div>
-                    <div class="help-desc">Encaixar chave</div>
-                </div>
-                <div class="help-control-item">
-                    <div class="help-keys"><kbd>R</kbd></div>
-                    <div class="help-desc">Remover selecionada</div>
-                </div>
-                <div class="help-control-item">
-                    <div class="help-keys"><kbd>Scroll ↕</kbd></div>
-                    <div class="help-desc">Alternar itens</div>
-                </div>
-                <div class="help-control-item">
-                    <div class="help-keys"><kbd>Tab</kbd></div>
-                    <div class="help-desc">Ativar/Desativar Auto-Slot</div>
-                </div>
-                <div class="help-control-item">
-                    <div class="help-keys"><kbd>Esc</kbd></div>
-                    <div class="help-desc">Reiniciar puzzle</div>
-                </div>
-            </div>
-            <p class="help-dismiss">Pressione <kbd>?</kbd> para fechar</p>
-        </div>
-    </div>
-
-    <!-- Script principal do jogo -->
+    <!-- Script Principal -->
     <script type="module" src="game.js"></script>
 </body>
 </html>

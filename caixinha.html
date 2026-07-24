@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Caixinha Eletrônico | Portal de Treinamento</title>
-    <meta name="description" content="Simulador de Caixinha Eletrônico (Cidade Alta). Minijogo de digitação rápida de letras.">
+    <meta name="description" content="Simulador de Caixinha Eletrônico. Minijogo de digitação rápida de letras.">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,19 +26,37 @@
         <i class="fa-solid fa-house"></i>
     </a>
 
-    <!-- Botão flutuante para abrir o menu/ajustes -->
-    <button class="menu-toggle-btn" id="menu-toggle" title="Abrir Ajustes">
-        <i class="fa-solid fa-gear"></i>
-    </button>
-
     <div class="app-container">
         <!-- HUD Centralizado -->
         <main class="hud-container caixinha-eletronico-container">
+            
             <!-- Tela do Caixinha -->
             <div class="caixinha-device-wrapper">
                 <!-- Cabeçalho do Cartão -->
                 <div class="caixinha-card-header">
-                    <h2>Simulador de Caixinha</h2>
+                    <h2>SIMULADOR DE CAIXINHA</h2>
+                </div>
+
+                <!-- SELETOR DE CONFIGURAÇÕES NO MEIO DA TELA -->
+                <div class="on-screen-settings-panel">
+                    <div class="setting-row-center inline-settings">
+                        <div class="setting-group">
+                            <span class="setting-label"><i class="fa-solid fa-gauge-high"></i> TEMPO:</span>
+                            <div class="drawer-difficulty-selector flex-row-buttons">
+                                <button class="diff-btn" data-difficulty="easy" id="btn-easy">FÁCIL (10s)</button>
+                                <button class="diff-btn active" data-difficulty="medium" id="btn-medium">MÉDIO (8s)</button>
+                                <button class="diff-btn" data-difficulty="hard" id="btn-hard">DIFÍCIL (5s)</button>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <span class="setting-label"><i class="fa-solid fa-gamepad"></i> MODO:</span>
+                            <div class="drawer-difficulty-selector flex-row-buttons">
+                                <button class="diff-btn mode-btn active" data-mode="standard" id="btn-mode-standard">PADRÃO (3 SEQS)</button>
+                                <button class="diff-btn mode-btn" data-mode="endless" id="btn-mode-endless">INFINITO</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Digitação da Sequência -->
@@ -80,7 +98,7 @@
                 </div>
             </div>
             
-            <button class="caixinha-stop-btn" id="btn-stop-game">Stop</button>
+            <button class="caixinha-stop-btn" id="btn-stop-game">PARAR / PARAR HACK (ESPAÇO)</button>
 
             <!-- Painel de Controle Inferior -->
             <div class="hud-bottom-panel">
@@ -105,39 +123,6 @@
                 </div>
             </div>
         </main>
-    </div>
-
-    <!-- PAINEL LATERAL (DRAWER): Ajustes -->
-    <div class="settings-drawer" id="settings-drawer">
-        <div class="drawer-header">
-            <h3><i class="fa-solid fa-sliders"></i> CONFIGURAÇÕES</h3>
-            <button class="close-drawer-btn" id="close-drawer"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="drawer-body">
-            <div class="drawer-section">
-                <h4>TEMPO LIMITE</h4>
-                <div class="drawer-difficulty-selector">
-                    <button class="diff-btn" data-difficulty="easy" id="btn-easy">FÁCIL (10 SEGUNDOS)</button>
-                    <button class="diff-btn active" data-difficulty="medium" id="btn-medium">MÉDIO (8 SEGUNDOS)</button>
-                    <button class="diff-btn" data-difficulty="hard" id="btn-hard">DIFÍCIL (5 SEGUNDOS)</button>
-                </div>
-            </div>
-
-            <div class="drawer-section">
-                <h4>MODO DE JOGO</h4>
-                <div class="drawer-difficulty-selector">
-                    <button class="diff-btn mode-btn active" data-mode="standard" id="btn-mode-standard">PADRÃO (3 SEQUÊNCIAS)</button>
-                    <button class="diff-btn mode-btn" data-mode="endless" id="btn-mode-endless">INFINITO (TREINO LIVRE)</button>
-                </div>
-            </div>
-
-            <!-- Guia de Controles -->
-            <div class="drawer-section" style="margin-top: 10px;">
-                <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
-                    <i class="fa-solid fa-circle-info"></i> <strong>Instruções:</strong> Pressione rapidamente a sequência de 8 letras (Q, W, E, A, S, D) que aparecerem na tela. Pressione Espaço para Parar.
-                </p>
-            </div>
-        </div>
     </div>
 
     <!-- Script Principal -->

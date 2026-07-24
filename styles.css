@@ -1950,8 +1950,8 @@ body {
     transform: scale(1.02);
 }
 
-/* --- NOPIXEL HACKING DEVICE --- */
-.nopixel-hacking-container {
+/* --- HACKING DEVICE --- */
+.hacking-device-inner-container {
     background: #080808 !important;
     padding: 30px !important;
     border-radius: 8px !important;
@@ -2019,7 +2019,7 @@ body {
     color: #ffffff !important;
 }
 
-/* --- NOPIXEL CHARACTER SOUP GRID (8x10) --- */
+/* --- CHARACTER SOUP GRID (8x10) --- */
 .character-soup-grid {
     display: grid !important;
     grid-template-columns: repeat(10, 1fr) !important;
@@ -2102,3 +2102,129 @@ body {
     box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
 }
 
+/* --- ON-SCREEN SETTINGS PANEL (CENTRALIZADO NA TELA) --- */
+.on-screen-settings-panel {
+    width: 100%;
+    background: rgba(10, 15, 26, 0.85);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+    border-radius: 8px;
+    padding: 12px 18px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+}
+
+.setting-row-center {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.setting-row-center.inline-settings {
+    justify-content: space-between;
+}
+
+.setting-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.setting-label {
+    font-family: var(--font-header);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-cyan);
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+.flex-row-buttons {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+}
+
+.flex-row-buttons .diff-btn {
+    width: auto !important;
+    padding: 6px 12px !important;
+    font-size: 0.8rem !important;
+}
+
+.char-set-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* --- OTIMIZAÇÃO RESPONSIVA E PROPORCIONAL DE TELA --- */
+.hacking-page-body, body {
+    height: 100vh;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.app-container {
+    height: 100vh;
+    max-height: 100vh;
+    padding: 10px 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.hud-container {
+    max-height: 98vh;
+    overflow-y: auto;
+    width: 100%;
+    justify-content: center;
+}
+
+.lockpick-device-wrapper {
+    width: min(360px, 70vw);
+    height: min(360px, 70vw);
+}
+
+.character-soup-grid {
+    gap: 6px !important;
+    padding: 8px !important;
+}
+
+.char-cell {
+    font-size: clamp(1rem, 2vw, 1.3rem) !important;
+}
+
+.hacking-target-panel {
+    margin-bottom: 15px !important;
+    padding: 10px 20px !important;
+}
+
+.target-code-display {
+    font-size: clamp(1.6rem, 3.5vw, 2.2rem) !important;
+    letter-spacing: 8px !important;
+}
+
+/* Esconder botões de menu/drawer já que tudo é no meio da tela */
+.menu-toggle-btn, .settings-drawer {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .on-screen-settings-panel {
+        padding: 8px 12px;
+    }
+    .setting-row-center.inline-settings {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .hud-container {
+        gap: 10px;
+    }
+}

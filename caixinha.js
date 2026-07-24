@@ -527,35 +527,10 @@ window.addEventListener('load', () => {
         requestAnimationFrame(animateStars);
     }
     
-    // Configurar Drawer
-    const menuToggle = document.getElementById('menu-toggle');
-    const closeDrawerBtn = document.getElementById('close-drawer');
-    const drawer = document.getElementById('settings-drawer');
-    
-    if (menuToggle && drawer) {
-        menuToggle.addEventListener('click', () => {
-            drawer.classList.add('open');
-        });
-    }
-    if (closeDrawerBtn && drawer) {
-        closeDrawerBtn.addEventListener('click', () => {
-            drawer.classList.remove('open');
-        });
-    }
-    
-    document.addEventListener('click', (e) => {
-        if (drawer && drawer.classList.contains('open') && !drawer.contains(e.target) && e.target !== menuToggle && !menuToggle.contains(e.target)) {
-            drawer.classList.remove('open');
-        }
-    });
-    
     // Iniciar
     generatePuzzle('medium');
 });
 
 function closeSettingsDrawer() {
-    const drawer = document.getElementById('settings-drawer');
-    if (drawer) {
-        drawer.classList.remove('open');
-    }
+    // No drawer needed - settings on screen
 }
