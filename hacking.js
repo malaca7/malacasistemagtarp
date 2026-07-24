@@ -258,11 +258,18 @@ function submitSelection() {
         updateHUD();
         stopScrambler();
         
-        // Visual de erro no grid
+        // 1. Destacar a seleção errada do jogador em VERMELHO
         const cells = document.querySelectorAll('.char-cell');
         for (let i = 0; i < state.targetLength; i++) {
             if (cells[state.cursorPos + i]) {
                 cells[state.cursorPos + i].classList.add('fail-cell');
+            }
+        }
+        
+        // 2. Destacar a posição CORRETA verdadeira em VERDE
+        for (let i = 0; i < state.targetLength; i++) {
+            if (cells[state.correctPos + i]) {
+                cells[state.correctPos + i].classList.add('success-cell');
             }
         }
         
@@ -279,6 +286,14 @@ function failGame(msg = 'O tempo esgotou ou você errou.') {
     
     state.streak = 0;
     updateHUD();
+    
+    // Destacar a posição CORRETA verdadeira em VERDE ao esgotar o tempo
+    const cells = document.querySelectorAll('.char-cell');
+    for (let i = 0; i < state.targetLength; i++) {
+        if (cells[state.correctPos + i]) {
+            cells[state.correctPos + i].classList.add('success-cell');
+        }
+    }
     
     document.getElementById('fail-message').textContent = msg;
     document.getElementById('fail-overlay').classList.add('show');
