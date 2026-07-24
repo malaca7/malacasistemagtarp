@@ -316,7 +316,7 @@ function generatePuzzle(difficulty, seed = null) {
             const j = Math.floor(state.randomFn() * (i + 1));
             [positions[i], positions[j]] = [positions[j], positions[i]];
         }
-        const basePins = positions.slice(0, pCount).sort((a, b) => a - b);
+        const basePins = positions.slice(0, dp).sort((a, b) => a - b);
         
         dudKeys.push({
             basePins: basePins,
@@ -1048,12 +1048,12 @@ window.addEventListener('keydown', (e) => {
             break;
         case 'A':
         case 'ARROWLEFT':
-            rotateSelectedKey(1); // girar horário (invertido)
+            rotateSelectedKey(-1); // girar anti-horário
             e.preventDefault();
             break;
         case 'D':
         case 'ARROWRIGHT':
-            rotateSelectedKey(-1); // girar anti-horário (invertido)
+            rotateSelectedKey(1); // girar horário
             e.preventDefault();
             break;
         case 'Q':

@@ -76,26 +76,10 @@ function initGame() {
     for (let i = 0; i < state.gridSize; i++) {
         const item = document.createElement('div');
         item.className = 'hacking-grid-item';
-        item.style.padding = '15px 10px';
-        item.style.background = '#1a1d24';
-        item.style.border = '1px solid rgba(0, 229, 255, 0.15)';
-        item.style.color = 'white';
-        item.style.fontFamily = 'monospace';
-        item.style.fontSize = '1.2rem';
-        item.style.textAlign = 'center';
-        item.style.cursor = 'pointer';
-        item.style.borderRadius = '6px';
-        item.style.transition = 'background 0.2s';
         
         item.textContent = i === state.correctIndex ? state.targetCode : generateRandomCode();
         
         item.addEventListener('click', () => handleItemClick(i));
-        item.addEventListener('mouseenter', () => {
-            if(state.gameState === 'playing') item.style.background = '#252a36';
-        });
-        item.addEventListener('mouseleave', () => {
-            if(state.gameState === 'playing') item.style.background = '#1a1d24';
-        });
         
         grid.appendChild(item);
         state.gridItems.push(item);
@@ -113,13 +97,12 @@ function startScrambler() {
         
         for (let i = 0; i < state.gridSize; i++) {
             if (i !== state.correctIndex) {
-                // Change fake codes slightly or completely
                 if (Math.random() > 0.4) {
                     state.gridItems[i].textContent = generateRandomCode();
                 }
             }
         }
-    }, 1500); // Scramble
+    }, 800); 
 }
 
 function handleItemClick(index) {
@@ -132,16 +115,14 @@ function handleItemClick(index) {
         stopTimer();
         clearInterval(state.scrambleInterval);
         
-        state.gridItems[index].style.background = 'rgba(0, 230, 118, 0.3)';
-        state.gridItems[index].style.borderColor = '#00e676';
+        state.gridItems[index].classList.add('correct-click');
         
         document.getElementById('succ-time').textContent = formatTime(state.timeLimit - state.timer);
         document.getElementById('success-overlay').classList.add('show');
         
     } else {
         // Erro!
-        state.gridItems[index].style.background = 'rgba(255, 23, 68, 0.3)';
-        state.gridItems[index].style.borderColor = '#ff1744';
+        state.gridItems[index].classList.add('wrong-click');
         failGame();
     }
 }
