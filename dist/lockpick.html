@@ -13,14 +13,14 @@
     
     <!-- Link para a folha de estilo -->
     
-    <!-- FontAwesome para ícones premium -->
+    <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script type="module" crossorigin src="/malacasistemagtarp/assets/lockpick-BVdNnCzI.js"></script>
+  <script type="module" crossorigin src="/malacasistemagtarp/assets/lockpick-BhdOJ97k.js"></script>
   <link rel="modulepreload" crossorigin href="/malacasistemagtarp/assets/modulepreload-polyfill-Dezn_h7o.js">
-  <link rel="stylesheet" crossorigin href="/malacasistemagtarp/assets/styles-w1IsIilk.css">
+  <link rel="stylesheet" crossorigin href="/malacasistemagtarp/assets/styles-Bw0ceumo.css">
 </head>
 <body>
-    <!-- Canvas de Fundo para o efeito de estrelas -->
+    <!-- Canvas de Fundo Estrelado -->
     <canvas id="starfield-bg"></canvas>
 
     <!-- Botão de voltar para a Home -->
@@ -29,16 +29,10 @@
     </a>
 
     <div class="app-container">
-        <!-- Status do Dispositivo -->
-        <div class="device-status" style="display: none;">
-            <span class="status-indicator active" id="lock-status-indicator"></span>
-            <span id="lock-status-text">DISPOSITIVO ATIVO</span>
-        </div>
-
         <!-- HUD Centralizado -->
         <main class="hud-container">
             
-            <!-- SELETOR DE DIFICULDADE NO MEIO DA TELA -->
+            <!-- 1. SELETOR DE DIFICULDADE NO MEIO DA TELA -->
             <div class="on-screen-settings-panel lockpick-settings">
                 <div class="setting-row-center">
                     <span class="setting-label"><i class="fa-solid fa-gauge-high"></i> DIFICULDADE:</span>
@@ -54,43 +48,41 @@
                 </div>
             </div>
 
-            <!-- 1. O Dispositivo Circular de Lockpick -->
-            <div class="lockpick-device-wrapper">
-                <div class="canvas-container">
-                    <canvas id="digipick-canvas" width="600" height="600"></canvas>
-                    <div class="lockpick-center-badge">LOCKPICK</div>
-                    
-                    <!-- Overlay de Sucesso -->
-                    <div class="success-overlay" id="success-overlay">
-                        <div class="success-box">
-                            <div class="lock-icon-wrapper animate-pulse">
-                                <i class="fa-solid fa-lock-open"></i>
-                            </div>
-                            <h2>DESBLOQUEADO</h2>
-                            <p id="success-message">Acesso concedido.</p>
-                            <div class="success-stats">
-                                <div>Tempo: <strong id="succ-time">00:00</strong></div>
-                                <div>Chaves: <strong id="succ-keys">0</strong></div>
-                            </div>
-                            <button class="btn btn-primary" id="btn-next-puzzle">NOVO PUZZLE</button>
+            <!-- 2. BANNER DE MENSAGENS ACIMA DO SISTEMA -->
+            <div class="top-status-banner" id="status-banner">
+                <!-- Mensagem de Sucesso -->
+                <div class="success-overlay" id="success-overlay">
+                    <div class="banner-box success-box-top">
+                        <div class="banner-text">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <strong>DESBLOQUEADO:</strong> <span id="success-message">Acesso concedido.</span>
+                            <span class="banner-stats-inline">(Tempo: <strong id="succ-time">00:00</strong> | Chaves: <strong id="succ-keys">0</strong>)</span>
                         </div>
+                        <button class="btn btn-primary btn-sm" id="btn-next-puzzle">NOVO PUZZLE</button>
                     </div>
-                    
-                    <!-- Overlay de Falha -->
-                    <div class="success-overlay" id="fail-overlay" style="background: rgba(255, 23, 68, 0.15); backdrop-filter: blur(8px);">
-                        <div class="success-box">
-                            <div class="lock-icon-wrapper" style="border-color: var(--color-error); color: var(--color-error);">
-                                <i class="fa-solid fa-triangle-exclamation"></i>
-                            </div>
-                            <h2 style="color: var(--color-error);">FALHA NO LOCKPICK</h2>
-                            <p id="fail-message">O tempo esgotou ou você cancelou.</p>
-                            <button class="btn" style="border-color: var(--color-error); color: var(--color-error);" id="btn-retry-puzzle">TENTAR NOVAMENTE</button>
+                </div>
+                
+                <!-- Mensagem de Falha -->
+                <div class="success-overlay" id="fail-overlay">
+                    <div class="banner-box fail-box-top">
+                        <div class="banner-text">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <strong>FALHA NO LOCKPICK:</strong> <span id="fail-message">Tempo esgotado ou cancelado.</span>
                         </div>
+                        <button class="btn btn-danger btn-sm" id="btn-retry-puzzle">TENTAR NOVAMENTE</button>
                     </div>
                 </div>
             </div>
 
-            <!-- 2. O Painel de Controle Inferior -->
+            <!-- 3. O DISPOSITIVO CIRCULAR DE LOCKPICK -->
+            <div class="lockpick-device-wrapper">
+                <div class="canvas-container">
+                    <canvas id="digipick-canvas" width="600" height="600"></canvas>
+                    <div class="lockpick-center-badge">LOCKPICK</div>
+                </div>
+            </div>
+
+            <!-- 4. O PAINEL DE CONTROLE INFERIOR -->
             <div class="hud-bottom-panel">
                 <div class="hud-panel-header">
                     <div class="hud-title">LOCKPICK SIMULATOR</div>

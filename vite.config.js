@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig({
-  base: '/malacasistemagtarp/', // Caminho base necessário para o deploy no GitHub Pages
+  base: './', // Caminho relativo para funcionar tanto com domínio customizado quanto com GitHub Pages
   build: {
     outDir: 'dist',
     rollupOptions: {
