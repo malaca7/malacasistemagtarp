@@ -1935,7 +1935,7 @@ body {
     height: 100%;
     width: 100%;
     background: #9abf4e;
-    transition: width 0.016s linear;
+    transition: none !important;
 }
 
 .typing-sequence {

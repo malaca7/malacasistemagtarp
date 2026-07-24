@@ -145,7 +145,7 @@ function getDurationForRound() {
     
     const levelVal = document.getElementById('level-val');
     if (levelVal) {
-        levelVal.textContent = `TEMPO: ${(durationMs / 1000).toFixed(1)}s (${speedMult.toFixed(1)}x)`;
+        levelVal.textContent = `TEMPO: ${(durationMs / 1000).toFixed(1)}s`;
     }
     
     return durationMs;
@@ -188,23 +188,31 @@ function generatePuzzle(difficulty) {
     renderSequence();
     updateActiveSquare();
     
-    if (instructionVal) {
-        if (state.gameState !== 'playing') {
+    if (state.gameState !== 'playing') {
+        stopTimer();
+        if (timerFill) {
+            timerFill.style.width = '100%';
+            timerFill.style.background = '#4a4a4a';
+        }
+        if (instructionVal) {
             instructionVal.textContent = "AGUARDANDO INÍCIO";
             instructionVal.style.color = COLORS.cyan;
-        } else {
+        }
+    } else {
+        if (instructionVal) {
             if (state.gameMode === 'standard') {
                 instructionVal.textContent = `ACERTOS: ${state.hacksCompleted} / 3`;
             } else {
                 instructionVal.textContent = `ACERTOS: ${state.hacksCompleted}`;
             }
             instructionVal.style.color = COLORS.green;
-            
-            const durationMs = getDurationForRound();
-            startTimer(durationMs, () => {
-                if (state.gameState === 'playing') failGame();
-            });
         }
+        
+        // REINICIAR O TEMPO DO ZERO/INÍCIO (100%) PARA A PRÓXIMA ETAPA
+        const durationMs = getDurationForRound();
+        startTimer(durationMs, () => {
+            if (state.gameState === 'playing') failGame();
+        });
     }
 }
 
@@ -365,9 +373,20 @@ function failGame() {
     devWrapper.classList.add('shake');
 }
 
-// --- TEMPORIZADOR COM BARRA ---
+// --- TEMPORIZADOR COM BARRA (ULTRA SUAVE 60FPS+) ---
+function stopTimer() {
+    if (state.timerAnimId) {
+        cancelAnimationFrame(state.timerAnimId);
+        state.timerAnimId = null;
+    }
+    if (state.timerInterval) {
+        clearInterval(state.timerInterval);
+        state.timerInterval = null;
+    }
+}
+
 function startTimer(durationMs, onComplete) {
-    clearInterval(state.timerInterval);
+    stopTimer();
     
     state.totalTime = durationMs;
     state.timeRemaining = durationMs;
@@ -378,8 +397,10 @@ function startTimer(durationMs, onComplete) {
         timerFill.style.background = COLORS.green;
     }
     
-    state.timerInterval = setInterval(() => {
-        const elapsed = performance.now() - startTime;
+    function updateFrame(now) {
+        if (state.gameState !== 'playing') return;
+        
+        const elapsed = now - startTime;
         state.timeRemaining = Math.max(0, durationMs - elapsed);
         
         const pct = (state.timeRemaining / durationMs) * 100;
@@ -390,11 +411,21 @@ function startTimer(durationMs, onComplete) {
             }
         }
         
-        if (state.timeRemaining <= 0) {
-            clearInterval(state.timerInterval);
-            onComplete();
+        const levelVal = document.getElementById('level-val');
+        if (levelVal) {
+            const remSec = (state.timeRemaining / 1000).toFixed(1);
+            levelVal.textContent = `TEMPO: ${remSec}s`;
         }
-    }, 16);
+        
+        if (state.timeRemaining <= 0) {
+            stopTimer();
+            onComplete();
+        } else {
+            state.timerAnimId = requestAnimationFrame(updateFrame);
+        }
+    }
+    
+    state.timerAnimId = requestAnimationFrame(updateFrame);
 }
 
 // --- EVENTOS E INICIALIZAÇÃO ---

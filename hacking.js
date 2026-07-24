@@ -330,14 +330,8 @@ function updateHUD() {
 window.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
     
-    // Quando perdeu, QUALQUER TECLA pressionada reinicia o teste instantaneamente
-    if (state.gameState === 'lost') {
-        e.preventDefault();
-        initGame();
-        return;
-    }
-    
-    if (state.gameState === 'won') {
+    // Quando perdeu ou ganhou, só inicia novamente se apertar ESPAÇO ou ENTER
+    if (state.gameState === 'lost' || state.gameState === 'won') {
         if (key === 'enter' || key === ' ') {
             e.preventDefault();
             initGame();
