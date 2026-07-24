@@ -200,31 +200,31 @@ function generatePuzzle(difficulty, seed = null) {
         state.randomFn = Math.random;
     }
     
-    // Parâmetros de dificuldade fiéis ao StarfieldDigipickSim / Starfield original
+    // Parâmetros de dificuldade simplificados e muito mais acessíveis
     let numRings = 2;
-    let numDuds = 2;
+    let numDuds = 0;
     
     if (difficulty === 'novice') {
         numRings = 2;
-        numDuds = 2; // 4 chaves solução + 2 duds = 6 chaves
+        numDuds = 0; // Apenas as 4 chaves exatas da solução na gaveta (sem chaves falsas!)
         state.timeLimit = 120;
         state.digipicksCount = 99;
         state.autoSlotsCount = 5;
     } else if (difficulty === 'advanced') {
         numRings = 2;
-        numDuds = 4; // 4 chaves solução + 4 duds = 8 chaves
+        numDuds = 1; // 4 chaves solução + 1 falsa = 5 chaves
         state.timeLimit = 90;
         state.digipicksCount = 99;
         state.autoSlotsCount = 3;
     } else if (difficulty === 'expert') {
         numRings = 3;
-        numDuds = 4; // 6 chaves solução + 4 duds = 10 chaves
+        numDuds = 2; // 6 chaves solução + 2 falsas = 8 chaves
         state.timeLimit = 75;
         state.digipicksCount = 99;
         state.autoSlotsCount = 3;
     } else if (difficulty === 'master' || difficulty === 'daily') {
-        numRings = 4;
-        numDuds = 4; // 8 chaves solução + 4 duds = 12 chaves
+        numRings = 3;
+        numDuds = 3; // 6 chaves solução + 3 falsas = 9 chaves
         state.timeLimit = 60;
         state.digipicksCount = (difficulty === 'daily') ? 1 : 99; 
         state.autoSlotsCount = (difficulty === 'daily') ? 0 : 3;
@@ -272,35 +272,41 @@ function generatePuzzle(difficulty, seed = null) {
         return positions.sort((a, b) => a - b);
     }
     
-    // Gerar chaves de solução e anéis (Sempre 1x 3-pinos, 1x 2-pinos e às vezes 1x 1-pino)
+    // Gerar chaves de solução e anéis
     const solutionKeys = [];
     
     for (let r = 0; r < numRings; r++) {
-        let basePins1, basePins2, basePins3;
-        let r1, r2, r3;
-        let ringPins1, ringPins2, ringPins3 = [];
-        const includeOnePin = (state.randomFn() < 0.5);
+        let basePins1, basePins2;
+        let r1, r2;
+        let ringPins1, ringPins2;
         let success = false;
         let attempts = 0;
         
         while (!success && attempts < 500) {
             attempts++;
-            basePins1 = generateSpacedKeyPins(3);
-            basePins2 = generateSpacedKeyPins(2);
-            if (includeOnePin) {
-                basePins3 = generateSpacedKeyPins(1);
+            let p1 = 2, p2 = 2;
+            if (difficulty === 'novice') {
+                p1 = 2;
+                p2 = 2;
+            } else if (difficulty === 'advanced') {
+                p1 = (state.randomFn() < 0.5) ? 2 : 3;
+                p2 = (state.randomFn() < 0.5) ? 2 : 3;
+            } else {
+                p1 = Math.floor(state.randomFn() * 3) + 2; // 2..4
+                p2 = Math.floor(state.randomFn() * 3) + 2; // 2..4
             }
+            
+            basePins1 = generateSpacedKeyPins(p1);
+            basePins2 = generateSpacedKeyPins(p2);
             
             r1 = Math.floor(state.randomFn() * 32);
             r2 = Math.floor(state.randomFn() * 32);
-            r3 = includeOnePin ? Math.floor(state.randomFn() * 32) : 0;
             
             ringPins1 = basePins1.map(p => (p + r1) % 32);
             ringPins2 = basePins2.map(p => (p + r2) % 32);
-            ringPins3 = includeOnePin ? basePins3.map(p => (p + r3) % 32) : [];
             
-            const allPos = [...ringPins1, ...ringPins2, ...ringPins3];
-            const expectedCount = basePins1.length + basePins2.length + (includeOnePin ? 1 : 0);
+            const allPos = [...ringPins1, ...ringPins2];
+            const expectedCount = basePins1.length + basePins2.length;
             
             if (new Set(allPos).size !== expectedCount) {
                 continue;
@@ -310,8 +316,7 @@ function generatePuzzle(difficulty, seed = null) {
             for (let prevR = 0; prevR < r; prevR++) {
                 const prevNotches = state.rings[prevR].initialNotches;
                 if (keyFitsNotchesAtAnyRotation(basePins1, prevNotches) || 
-                    keyFitsNotchesAtAnyRotation(basePins2, prevNotches) ||
-                    (includeOnePin && keyFitsNotchesAtAnyRotation(basePins3, prevNotches))) {
+                    keyFitsNotchesAtAnyRotation(basePins2, prevNotches)) {
                     stealsPreviousRing = true;
                     break;
                 }
@@ -325,9 +330,6 @@ function generatePuzzle(difficulty, seed = null) {
         const notches = Array(32).fill(false);
         ringPins1.forEach(p => notches[p] = true);
         ringPins2.forEach(p => notches[p] = true);
-        if (includeOnePin) {
-            ringPins3.forEach(p => notches[p] = true);
-        }
         
         state.rings.push({
             notches: notches,
@@ -351,24 +353,12 @@ function generatePuzzle(difficulty, seed = null) {
             ringIndex: r,
             used: false
         });
-        
-        if (includeOnePin) {
-            solutionKeys.push({
-                basePins: basePins3,
-                rotation: 0,
-                solvedRotation: r3,
-                isSolution: true,
-                ringIndex: r,
-                used: false
-            });
-        }
     }
     
-    // Gerar chaves falsas (duds) com distribuição de 3, 2 e 1 pinos
+    // Gerar chaves falsas (duds)
     const dudKeys = [];
-    const dudCounts = [3, 2, 1];
     for (let d = 0; d < numDuds; d++) {
-        const dp = dudCounts[d % dudCounts.length];
+        const dp = (difficulty === 'novice' || difficulty === 'advanced') ? 2 : Math.floor(state.randomFn() * 3) + 2;
         let basePins = generateSpacedKeyPins(dp);
         
         let dudAttempts = 0;
