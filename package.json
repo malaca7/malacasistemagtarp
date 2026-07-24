@@ -7,7 +7,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist -c sistemagtarp.malaca.com.br"
+    "deploy": "gh-pages -d dist --cname sistemagtarp.malaca.com.br"
   },
   "devDependencies": {
     "gh-pages": "^6.1.1"
