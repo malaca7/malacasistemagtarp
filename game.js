@@ -235,51 +235,57 @@ function generatePuzzle(difficulty, seed = null) {
     else if (difficulty === 'expert') state.timeLimit = 30;
     else state.timeLimit = 60;
     
+    function generateSpacedKeyPins(pinCount) {
+        const count = (pinCount === 3) ? 3 : 2;
+        if (count === 2) {
+            const p1 = Math.floor(state.randomFn() * 32);
+            const dist = 5 + Math.floor(state.randomFn() * 12);
+            const p2 = (p1 + dist) % 32;
+            return [p1, p2].sort((a, b) => a - b);
+        } else {
+            const p1 = Math.floor(state.randomFn() * 32);
+            const dist1 = 5 + Math.floor(state.randomFn() * 6);
+            const p2 = (p1 + dist1) % 32;
+            const dist2 = 5 + Math.floor(state.randomFn() * 6);
+            const p3 = (p2 + dist2) % 32;
+            return [p1, p2, p3].sort((a, b) => a - b);
+        }
+    }
+    
     // Gerar chaves de solução e anéis
     const solutionKeys = [];
     
     for (let r = 0; r < numRings; r++) {
-        // Cada anel é resolvido por exatamente 2 chaves
-        // maximo de tres chaves(pinos) por opção, apenas 4 chave no nivel mais dificil
-        let p1, p2;
-        if (difficulty === 'master' || difficulty === 'daily') {
-            p1 = Math.floor(state.randomFn() * 3) + 2; // 2..4
-            p2 = Math.floor(state.randomFn() * 3) + 2; // 2..4
-        } else {
-            p1 = Math.floor(state.randomFn() * 2) + 2; // 2..3
-            p2 = Math.floor(state.randomFn() * 2) + 2; // 2..3
+        // Todas as chaves têm estritamente 2 ou 3 pinos distantes
+        const p1 = (state.randomFn() < 0.5) ? 2 : 3;
+        const p2 = (state.randomFn() < 0.5) ? 2 : 3;
+        
+        const basePins1 = generateSpacedKeyPins(p1);
+        const basePins2 = generateSpacedKeyPins(p2);
+        
+        const r1 = Math.floor(state.randomFn() * 32);
+        const ringPins1 = basePins1.map(p => (p + r1) % 32);
+        
+        let r2 = Math.floor(state.randomFn() * 32);
+        let attempts = 0;
+        while (attempts < 50) {
+            const ringPins2 = basePins2.map(p => (p + r2) % 32);
+            const hasOverlap = ringPins1.some(p => ringPins2.includes(p));
+            if (!hasOverlap) break;
+            r2 = Math.floor(state.randomFn() * 32);
+            attempts++;
         }
         
-        // Criar um pool de posições (0..31) e embaralhar
-        const positions = Array.from({ length: 32 }, (_, i) => i);
-        // Embaralhar pool
-        for (let i = positions.length - 1; i > 0; i--) {
-            const j = Math.floor(state.randomFn() * (i + 1));
-            [positions[i], positions[j]] = [positions[j], positions[i]];
-        }
+        const ringPins2 = basePins2.map(p => (p + r2) % 32);
         
-        // Extrair pinos
-        const pins1 = positions.slice(0, p1);
-        const pins2 = positions.slice(p1, p1 + p2);
-        
-        // O anel é a união dos pinos das duas chaves de solução
         const notches = Array(32).fill(false);
-        pins1.forEach(p => notches[p] = true);
-        pins2.forEach(p => notches[p] = true);
+        ringPins1.forEach(p => notches[p] = true);
+        ringPins2.forEach(p => notches[p] = true);
         
         state.rings.push({
             notches: notches,
             initialNotches: [...notches]
         });
-        
-        // Rotacionar chaves de solução e guardar a base e a rotação correta
-        // Rotação correta R: o jogador precisa rotacionar R posições para alinhar com o anel.
-        // Pinos base = (pinos resolvidos - R + 32) % 32
-        const r1 = Math.floor(state.randomFn() * 32);
-        const basePins1 = pins1.map(p => (p - r1 + 32) % 32).sort((a, b) => a - b);
-        
-        const r2 = Math.floor(state.randomFn() * 32);
-        const basePins2 = pins2.map(p => (p - r2 + 32) % 32).sort((a, b) => a - b);
         
         solutionKeys.push({
             basePins: basePins1,
@@ -300,24 +306,11 @@ function generatePuzzle(difficulty, seed = null) {
         });
     }
     
-    // Gerar chaves falsas (duds)
+    // Gerar chaves falsas (duds) com 2 ou 3 pinos distantes
     const dudKeys = [];
     for (let d = 0; d < numDuds; d++) {
-        // Gerar pinos aleatórios para a chave falsa
-        let dp;
-        if (difficulty === 'master' || difficulty === 'daily') {
-            dp = Math.floor(state.randomFn() * 3) + 2; // 2..4
-        } else {
-            dp = Math.floor(state.randomFn() * 2) + 2; // 2..3
-        }
-        
-        const positions = Array.from({ length: 32 }, (_, i) => i);
-        // Embaralhar para pegar aleatórios
-        for (let i = positions.length - 1; i > 0; i--) {
-            const j = Math.floor(state.randomFn() * (i + 1));
-            [positions[i], positions[j]] = [positions[j], positions[i]];
-        }
-        const basePins = positions.slice(0, dp).sort((a, b) => a - b);
+        const dp = (state.randomFn() < 0.5) ? 2 : 3;
+        const basePins = generateSpacedKeyPins(dp);
         
         dudKeys.push({
             basePins: basePins,
