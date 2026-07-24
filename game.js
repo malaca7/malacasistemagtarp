@@ -253,36 +253,31 @@ function generatePuzzle(difficulty, seed = null) {
     const solutionKeys = [];
     
     for (let r = 0; r < numRings; r++) {
-        // Cada etapa tem exatamente: 1 chave com 3 pinos, 1 chave com 2 pinos e 1 chave com 1 pino
-        const basePins1 = generateSpacedKeyPins(3);
-        const basePins2 = generateSpacedKeyPins(2);
-        const basePins3 = generateSpacedKeyPins(1);
+        let basePins1, basePins2, basePins3;
+        let r1, r2, r3;
+        let ringPins1, ringPins2, ringPins3;
+        let success = false;
         
-        const r1 = Math.floor(state.randomFn() * 32);
-        const ringPins1 = basePins1.map(p => (p + r1) % 32);
-        
-        let r2 = Math.floor(state.randomFn() * 32);
-        let attempts2 = 0;
-        while (attempts2 < 50) {
-            const ringPins2 = basePins2.map(p => (p + r2) % 32);
-            const hasOverlap = ringPins1.some(p => ringPins2.includes(p));
-            if (!hasOverlap) break;
+        // Loop até garantir 6 posições de furos 100% disjuntas sem nenhuma sobreposição
+        while (!success) {
+            basePins1 = generateSpacedKeyPins(3);
+            basePins2 = generateSpacedKeyPins(2);
+            basePins3 = generateSpacedKeyPins(1);
+            
+            r1 = Math.floor(state.randomFn() * 32);
             r2 = Math.floor(state.randomFn() * 32);
-            attempts2++;
-        }
-        const ringPins2 = basePins2.map(p => (p + r2) % 32);
-        
-        let r3 = Math.floor(state.randomFn() * 32);
-        let attempts3 = 0;
-        while (attempts3 < 50) {
-            const ringPins3 = basePins3.map(p => (p + r3) % 32);
-            const combined12 = [...ringPins1, ...ringPins2];
-            const hasOverlap = combined12.some(p => ringPins3.includes(p));
-            if (!hasOverlap) break;
             r3 = Math.floor(state.randomFn() * 32);
-            attempts3++;
+            
+            ringPins1 = basePins1.map(p => (p + r1) % 32);
+            ringPins2 = basePins2.map(p => (p + r2) % 32);
+            ringPins3 = basePins3.map(p => (p + r3) % 32);
+            
+            const allPos = [...ringPins1, ...ringPins2, ...ringPins3];
+            const uniquePos = new Set(allPos);
+            if (uniquePos.size === 6) {
+                success = true;
+            }
         }
-        const ringPins3 = basePins3.map(p => (p + r3) % 32);
         
         const notches = Array(32).fill(false);
         ringPins1.forEach(p => notches[p] = true);
