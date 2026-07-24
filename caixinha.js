@@ -158,7 +158,8 @@ function generatePuzzle(difficulty) {
     if (state.difficulty === 'easy') timeLimitText = '10s';
     if (state.difficulty === 'hard') timeLimitText = '5s';
     
-    document.getElementById('level-val').textContent = `TEMPO: ${timeLimitText}`;
+    const levelValEl = document.getElementById('level-val');
+    if (levelValEl) levelValEl.textContent = `TEMPO: ${timeLimitText}`;
     
     if (state.gameState === 'won' || state.gameState === 'lost') {
         state.gameState = 'waiting';
@@ -193,22 +194,6 @@ function generatePuzzle(difficulty) {
     timerFill.style.background = '#4a4a4a'; // cinza neutro antes de iniciar
     counterVal.textContent = `0/${SEQUENCE_LENGTH}`;
     
-    if (state.gameState !== 'playing') {
-        instructionVal.textContent = "AGUARDANDO INÍCIO";
-        instructionVal.style.color = COLORS.cyan;
-    } else {
-        if (state.gameMode === 'standard') {
-            instructionVal.textContent = `ACERTOS: ${state.hacksCompleted} / 3`;
-        } else {
-            instructionVal.textContent = `ACERTOS: ${state.hacksCompleted}`;
-        }
-        instructionVal.style.color = COLORS.green;
-        
-        // Se já está jogando e geramos um novo nível, iniciar timer novamente
-        const durationMs = getDurationForRound();
-        startTimer(durationMs, () => {
-            if (state.gameState === 'playing') failGame();
-        });
     }
 }
 
@@ -262,6 +247,10 @@ function updateActiveSquare() {
 
 // --- DIGITAÇÃO DO TECLADO ---
 function handleKeyPress(key) {
+    if (state.gameState === 'waiting') {
+        startGame();
+        return;
+    }
     if (state.gameState !== 'playing') return;
     initAudio();
     
@@ -428,13 +417,16 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-document.getElementById('btn-start').addEventListener('click', () => {
-    if (state.gameState === 'waiting') {
-        startGame();
-    } else {
-        generatePuzzle(state.difficulty);
-    }
-});
+const btnStart = document.getElementById('btn-start');
+if (btnStart) {
+    btnStart.addEventListener('click', () => {
+        if (state.gameState === 'waiting') {
+            startGame();
+        } else {
+            generatePuzzle(state.difficulty);
+        }
+    });
+}
 
 document.getElementById('btn-next-puzzle').addEventListener('click', () => {
     generatePuzzle(state.difficulty);

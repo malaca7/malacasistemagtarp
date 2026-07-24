@@ -989,33 +989,40 @@ function updateUI() {
     }
     
     // Stats
-    document.getElementById('picks-val').textContent = state.digipicksCount;
-    document.getElementById('auto-val').textContent = state.autoSlotsCount;
+    const picksVal = document.getElementById('picks-val');
+    if (picksVal) picksVal.textContent = state.digipicksCount;
+    
+    const autoVal = document.getElementById('auto-val');
+    if (autoVal) autoVal.textContent = state.autoSlotsCount;
     
     // Undo text
     const undoVal = document.getElementById('undo-val');
-    if (state.isDailyChallenge) {
-        undoVal.textContent = "DESABILITADO";
-        undoVal.style.color = 'var(--color-inactive)';
-    } else {
-        undoVal.textContent = "ILIMITADO";
-        undoVal.style.color = 'var(--color-cyan)';
+    if (undoVal) {
+        if (state.isDailyChallenge) {
+            undoVal.textContent = "DESABILITADO";
+            undoVal.style.color = 'var(--color-inactive)';
+        } else {
+            undoVal.textContent = "ILIMITADO";
+            undoVal.style.color = 'var(--color-cyan)';
+        }
     }
     
     // Habilitar/Desabilitar botões dependendo das opções
     const btnUndo = document.getElementById('btn-undo');
     const btnAuto = document.getElementById('btn-auto');
     
-    if (state.isDailyChallenge) {
-        btnUndo.setAttribute('disabled', 'true');
-        btnAuto.setAttribute('disabled', 'true');
-        btnUndo.style.opacity = '0.3';
-        btnAuto.style.opacity = '0.3';
-    } else {
-        btnUndo.removeAttribute('disabled');
-        btnAuto.removeAttribute('disabled');
-        btnUndo.style.opacity = '1';
-        btnAuto.style.opacity = '1';
+    if (btnUndo && btnAuto) {
+        if (state.isDailyChallenge) {
+            btnUndo.setAttribute('disabled', 'true');
+            btnAuto.setAttribute('disabled', 'true');
+            btnUndo.style.opacity = '0.3';
+            btnAuto.style.opacity = '0.3';
+        } else {
+            btnUndo.removeAttribute('disabled');
+            btnAuto.removeAttribute('disabled');
+            btnUndo.style.opacity = '1';
+            btnAuto.style.opacity = '1';
+        }
     }
     
     updateStreakCard();
@@ -1200,10 +1207,17 @@ function switchActiveDiffButton(id) {
 }
 
 // Controles Físicos do Dispositivo
-document.getElementById('btn-reset').addEventListener('click', restartCurrentPuzzle);
-document.getElementById('btn-undo').addEventListener('click', undoLastAction);
-document.getElementById('btn-auto').addEventListener('click', useAutoSlot);
-document.getElementById('btn-slot').addEventListener('click', slotKey);
+const btnReset = document.getElementById('btn-reset');
+if (btnReset) btnReset.addEventListener('click', restartCurrentPuzzle);
+
+const btnUndo = document.getElementById('btn-undo');
+if (btnUndo) btnUndo.addEventListener('click', undoLastAction);
+
+const btnAuto = document.getElementById('btn-auto');
+if (btnAuto) btnAuto.addEventListener('click', useAutoSlot);
+
+const btnSlot = document.getElementById('btn-slot');
+if (btnSlot) btnSlot.addEventListener('click', slotKey);
 
 const stopBtn = document.getElementById('btn-stop-game');
 if (stopBtn) {

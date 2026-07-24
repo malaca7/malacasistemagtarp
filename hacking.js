@@ -418,3 +418,49 @@ document.querySelectorAll('.time-btn').forEach(btn => {
 
 // Iniciar o jogo no carregamento
 initGame();
+
+// --- ANIMAÇÃO DE ESTRELAS NO FUNDO (PADRÃO IDÊNTICO À HOME) ---
+const bgCanvas = document.getElementById('starfield-bg');
+if (bgCanvas) {
+    const bgCtx = bgCanvas.getContext('2d');
+    let stars = [];
+
+    function resizeBgCanvas() {
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
+        initStars();
+    }
+
+    function initStars() {
+        stars = [];
+        const count = Math.floor((bgCanvas.width * bgCanvas.height) / 18000);
+        for (let i = 0; i < count; i++) {
+            stars.push({
+                x: Math.random() * bgCanvas.width,
+                y: Math.random() * bgCanvas.height,
+                size: Math.random() * 1.5 + 0.5,
+                twinkleSpeed: Math.random() * 0.02 + 0.005,
+                phase: Math.random() * Math.PI
+            });
+        }
+    }
+
+    function animateStars() {
+        bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+        stars.forEach(star => {
+            star.phase += star.twinkleSpeed;
+            const opacity = (Math.sin(star.phase) + 1) / 2 * 0.7 + 0.3;
+            bgCtx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.65})`;
+            bgCtx.beginPath();
+            bgCtx.arc(star.x, star.y, star.size, 0, 2 * Math.PI);
+            bgCtx.fill();
+        });
+        requestAnimationFrame(animateStars);
+    }
+
+    window.addEventListener('load', () => {
+        resizeBgCanvas();
+        window.addEventListener('resize', resizeBgCanvas);
+        requestAnimationFrame(animateStars);
+    });
+}
