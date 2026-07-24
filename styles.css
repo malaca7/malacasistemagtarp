@@ -481,6 +481,20 @@ body {
     pointer-events: auto;
 }
 
+/* Modal de Falha Transparente para permitir visualização do erro (Vermelho/Verde) */
+#fail-overlay {
+    background: rgba(0, 0, 0, 0.35) !important;
+    backdrop-filter: none !important;
+}
+
+#fail-overlay .success-box {
+    background: rgba(12, 16, 26, 0.96) !important;
+    border: 2px solid var(--color-error) !important;
+    border-radius: 12px !important;
+    padding: 24px 36px !important;
+    box-shadow: 0 0 40px rgba(255, 23, 68, 0.4), 0 10px 25px rgba(0, 0, 0, 0.8) !important;
+}
+
 .success-box {
     text-align: center;
     display: flex;
