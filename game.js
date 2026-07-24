@@ -488,10 +488,13 @@ function slotKey() {
         // Atualizar UI
         updateUI();
     } else {
-        // Chave não encaixa! 
-        // "quando ativar chave errada bloquia a chave e perde o simulador"
+        // Chave não encaixa no ângulo atual
         triggerErrorFlash();
-        failGame();
+        state.digipicksCount--;
+        updateUI();
+        if (state.digipicksCount <= 0) {
+            failGame('Acabaram as tentativas de Lockpick.');
+        }
     }
 }
 
@@ -822,12 +825,20 @@ function drawLock() {
         const rot = activeKey.rotation;
         const scale = drawW / CANVAS_SIZE;
         
-        const pinColor = state.errorFlash ? COLORS.error : COLORS.cyan;
-        const shadowColor = state.errorFlash ? COLORS.errorGlow : COLORS.cyanGlow;
+        let pinColor = COLORS.cyan;
+        let shadowColor = COLORS.cyanGlow;
+        
+        if (state.errorFlash) {
+            pinColor = COLORS.error;
+            shadowColor = COLORS.errorGlow;
+        } else if (currentKeyFitsActiveRing()) {
+            pinColor = COLORS.green;
+            shadowColor = 'rgba(0, 230, 118, 0.8)';
+        }
         
         ctx.strokeStyle = pinColor;
-        ctx.lineWidth = 8 * scale; // Traço mais grosso para parecer blocos retangulares
-        ctx.shadowBlur = 4;
+        ctx.lineWidth = 8 * scale;
+        ctx.shadowBlur = 8;
         ctx.shadowColor = shadowColor;
         
         for (let k = 0; k < pins.length; k++) {
