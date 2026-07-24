@@ -1,144 +1,248 @@
+// NoPixel Hacking Device Minigame (Sharkiller Replica)
 const state = {
     gameState: 'waiting', // waiting, playing, won, lost
     timer: 0,
     timeLimit: 15,
     timerInterval: null,
-    targetCode: '',
-    gridItems: [],
-    gridSize: 36, // 6x6
-    scrambleInterval: null,
-    correctIndex: -1
+    startTime: 0,
+    
+    charSet: 'numeric',
+    targetLength: 4,
+    gridSize: 80, // 8 rows x 10 cols
+    
+    gridChars: [],
+    targetChars: [],
+    correctPos: 0,
+    cursorPos: 43,
+    
+    streak: 0,
+    maxStreak: 0,
+    soundEnabled: true
 };
 
+const CHARACTER_SETS = {
+    numeric: "0123456789",
+    alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    alphanumeric: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+    greek: "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ",
+    braille: "⡀⡁⡂⡃⡄⡅⡆⡇⡈⡉⡊⡋⡌⡍⡎⡏⡐⡑⡒⡓⡔⡕⡖⡗⡘⡙⡚⡛⡜⡝⡞⡟⡠⡡⡢⡣⡤⡥⡦⡧⡨⡩⡪⡫⡬⡭⡮⡯⡰⡱⡲⡳⡴⡵⡶⡷⡸⡹⡺⡻⡼⡽⡾⡿",
+    runes: "ᚠᚥᚧᚨᚩᚬᚭᚻᛐᛑᛒᛓᛔᛕᛖᛗᛘᛙᛚᛛᛜᛝᛞᛟᛤ",
+    symbols: "☎☚☛☜☞☟☠☢☣☮☯♨♩♪♫♬Ψ♆✂✄෧✆✉✦✧✿❀"
+};
+
+// Web Audio API Sound Generator
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 function playSound(type) {
-    if (!audioContext) return;
+    if (!state.soundEnabled || !audioContext) return;
+    if (audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
     const osc = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     osc.connect(gainNode);
     gainNode.connect(audioContext.destination);
 
-    if (type === 'beep') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-        osc.start();
-        osc.stop(audioContext.currentTime + 0.1);
-    } else if (type === 'error') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-        osc.start();
-        osc.stop(audioContext.currentTime + 0.3);
-    } else if (type === 'success') {
+    if (type === 'move') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, audioContext.currentTime);
-        osc.frequency.setValueAtTime(900, audioContext.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(0.04, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.05);
+        osc.start();
+        osc.stop(audioContext.currentTime + 0.05);
+    } else if (type === 'error') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, audioContext.currentTime);
         gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.35);
+        osc.start();
+        osc.stop(audioContext.currentTime + 0.35);
+    } else if (type === 'success') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, audioContext.currentTime);
+        osc.frequency.setValueAtTime(880, audioContext.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
         osc.start();
         osc.stop(audioContext.currentTime + 0.4);
     }
 }
 
-function generateRandomCode() {
-    const chars = '0123456789ABCDEF';
-    let code = '';
-    for(let i=0; i<4; i++) {
-        code += chars[Math.floor(Math.random() * chars.length)];
-        code += chars[Math.floor(Math.random() * chars.length)];
-        if(i < 3) code += ' ';
-    }
-    return code;
+function getRandomChar() {
+    const chars = CHARACTER_SETS[state.charSet] || CHARACTER_SETS.numeric;
+    return chars.charAt(Math.floor(Math.random() * chars.length));
 }
 
 function initGame() {
     state.gameState = 'playing';
     state.timer = state.timeLimit;
+    state.startTime = Date.now();
     
     document.getElementById('success-overlay').classList.remove('show');
     document.getElementById('fail-overlay').classList.remove('show');
     
-    // Configurar o alvo
-    state.targetCode = generateRandomCode();
-    document.getElementById('target-code').textContent = state.targetCode;
+    // Gerar target string
+    state.targetChars = [];
+    for (let i = 0; i < state.targetLength; i++) {
+        state.targetChars.push(getRandomChar());
+    }
+    document.getElementById('target-code').textContent = state.targetChars.join(' ');
     
-    // Limpar o grid
-    const grid = document.getElementById('hacking-grid');
-    grid.innerHTML = '';
-    grid.style.gridTemplateColumns = 'repeat(6, 1fr)';
-    
-    state.gridItems = [];
-    state.correctIndex = Math.floor(Math.random() * state.gridSize);
-    
+    // Gerar grid de 80 caracteres aleatórios
+    state.gridChars = [];
     for (let i = 0; i < state.gridSize; i++) {
-        const item = document.createElement('div');
-        item.className = 'hacking-grid-item';
-        
-        item.textContent = i === state.correctIndex ? state.targetCode : generateRandomCode();
-        
-        item.addEventListener('click', () => handleItemClick(i));
-        
-        grid.appendChild(item);
-        state.gridItems.push(item);
+        state.gridChars.push(getRandomChar());
     }
     
+    // Escolher posição correta de início (garantir espaço para a sequência sem estourar 80)
+    const maxStartPos = state.gridSize - state.targetLength;
+    state.correctPos = Math.floor(Math.random() * (maxStartPos + 1));
+    
+    // Inserir a sequência exatamente a partir de correctPos
+    for (let i = 0; i < state.targetLength; i++) {
+        state.gridChars[state.correctPos + i] = state.targetChars[i];
+    }
+    
+    // Posicionar o cursor inicial
+    state.cursorPos = Math.floor(state.gridSize / 2) - 5;
+    
+    renderGrid();
     startTimer();
-    startScrambler();
 }
 
-function startScrambler() {
-    clearInterval(state.scrambleInterval);
-    state.scrambleInterval = setInterval(() => {
-        if (state.gameState !== 'playing') return;
-        playSound('beep');
+function renderGrid() {
+    const gridEl = document.getElementById('character-soup-grid');
+    gridEl.innerHTML = '';
+    
+    for (let i = 0; i < state.gridSize; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'char-cell';
+        cell.textContent = state.gridChars[i];
+        cell.dataset.index = i;
         
-        for (let i = 0; i < state.gridSize; i++) {
-            if (i !== state.correctIndex) {
-                if (Math.random() > 0.4) {
-                    state.gridItems[i].textContent = generateRandomCode();
-                }
+        // Destacar o range do cursor selecionado (cursorPos ate cursorPos + targetLength - 1)
+        if (i >= state.cursorPos && i < state.cursorPos + state.targetLength) {
+            cell.classList.add('selected-cursor');
+            if (i === state.cursorPos) {
+                cell.classList.add('selected-cursor-head');
             }
         }
-    }, 800); 
+        
+        // Eventos de Mouse
+        cell.addEventListener('mouseenter', () => {
+            if (state.gameState !== 'playing') return;
+            state.cursorPos = i;
+            playSound('move');
+            updateCursorHighlight();
+        });
+        
+        cell.addEventListener('click', () => {
+            if (state.gameState !== 'playing') return;
+            submitSelection();
+        });
+        
+        gridEl.appendChild(cell);
+    }
 }
 
-function handleItemClick(index) {
+function updateCursorHighlight() {
+    const cells = document.querySelectorAll('.char-cell');
+    cells.forEach((cell, idx) => {
+        cell.classList.remove('selected-cursor', 'selected-cursor-head');
+        if (idx >= state.cursorPos && idx < state.cursorPos + state.targetLength) {
+            cell.classList.add('selected-cursor');
+            if (idx === state.cursorPos) {
+                cell.classList.add('selected-cursor-head');
+            }
+        }
+    });
+}
+
+function moveCursor(delta) {
+    if (state.gameState !== 'playing') return;
+    state.cursorPos += delta;
+    
+    // Wrap around 0..79
+    if (state.cursorPos < 0) {
+        state.cursorPos += state.gridSize;
+    } else if (state.cursorPos >= state.gridSize) {
+        state.cursorPos -= state.gridSize;
+    }
+    
+    playSound('move');
+    updateCursorHighlight();
+}
+
+function submitSelection() {
     if (state.gameState !== 'playing') return;
     
-    if (index === state.correctIndex) {
+    const elapsedTime = ((Date.now() - state.startTime) / 1000).toFixed(2);
+    
+    // Verificar se acertou a posição inicial ou os caracteres batem exatamente
+    let isCorrect = (state.cursorPos === state.correctPos);
+    
+    if (!isCorrect) {
+        // Checagem alternativa: validar se a sequência sob o cursor bate exatamente com a target
+        let match = true;
+        for (let i = 0; i < state.targetLength; i++) {
+            if (state.gridChars[state.cursorPos + i] !== state.targetChars[i]) {
+                match = false;
+                break;
+            }
+        }
+        if (match) isCorrect = true;
+    }
+    
+    if (isCorrect) {
         // Vitória!
         state.gameState = 'won';
         playSound('success');
         stopTimer();
-        clearInterval(state.scrambleInterval);
         
-        state.gridItems[index].classList.add('correct-click');
+        state.streak++;
+        if (state.streak > state.maxStreak) {
+            state.maxStreak = state.streak;
+        }
+        updateHUD();
         
-        document.getElementById('succ-time').textContent = formatTime(state.timeLimit - state.timer);
+        // Visual de acerto no grid
+        const cells = document.querySelectorAll('.char-cell');
+        for (let i = 0; i < state.targetLength; i++) {
+            if (cells[state.cursorPos + i]) {
+                cells[state.cursorPos + i].classList.add('success-cell');
+            }
+        }
+        
+        document.getElementById('succ-time').textContent = `${elapsedTime}s`;
+        document.getElementById('succ-streak').textContent = state.streak;
         document.getElementById('success-overlay').classList.add('show');
         
     } else {
         // Erro!
-        state.gridItems[index].classList.add('wrong-click');
-        failGame();
+        state.streak = 0;
+        updateHUD();
+        
+        // Visual de erro no grid
+        const cells = document.querySelectorAll('.char-cell');
+        for (let i = 0; i < state.targetLength; i++) {
+            if (cells[state.cursorPos + i]) {
+                cells[state.cursorPos + i].classList.add('fail-cell');
+            }
+        }
+        
+        failGame('Sequência incorreta!');
     }
 }
 
-function failGame() {
-    if (state.gameState !== 'playing') return;
+function failGame(msg = 'O tempo esgotou ou você errou.') {
+    if (state.gameState !== 'playing' && state.gameState !== 'lost') return;
     state.gameState = 'lost';
     playSound('error');
     stopTimer();
-    clearInterval(state.scrambleInterval);
     
-    const wrapper = document.querySelector('.hacking-device-wrapper');
-    wrapper.classList.remove('shake');
-    void wrapper.offsetWidth;
-    wrapper.classList.add('shake');
+    state.streak = 0;
+    updateHUD();
     
+    document.getElementById('fail-message').textContent = msg;
     document.getElementById('fail-overlay').classList.add('show');
 }
 
@@ -146,12 +250,12 @@ function startTimer() {
     clearInterval(state.timerInterval);
     updateTimerDisplay();
     state.timerInterval = setInterval(() => {
-        state.timer--;
+        state.timer -= 0.1;
         updateTimerDisplay();
         if (state.timer <= 0) {
-            failGame();
+            failGame('Tempo esgotado!');
         }
-    }, 1000);
+    }, 100);
 }
 
 function stopTimer() {
@@ -159,59 +263,96 @@ function stopTimer() {
 }
 
 function updateTimerDisplay() {
-    const mins = Math.floor(state.timer / 60).toString().padStart(2, '0');
-    const secs = (state.timer % 60).toString().padStart(2, '0');
-    document.getElementById('timer-val').textContent = `${mins}:${secs}`;
+    const t = Math.max(0, state.timer).toFixed(1);
+    document.getElementById('timer-val').textContent = `${t}s`;
 }
 
-function formatTime(sec) {
-    const mins = Math.floor(sec / 60).toString().padStart(2, '0');
-    const s = (sec % 60).toString().padStart(2, '0');
-    return `${mins}:${s}`;
+function updateHUD() {
+    document.getElementById('val-streak').textContent = state.streak;
+    document.getElementById('val-max-streak').textContent = state.maxStreak;
 }
 
-// Event Listeners
-document.getElementById('btn-stop-game').addEventListener('click', () => {
-    if (state.gameState === 'playing') failGame();
-});
-
-document.getElementById('btn-next-puzzle').addEventListener('click', initGame);
-document.getElementById('btn-retry-puzzle').addEventListener('click', initGame);
-
+// Teclas de Atalho (WASD, Setas e Enter)
 window.addEventListener('keydown', (e) => {
-    if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        if (state.gameState === 'won' || state.gameState === 'lost') {
+    const key = e.key.toLowerCase();
+    
+    if (state.gameState === 'won' || state.gameState === 'lost') {
+        if (key === 'enter' || key === ' ') {
+            e.preventDefault();
             initGame();
-        } else if (state.gameState === 'playing' && e.key === ' ') {
-            failGame();
+        }
+        return;
+    }
+    
+    if (state.gameState === 'playing') {
+        if (key === 'w' || key === 'arrowup') {
+            e.preventDefault();
+            moveCursor(-10); // subir 1 linha (10 cols)
+        } else if (key === 's' || key === 'arrowdown') {
+            e.preventDefault();
+            moveCursor(10); // descer 1 linha (10 cols)
+        } else if (key === 'a' || key === 'arrowleft') {
+            e.preventDefault();
+            moveCursor(-1); // mover para esquerda
+        } else if (key === 'd' || key === 'arrowright') {
+            e.preventDefault();
+            moveCursor(1); // mover para direita
+        } else if (key === 'enter') {
+            e.preventDefault();
+            submitSelection();
+        } else if (key === ' ') {
+            e.preventDefault();
+            failGame('Hack interrompido pelo usuário.');
         }
     }
 });
 
-// Start game initially
-initGame();
-
-// Configurações e Menu Lateral
-const drawer = document.getElementById('settings-drawer');
-document.getElementById('menu-toggle').addEventListener('click', () => {
-    drawer.classList.toggle('open');
+// Event Listeners do Drawer / Botões
+document.getElementById('btn-stop-game').addEventListener('click', () => {
+    if (state.gameState === 'playing') failGame('Hack interrompido.');
 });
+document.getElementById('btn-next-puzzle').addEventListener('click', initGame);
+document.getElementById('btn-retry-puzzle').addEventListener('click', initGame);
 
-// Selector de Dificuldade
-document.querySelectorAll('.diff-btn').forEach(btn => {
+// Drawer Toggle
+const drawer = document.getElementById('settings-drawer');
+document.getElementById('menu-toggle').addEventListener('click', () => drawer.classList.add('open'));
+document.getElementById('close-drawer').addEventListener('click', () => drawer.classList.remove('open'));
+
+// Configuração: Tipo de Caracteres
+document.querySelectorAll('.charset-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.charset-btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
-        
-        const diff = e.target.getAttribute('data-difficulty');
-        if (diff === 'easy') {
-            state.timeLimit = 20;
-        } else if (diff === 'medium') {
-            state.timeLimit = 15;
-        } else if (diff === 'hard') {
-            state.timeLimit = 10;
-        }
+        state.charSet = e.target.getAttribute('data-set');
         initGame();
     });
 });
+
+// Configuração: Tamanho da Sequência
+document.querySelectorAll('.length-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.length-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        state.targetLength = parseInt(e.target.getAttribute('data-length'), 10);
+        initGame();
+    });
+});
+
+// Configuração: Tempo Limite
+document.querySelectorAll('.time-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        state.timeLimit = parseInt(e.target.getAttribute('data-time'), 10);
+        initGame();
+    });
+});
+
+// Configuração: Som
+document.getElementById('opt-sound').addEventListener('change', (e) => {
+    state.soundEnabled = e.target.checked;
+});
+
+// Iniciar o jogo no carregamento
+initGame();
