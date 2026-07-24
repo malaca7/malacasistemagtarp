@@ -709,6 +709,7 @@ function updateStreakCard() {
     const streakCard = document.getElementById('streak-card');
     const streakVal = document.getElementById('streak-val');
     const streakDesc = document.getElementById('streak-desc');
+    if (!streakCard || !streakVal || !streakDesc) return;
     
     const lastPlayed = localStorage.getItem('digipick_last_played_date');
     const streak = parseInt(localStorage.getItem('digipick_streak') || '0', 10);
@@ -977,12 +978,14 @@ function updateUI() {
     const indicator = document.getElementById('lock-status-indicator');
     const text = document.getElementById('lock-status-text');
     
-    if (state.gameWon) {
-        indicator.classList.remove('active');
-        text.textContent = "ACESSO PERMITIDO";
-    } else {
-        indicator.classList.add('active');
-        text.textContent = `ANEL ATIVO: ${state.activeRingIndex + 1} DE ${state.rings.length}`;
+    if (indicator && text) {
+        if (state.gameWon) {
+            indicator.classList.remove('active');
+            text.textContent = "ACESSO PERMITIDO";
+        } else {
+            indicator.classList.add('active');
+            text.textContent = `ANEL ATIVO: ${state.activeRingIndex + 1} DE ${state.rings.length}`;
+        }
     }
     
     // Stats
