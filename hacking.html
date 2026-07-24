@@ -15,9 +15,9 @@
     
     <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script type="module" crossorigin src="/malacasistemagtarp/assets/hacking-h5m4sXQY.js"></script>
+  <script type="module" crossorigin src="/malacasistemagtarp/assets/hacking-Be4UqMhG.js"></script>
   <link rel="modulepreload" crossorigin href="/malacasistemagtarp/assets/modulepreload-polyfill-Dezn_h7o.js">
-  <link rel="stylesheet" crossorigin href="/malacasistemagtarp/assets/styles-w782trE-.css">
+  <link rel="stylesheet" crossorigin href="/malacasistemagtarp/assets/styles-C38RBVqZ.css">
 </head>
 <body>
     <!-- Canvas de Fundo Estrelado -->
@@ -36,22 +36,33 @@
     <div class="app-container">
         <!-- HUD Centralizado -->
         <main class="hud-container hacking-hud-container">
-            <!-- Dispositivo de Hacking de Digital -->
-            <div class="hacking-device-wrapper" style="max-width: 800px; width: 100%; border-radius: 8px; background: #0f121b; border: 1px solid rgba(0, 229, 255, 0.2); padding: 20px;">
+            <!-- Dispositivo de Hacking (NoPixel Character Soup) -->
+            <div class="hacking-device-wrapper" style="max-width: 900px; width: 100%; border-radius: 12px; background: #0c0e14; border: 1px solid rgba(0, 229, 255, 0.25); padding: 25px; box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);">
                 
-                <div style="width: 100%; border-bottom: 1px solid rgba(255, 255, 255, 0.05); text-align: center; padding-bottom: 15px; margin-bottom: 25px;">
-                    <h2 style="font-size: 1.4rem; font-weight: 500; margin: 0; color: #dcdcdc; font-family: 'Inter', sans-serif;">HACKING DEVICE</h2>
+                <div style="width: 100%; border-bottom: 1px solid rgba(255, 255, 255, 0.08); text-align: center; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="font-size: 1.4rem; font-weight: 600; margin: 0; color: #00e5ff; font-family: 'Orbitron', sans-serif; letter-spacing: 2px;">
+                        <i class="fa-solid fa-terminal"></i> NOPIXEL HACKING DEVICE
+                    </h2>
+                    <div class="streaks-hud" style="font-family: monospace; font-size: 0.95rem; color: #aaa; display: flex; gap: 15px;">
+                        <span>STREAK: <strong id="val-streak" style="color: #00e676;">0</strong></span>
+                        <span>MAX: <strong id="val-max-streak" style="color: #ffb74d;">0</strong></span>
+                    </div>
                 </div>
 
-                <div class="nopixel-hacking-container" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                <div class="nopixel-hacking-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; background: #050608; border-radius: 8px; border: 1px solid #1a1f2c; padding: 20px;">
                     
-                    <div class="hacking-header" style="margin-bottom: 20px; text-align: center;">
-                        <div class="target-label" style="color: #00e5ff; font-family: monospace; font-size: 1.2rem; margin-bottom: 10px;">TARGET IP:</div>
-                        <div class="target-code" id="target-code" style="color: white; font-family: monospace; font-size: 2rem; letter-spacing: 5px;">LOADING...</div>
+                    <div class="hacking-target-panel" style="margin-bottom: 25px; text-align: center; background: rgba(0, 229, 255, 0.05); border: 1px dashed rgba(0, 229, 255, 0.3); padding: 15px 30px; border-radius: 8px; width: 100%;">
+                        <div class="target-label" style="color: #888; font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; letter-spacing: 2px; text-transform: uppercase;">
+                            LOCALIZE A SEQUÊNCIA ALVO:
+                        </div>
+                        <div class="target-code-display" id="target-code" style="color: #00e5ff; font-family: monospace; font-size: 2.4rem; font-weight: bold; letter-spacing: 12px; margin-top: 5px; text-shadow: 0 0 15px rgba(0, 229, 255, 0.6);">
+                            LOADING...
+                        </div>
                     </div>
 
-                    <div class="hacking-grid" id="hacking-grid" style="display: grid; gap: 8px; justify-content: center; width: 100%;">
-                        <!-- Gerado via JS -->
+                    <!-- Malha de Caracteres (8x10 Grid = 80 Células) -->
+                    <div class="character-soup-grid" id="character-soup-grid">
+                        <!-- Gerado dinamicamente via JS -->
                     </div>
                 </div>
 
@@ -61,13 +72,13 @@
                         <div class="lock-icon-wrapper animate-pulse" style="border-color: var(--color-success); color: var(--color-success);">
                             <i class="fa-solid fa-circle-check"></i>
                         </div>
-                        <h2 style="color: var(--color-success);">BYPASS CONCLUÍDO</h2>
-                        <p id="success-message">Acesso ao servidor garantido.</p>
+                        <h2 style="color: var(--color-success);">ACESSO CONCEDIDO</h2>
+                        <p id="success-message">Sequência encontrada com sucesso!</p>
                         <div class="success-stats">
-                            <div>Tempo: <strong id="succ-time">00:00</strong></div>
-                            <div>Tentativas: <strong id="succ-attempts">0</strong></div>
+                            <div>Tempo: <strong id="succ-time">0.00s</strong></div>
+                            <div>Streak Atual: <strong id="succ-streak">0</strong></div>
                         </div>
-                        <button class="btn btn-primary" id="btn-next-puzzle">NOVO HACK</button>
+                        <button class="btn btn-primary" id="btn-next-puzzle">PRÓXIMO HACK (ENTER)</button>
                     </div>
                 </div>
 
@@ -77,9 +88,9 @@
                         <div class="lock-icon-wrapper" style="border-color: var(--color-error); color: var(--color-error);">
                             <i class="fa-solid fa-triangle-exclamation"></i>
                         </div>
-                        <h2 style="color: var(--color-error);">FALHA NA CONEXÃO</h2>
-                        <p id="fail-message">O tempo esgotou ou você errou o código.</p>
-                        <button class="btn" style="border-color: var(--color-error); color: var(--color-error);" id="btn-retry-puzzle">TENTAR NOVAMENTE</button>
+                        <h2 style="color: var(--color-error);">ACESSO NEGADO</h2>
+                        <p id="fail-message">Sequência incorreta ou tempo esgotado.</p>
+                        <button class="btn" style="border-color: var(--color-error); color: var(--color-error);" id="btn-retry-puzzle">TENTAR NOVAMENTE (ENTER)</button>
                     </div>
                 </div>
             </div>
@@ -87,17 +98,16 @@
             <!-- Painel de Controle Inferior -->
             <div class="hud-bottom-panel">
                 <div class="hud-panel-header">
-                    <div class="hud-title">HACKING DEVICE</div>
+                    <div class="hud-title">SISTEMA DE HACKING NOPIXEL</div>
                     <div class="hud-stats">
-                        <div class="hud-stat-box timer-box" id="timer-val">00:00</div>
-                        <div class="hud-stat-box picks-box" id="picks-val">5</div>
+                        <div class="hud-stat-box timer-box" id="timer-val">15.0s</div>
                     </div>
                 </div>
 
                 <!-- Atalhos / Botões de Ação na Base -->
                 <div class="hud-actions-footer">
                     <button class="hud-footer-btn" id="btn-stop-game" title="Parar (Espaço)" style="color: #ff3333; border-color: rgba(255,51,51,0.3);">
-                        <i class="fa-solid fa-stop"></i> ESPAÇO
+                        <i class="fa-solid fa-stop"></i> PARAR HACK
                     </button>
                 </div>
             </div>
@@ -107,17 +117,44 @@
     <!-- PAINEL LATERAL (DRAWER): Ajustes, Dificuldade e Instruções -->
     <div class="settings-drawer" id="settings-drawer">
         <div class="drawer-header">
-            <h3><i class="fa-solid fa-sliders"></i> CONFIGURAÇÕES DE HACKING</h3>
+            <h3><i class="fa-solid fa-sliders"></i> CONFIGURAÇÕES DO HACK</h3>
             <button class="close-drawer-btn" id="close-drawer"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="drawer-body">
-            <!-- Dificuldade (Número de divisões) -->
+            <!-- Seleção de Tipo de Caracteres -->
             <div class="drawer-section">
-                <h4>DIFICULDADE</h4>
+                <h4>TIPO DE CARACTERES</h4>
+                <div class="char-set-selector" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <button class="charset-btn active" data-set="numeric">Numérico</button>
+                    <button class="charset-btn" data-set="alphabet">Alfabeto</button>
+                    <button class="charset-btn" data-set="alphanumeric">Alfanumérico</button>
+                    <button class="charset-btn" data-set="greek">Grego</button>
+                    <button class="charset-btn" data-set="braille">Braille</button>
+                    <button class="charset-btn" data-set="runes">Runas</button>
+                    <button class="charset-btn" data-set="symbols">Símbolos</button>
+                </div>
+            </div>
+
+            <!-- Tamanho da Sequência -->
+            <div class="drawer-section">
+                <h4>TAMANHO DA SEQUÊNCIA (Nº DE CARACTERES)</h4>
                 <div class="drawer-difficulty-selector">
-                    <button class="diff-btn active" data-difficulty="easy" id="btn-easy">FÁCIL</button>
-                    <button class="diff-btn" data-difficulty="medium" id="btn-medium">MÉDIO</button>
-                    <button class="diff-btn" data-difficulty="hard" id="btn-hard">DIFÍCIL</button>
+                    <button class="length-btn" data-length="3">3</button>
+                    <button class="length-btn active" data-length="4">4</button>
+                    <button class="length-btn" data-length="5">5</button>
+                    <button class="length-btn" data-length="6">6</button>
+                </div>
+            </div>
+
+            <!-- Tempo Limite -->
+            <div class="drawer-section">
+                <h4>TEMPO LIMITE</h4>
+                <div class="drawer-difficulty-selector">
+                    <button class="time-btn" data-time="5">5s</button>
+                    <button class="time-btn" data-time="10">10s</button>
+                    <button class="time-btn active" data-time="15">15s</button>
+                    <button class="time-btn" data-time="20">20s</button>
+                    <button class="time-btn" data-time="30">30s</button>
                 </div>
             </div>
 
@@ -134,16 +171,17 @@
             <div class="drawer-section">
                 <h4>CONTROLES RÁPIDOS</h4>
                 <ul class="shortcuts-list-drawer">
-                    <li><kbd>Mouse</kbd> <span>Clicar no bloco correto</span></li>
-                    <li><kbd>Enter</kbd> / <kbd>Espaço</kbd> <span>Novo Jogo (se perder/ganhar)</span></li>
-                    <li><kbd>Espaço</kbd> <span>Stop (Cancel)</span></li>
+                    <li><kbd>W</kbd> / <kbd>A</kbd> / <kbd>S</kbd> / <kbd>D</kbd> <span>Mover Seleção no Grid</span></li>
+                    <li><kbd>Setas</kbd> <span>Mover Seleção no Grid</span></li>
+                    <li><kbd>Mouse</kbd> <span>Passar o mouse / Clicar</span></li>
+                    <li><kbd>Enter</kbd> <span>Confirmar Seleção / Reiniciar</span></li>
                 </ul>
             </div>
             
             <!-- Descrição instrutiva -->
             <div class="drawer-section" style="margin-top: 10px;">
                 <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
-                    <i class="fa-solid fa-circle-info"></i> <strong>Instruções:</strong> No topo da tela aparece o <strong>TARGET IP</strong> que você precisa encontrar. Olhe rapidamente a malha de códigos embaralhados (que mudam a cada poucos segundos) e clique no bloco exato que contém aquele IP antes que o tempo se esgote!
+                    <i class="fa-solid fa-circle-info"></i> <strong>Como Jogar:</strong> Observe a sequência destacada no topo. Navegue pelo grid de caracteres usando as teclas <strong>WASD / Setas</strong> ou <strong>Mouse</strong> e pressione <strong>Enter</strong> ou <strong>Clique</strong> quando a caixa de seleção estiver exatamente sobre a sequência correta!
                 </p>
             </div>
         </div>
