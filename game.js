@@ -14,7 +14,8 @@ function initAudio() {
 }
 
 function playSound(type) {
-    if (!document.getElementById('opt-sound').checked) return;
+    const optSound = document.getElementById('opt-sound');
+    if (optSound && !optSound.checked) return;
     initAudio();
     if (audioCtx.state === 'suspended') {
         audioCtx.resume();
@@ -761,7 +762,8 @@ function drawLock() {
     
     const radii = getRingRadii(numRings);
     const activeKey = state.keys[state.selectedKeyIndex];
-    const isHelperEnabled = document.getElementById('opt-helper').checked && !state.isDailyChallenge;
+    const optHelperEl = document.getElementById('opt-helper');
+    const isHelperEnabled = (optHelperEl ? optHelperEl.checked : true) && !state.isDailyChallenge;
     
     // 1. Desenhar Anéis
     for (let r = 0; r < numRings; r++) {
@@ -879,7 +881,8 @@ function drawKeysList() {
     }
     
     const activeRing = state.rings[state.activeRingIndex];
-    const isHelperEnabled = document.getElementById('opt-helper').checked && !state.isDailyChallenge;
+    const optHelperEl = document.getElementById('opt-helper');
+    const isHelperEnabled = (optHelperEl ? optHelperEl.checked : true) && !state.isDailyChallenge;
     
     state.keys.forEach((key, index) => {
         const { card, canvas: canvasEl } = keyCardElements[index];
@@ -1229,10 +1232,13 @@ if (btnRetry) {
 }
 
 // Configurações
-document.getElementById('opt-helper').addEventListener('click', () => {
-    drawLock();
-    drawKeysList();
-});
+const optHelperBtn = document.getElementById('opt-helper');
+if (optHelperBtn) {
+    optHelperBtn.addEventListener('click', () => {
+        drawLock();
+        drawKeysList();
+    });
+}
 
 // Ajustar redimensionamento
 window.addEventListener('resize', () => {

@@ -4,9 +4,10 @@ const state = {
     timer: 0,
     timeLimit: 15,
     timerInterval: null,
+    scrambleInterval: null,
     startTime: 0,
     
-    charSet: 'numeric',
+    charSet: 'all',
     targetLength: 4,
     gridSize: 80, // 8 rows x 10 cols
     
@@ -29,6 +30,8 @@ const CHARACTER_SETS = {
     runes: "ᚠᚥᚧᚨᚩᚬᚭᚻᛐᛑᛒᛓᛔᛕᛖᛗᛘᛙᛚᛛᛜᛝᛞᛟᛤ",
     symbols: "☎☚☛☜☞☟☠☢☣☮☯♨♩♪♫♬Ψ♆✂✄෧✆✉✦✧✿❀"
 };
+
+const ALL_CHARS_COMBINED = Object.values(CHARACTER_SETS).join('');
 
 // Web Audio API Sound Generator
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -68,7 +71,12 @@ function playSound(type) {
 }
 
 function getRandomChar() {
-    const chars = CHARACTER_SETS[state.charSet] || CHARACTER_SETS.numeric;
+    let chars;
+    if (state.charSet === 'all') {
+        chars = ALL_CHARS_COMBINED;
+    } else {
+        chars = CHARACTER_SETS[state.charSet] || CHARACTER_SETS.numeric;
+    }
     return chars.charAt(Math.floor(Math.random() * chars.length));
 }
 
@@ -107,6 +115,7 @@ function initGame() {
     
     renderGrid();
     startTimer();
+    startScrambler();
 }
 
 function renderGrid() {
@@ -144,6 +153,31 @@ function renderGrid() {
     }
 }
 
+function startScrambler() {
+    clearInterval(state.scrambleInterval);
+    state.scrambleInterval = setInterval(() => {
+        if (state.gameState !== 'playing') return;
+        
+        // Randomizar células falsas continuamente para dificultar a busca
+        const cells = document.querySelectorAll('.char-cell');
+        for (let i = 0; i < state.gridSize; i++) {
+            // Não alterar a sequência gabarito verdadeira
+            if (i < state.correctPos || i >= state.correctPos + state.targetLength) {
+                if (Math.random() > 0.6) {
+                    state.gridChars[i] = getRandomChar();
+                    if (cells[i]) {
+                        cells[i].textContent = state.gridChars[i];
+                    }
+                }
+            }
+        }
+    }, 500); // Passando/mudando a cada 500ms
+}
+
+function stopScrambler() {
+    clearInterval(state.scrambleInterval);
+}
+
 function updateCursorHighlight() {
     const cells = document.querySelectorAll('.char-cell');
     cells.forEach((cell, idx) => {
@@ -177,11 +211,10 @@ function submitSelection() {
     
     const elapsedTime = ((Date.now() - state.startTime) / 1000).toFixed(2);
     
-    // Verificar se acertou a posição inicial ou os caracteres batem exatamente
+    // Verificar se acertou a posição inicial ou se os caracteres batem exatamente
     let isCorrect = (state.cursorPos === state.correctPos);
     
     if (!isCorrect) {
-        // Checagem alternativa: validar se a sequência sob o cursor bate exatamente com a target
         let match = true;
         for (let i = 0; i < state.targetLength; i++) {
             if (state.gridChars[state.cursorPos + i] !== state.targetChars[i]) {
@@ -197,6 +230,7 @@ function submitSelection() {
         state.gameState = 'won';
         playSound('success');
         stopTimer();
+        stopScrambler();
         
         state.streak++;
         if (state.streak > state.maxStreak) {
@@ -220,6 +254,7 @@ function submitSelection() {
         // Erro!
         state.streak = 0;
         updateHUD();
+        stopScrambler();
         
         // Visual de erro no grid
         const cells = document.querySelectorAll('.char-cell');
@@ -238,6 +273,7 @@ function failGame(msg = 'O tempo esgotou ou você errou.') {
     state.gameState = 'lost';
     playSound('error');
     stopTimer();
+    stopScrambler();
     
     state.streak = 0;
     updateHUD();
@@ -287,16 +323,16 @@ window.addEventListener('keydown', (e) => {
     if (state.gameState === 'playing') {
         if (key === 'w' || key === 'arrowup') {
             e.preventDefault();
-            moveCursor(-10); // subir 1 linha (10 cols)
+            moveCursor(-10);
         } else if (key === 's' || key === 'arrowdown') {
             e.preventDefault();
-            moveCursor(10); // descer 1 linha (10 cols)
+            moveCursor(10);
         } else if (key === 'a' || key === 'arrowleft') {
             e.preventDefault();
-            moveCursor(-1); // mover para esquerda
+            moveCursor(-1);
         } else if (key === 'd' || key === 'arrowright') {
             e.preventDefault();
-            moveCursor(1); // mover para direita
+            moveCursor(1);
         } else if (key === 'enter') {
             e.preventDefault();
             submitSelection();
@@ -308,13 +344,24 @@ window.addEventListener('keydown', (e) => {
 });
 
 // Event Listeners do Jogo
-document.getElementById('btn-stop-game').addEventListener('click', () => {
-    if (state.gameState === 'playing') failGame('Hack interrompido.');
-});
+const btnStop = document.getElementById('btn-stop-game');
+if (btnStop) {
+    btnStop.addEventListener('click', () => {
+        if (state.gameState === 'playing') failGame('Hack interrompido.');
+    });
+}
+
+const btnSubmit = document.getElementById('btn-submit');
+if (btnSubmit) {
+    btnSubmit.addEventListener('click', () => {
+        if (state.gameState === 'playing') submitSelection();
+    });
+}
+
 document.getElementById('btn-next-puzzle').addEventListener('click', initGame);
 document.getElementById('btn-retry-puzzle').addEventListener('click', initGame);
 
-// Configuração: Tipo de Caracteres
+// Configuração: Tipo de Caracteres (incluindo 'all' Misto)
 document.querySelectorAll('.charset-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         document.querySelectorAll('.charset-btn').forEach(b => b.classList.remove('active'));
@@ -342,11 +389,6 @@ document.querySelectorAll('.time-btn').forEach(btn => {
         state.timeLimit = parseInt(e.target.getAttribute('data-time'), 10);
         initGame();
     });
-});
-
-// Configuração: Som
-document.getElementById('opt-sound').addEventListener('change', (e) => {
-    state.soundEnabled = e.target.checked;
 });
 
 // Iniciar o jogo no carregamento

@@ -17,7 +17,7 @@
     <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="hacking-page-body">
+<body>
     <!-- Canvas de Fundo Estrelado -->
     <canvas id="starfield-bg"></canvas>
 
@@ -26,14 +26,52 @@
         <i class="fa-solid fa-house"></i>
     </a>
 
-    <div class="app-container hacking-app-container">
-        <!-- HUD Centralizado -->
+    <div class="app-container">
+        <!-- HUD Centralizado (Mesmo Padrão de Organização do Lockpick) -->
         <main class="hud-container hacking-hud-container">
             
-            <!-- Dispositivo de Hacking Principal -->
+            <!-- 1. BARRA DE CONFIGURAÇÕES NA TELA (NO MEIO) -->
+            <div class="on-screen-settings-panel">
+                <div class="setting-row-center">
+                    <span class="setting-label"><i class="fa-solid fa-font"></i> TIPO:</span>
+                    <div class="char-set-selector">
+                        <button class="charset-btn active" data-set="all">MISTO (TODOS)</button>
+                        <button class="charset-btn" data-set="numeric">Numérico</button>
+                        <button class="charset-btn" data-set="alphabet">Alfabeto</button>
+                        <button class="charset-btn" data-set="alphanumeric">Alfanumérico</button>
+                        <button class="charset-btn" data-set="greek">Grego</button>
+                        <button class="charset-btn" data-set="braille">Braille</button>
+                        <button class="charset-btn" data-set="runes">Runas</button>
+                        <button class="charset-btn" data-set="symbols">Símbolos</button>
+                    </div>
+                </div>
+
+                <div class="setting-row-center inline-settings">
+                    <div class="setting-group">
+                        <span class="setting-label"><i class="fa-solid fa-hashtags"></i> TAMANHO:</span>
+                        <div class="drawer-difficulty-selector flex-row-buttons">
+                            <button class="length-btn" data-length="3">3</button>
+                            <button class="length-btn active" data-length="4">4</button>
+                            <button class="length-btn" data-length="5">5</button>
+                            <button class="length-btn" data-length="6">6</button>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <span class="setting-label"><i class="fa-solid fa-stopwatch"></i> TEMPO:</span>
+                        <div class="drawer-difficulty-selector flex-row-buttons">
+                            <button class="time-btn" data-time="5">5s</button>
+                            <button class="time-btn" data-time="10">10s</button>
+                            <button class="time-btn active" data-time="15">15s</button>
+                            <button class="time-btn" data-time="20">20s</button>
+                            <button class="time-btn" data-time="30">30s</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. DISPOSITIVO CENTRAL DE HACKING -->
             <div class="hacking-device-wrapper">
-                
-                <!-- Cabeçalho do Hacking -->
                 <div class="hacking-top-bar">
                     <h2 class="hacking-main-title">
                         <i class="fa-solid fa-terminal"></i> SIMULADOR DE HACKING
@@ -44,48 +82,6 @@
                     </div>
                 </div>
 
-                <!-- PAINEL CENTRAL DE CONFIGURAÇÕES NA TELA (NO MEIO) -->
-                <div class="on-screen-settings-panel">
-                    <!-- Linha 1: Tipo de Caracteres -->
-                    <div class="setting-row-center">
-                        <span class="setting-label"><i class="fa-solid fa-font"></i> TIPO:</span>
-                        <div class="char-set-selector">
-                            <button class="charset-btn active" data-set="numeric">Numérico</button>
-                            <button class="charset-btn" data-set="alphabet">Alfabeto</button>
-                            <button class="charset-btn" data-set="alphanumeric">Alfanumérico</button>
-                            <button class="charset-btn" data-set="greek">Grego</button>
-                            <button class="charset-btn" data-set="braille">Braille</button>
-                            <button class="charset-btn" data-set="runes">Runas</button>
-                            <button class="charset-btn" data-set="symbols">Símbolos</button>
-                        </div>
-                    </div>
-
-                    <!-- Linha 2: Tamanho & Tempo -->
-                    <div class="setting-row-center inline-settings">
-                        <div class="setting-group">
-                            <span class="setting-label"><i class="fa-solid fa-hashtags"></i> TAMANHO:</span>
-                            <div class="drawer-difficulty-selector flex-row-buttons">
-                                <button class="length-btn" data-length="3">3</button>
-                                <button class="length-btn active" data-length="4">4</button>
-                                <button class="length-btn" data-length="5">5</button>
-                                <button class="length-btn" data-length="6">6</button>
-                            </div>
-                        </div>
-
-                        <div class="setting-group">
-                            <span class="setting-label"><i class="fa-solid fa-stopwatch"></i> TEMPO:</span>
-                            <div class="drawer-difficulty-selector flex-row-buttons">
-                                <button class="time-btn" data-time="5">5s</button>
-                                <button class="time-btn" data-time="10">10s</button>
-                                <button class="time-btn active" data-time="15">15s</button>
-                                <button class="time-btn" data-time="20">20s</button>
-                                <button class="time-btn" data-time="30">30s</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tela de Jogo de Caracteres -->
                 <div class="hacking-main-container">
                     <div class="hacking-target-panel">
                         <div class="target-label">LOCALIZE A SEQUÊNCIA ALVO:</div>
@@ -127,19 +123,21 @@
                 </div>
             </div>
 
-            <!-- Painel de Controle Inferior -->
+            <!-- 3. PAINEL DE CONTROLE INFERIOR (MESMO PADRÃO DO LOCKPICK) -->
             <div class="hud-bottom-panel">
                 <div class="hud-panel-header">
-                    <div class="hud-title">SIMULADOR DE HACKING</div>
+                    <div class="hud-title">PAINEL DE CONTROLE</div>
                     <div class="hud-stats">
                         <div class="hud-stat-box timer-box" id="timer-val">15.0s</div>
                     </div>
                 </div>
 
-                <!-- Atalhos / Botões de Ação na Base -->
                 <div class="hud-actions-footer">
                     <button class="hud-footer-btn red-footer-btn" id="btn-stop-game" title="Parar (Espaço)">
-                        <i class="fa-solid fa-stop"></i> PARAR HACK (ESPAÇO)
+                        <i class="fa-solid fa-stop"></i> ESPAÇO (PARAR)
+                    </button>
+                    <button class="hud-footer-btn slot-btn" id="btn-submit" title="Confirmar Seleção (Enter)">
+                        <i class="fa-solid fa-circle-check"></i> ENTER (CONFIRMAR)
                     </button>
                 </div>
             </div>
@@ -147,6 +145,6 @@
     </div>
 
     <!-- Script de Hacking -->
-    <script type="module" src="/hacking.js"></script>
+    <script type="module" src="hacking.js"></script>
 </body>
 </html>

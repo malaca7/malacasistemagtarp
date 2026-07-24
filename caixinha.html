@@ -27,41 +27,38 @@
     </a>
 
     <div class="app-container">
-        <!-- HUD Centralizado -->
+        <!-- HUD Centralizado (Mesmo Padrão de Organização do Lockpick) -->
         <main class="hud-container caixinha-eletronico-container">
             
-            <!-- Tela do Caixinha -->
-            <div class="caixinha-device-wrapper">
-                <!-- Cabeçalho do Cartão -->
-                <div class="caixinha-card-header">
-                    <h2>SIMULADOR DE CAIXINHA</h2>
-                </div>
-
-                <!-- SELETOR DE CONFIGURAÇÕES NO MEIO DA TELA -->
-                <div class="on-screen-settings-panel">
-                    <div class="setting-row-center inline-settings">
-                        <div class="setting-group">
-                            <span class="setting-label"><i class="fa-solid fa-gauge-high"></i> TEMPO:</span>
-                            <div class="drawer-difficulty-selector flex-row-buttons">
-                                <button class="diff-btn" data-difficulty="easy" id="btn-easy">FÁCIL (10s)</button>
-                                <button class="diff-btn active" data-difficulty="medium" id="btn-medium">MÉDIO (8s)</button>
-                                <button class="diff-btn" data-difficulty="hard" id="btn-hard">DIFÍCIL (5s)</button>
-                            </div>
+            <!-- 1. BARRA DE CONFIGURAÇÕES NA TELA (NO MEIO) -->
+            <div class="on-screen-settings-panel">
+                <div class="setting-row-center inline-settings">
+                    <div class="setting-group">
+                        <span class="setting-label"><i class="fa-solid fa-gauge-high"></i> TEMPO:</span>
+                        <div class="drawer-difficulty-selector flex-row-buttons">
+                            <button class="diff-btn" data-difficulty="easy" id="btn-easy">FÁCIL (10s)</button>
+                            <button class="diff-btn active" data-difficulty="medium" id="btn-medium">MÉDIO (8s)</button>
+                            <button class="diff-btn" data-difficulty="hard" id="btn-hard">DIFÍCIL (5s)</button>
                         </div>
+                    </div>
 
-                        <div class="setting-group">
-                            <span class="setting-label"><i class="fa-solid fa-gamepad"></i> MODO:</span>
-                            <div class="drawer-difficulty-selector flex-row-buttons">
-                                <button class="diff-btn mode-btn active" data-mode="standard" id="btn-mode-standard">PADRÃO (3 SEQS)</button>
-                                <button class="diff-btn mode-btn" data-mode="endless" id="btn-mode-endless">INFINITO</button>
-                            </div>
+                    <div class="setting-group">
+                        <span class="setting-label"><i class="fa-solid fa-gamepad"></i> MODO:</span>
+                        <div class="drawer-difficulty-selector flex-row-buttons">
+                            <button class="diff-btn mode-btn active" data-mode="standard" id="btn-mode-standard">PADRÃO (3 SEQS)</button>
+                            <button class="diff-btn mode-btn" data-mode="endless" id="btn-mode-endless">INFINITO</button>
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- 2. DISPOSITIVO CENTRAL DA CAIXINHA -->
+            <div class="caixinha-device-wrapper">
+                <div class="caixinha-card-header">
+                    <h2>CAIXINHA ELETRÔNICO</h2>
+                </div>
                 
-                <!-- Digitação da Sequência -->
                 <div class="typing-sequence-container">
-                    
                     <div class="caixinha-counter" id="caixinha-counter">0/8</div>
                     
                     <div class="caixinha-timer-bar">
@@ -97,13 +94,11 @@
                     </div>
                 </div>
             </div>
-            
-            <button class="caixinha-stop-btn" id="btn-stop-game">PARAR / PARAR HACK (ESPAÇO)</button>
 
-            <!-- Painel de Controle Inferior -->
+            <!-- 3. PAINEL DE CONTROLE INFERIOR (MESMO PADRÃO DO LOCKPICK) -->
             <div class="hud-bottom-panel">
                 <div class="hud-panel-header">
-                    <div class="hud-title">CAIXINHA ELETRÔNICO</div>
+                    <div class="hud-title">PAINEL DE CONTROLE</div>
                     <div class="hud-stats">
                         <div class="hud-stat-box timer-box" id="level-val">TEMPO: 8s</div>
                     </div>
@@ -115,9 +110,11 @@
                     </div>
                 </div>
                 
-                <!-- Atalhos / Botões de Ação na Base -->
                 <div class="hud-actions-footer">
-                    <button class="hud-footer-btn" id="btn-start" title="Iniciar Hacking (Enter)">
+                    <button class="hud-footer-btn" id="btn-stop-game" title="Parar (Espaço)" style="color: #ff3333; border-color: rgba(255,51,51,0.3);">
+                        <i class="fa-solid fa-stop"></i> ESPAÇO (PARAR)
+                    </button>
+                    <button class="hud-footer-btn slot-btn" id="btn-start" title="Iniciar Hacking (Enter)">
                         <i class="fa-solid fa-play"></i> INICIAR (ENTER)
                     </button>
                 </div>
