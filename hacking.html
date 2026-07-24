@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decodificador Biométrico (Hacking) | Portal de Treinamento</title>
+    <meta name="description" content="Simulador de hacking de digital estilo FiveM Cayo Perico. Alinhe os fragmentos da digital e invada o sistema.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Link para a folha de estilo -->
+    
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" crossorigin src="/malacasistemagtarp/assets/hacking-h5m4sXQY.js"></script>
+  <link rel="modulepreload" crossorigin href="/malacasistemagtarp/assets/modulepreload-polyfill-Dezn_h7o.js">
+  <link rel="stylesheet" crossorigin href="/malacasistemagtarp/assets/styles-w782trE-.css">
+</head>
+<body>
+    <!-- Canvas de Fundo Estrelado -->
+    <canvas id="starfield-bg"></canvas>
+
+    <!-- Botão de voltar para a Home -->
+    <a href="index.html" class="home-back-btn" title="Voltar para a Home">
+        <i class="fa-solid fa-house"></i>
+    </a>
+
+    <!-- Botão flutuante para abrir o menu/ajustes -->
+    <button class="menu-toggle-btn" id="menu-toggle" title="Abrir Ajustes do Hacking">
+        <i class="fa-solid fa-gear"></i>
+    </button>
+
+    <div class="app-container">
+        <!-- HUD Centralizado -->
+        <main class="hud-container hacking-hud-container">
+            <!-- Dispositivo de Hacking de Digital -->
+            <div class="hacking-device-wrapper" style="max-width: 800px; width: 100%; border-radius: 8px; background: #0f121b; border: 1px solid rgba(0, 229, 255, 0.2); padding: 20px;">
+                
+                <div style="width: 100%; border-bottom: 1px solid rgba(255, 255, 255, 0.05); text-align: center; padding-bottom: 15px; margin-bottom: 25px;">
+                    <h2 style="font-size: 1.4rem; font-weight: 500; margin: 0; color: #dcdcdc; font-family: 'Inter', sans-serif;">HACKING DEVICE</h2>
+                </div>
+
+                <div class="nopixel-hacking-container" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                    
+                    <div class="hacking-header" style="margin-bottom: 20px; text-align: center;">
+                        <div class="target-label" style="color: #00e5ff; font-family: monospace; font-size: 1.2rem; margin-bottom: 10px;">TARGET IP:</div>
+                        <div class="target-code" id="target-code" style="color: white; font-family: monospace; font-size: 2rem; letter-spacing: 5px;">LOADING...</div>
+                    </div>
+
+                    <div class="hacking-grid" id="hacking-grid" style="display: grid; gap: 8px; justify-content: center; width: 100%;">
+                        <!-- Gerado via JS -->
+                    </div>
+                </div>
+
+                <!-- Overlay de Sucesso -->
+                <div class="success-overlay" id="success-overlay">
+                    <div class="success-box">
+                        <div class="lock-icon-wrapper animate-pulse" style="border-color: var(--color-success); color: var(--color-success);">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <h2 style="color: var(--color-success);">BYPASS CONCLUÍDO</h2>
+                        <p id="success-message">Acesso ao servidor garantido.</p>
+                        <div class="success-stats">
+                            <div>Tempo: <strong id="succ-time">00:00</strong></div>
+                            <div>Tentativas: <strong id="succ-attempts">0</strong></div>
+                        </div>
+                        <button class="btn btn-primary" id="btn-next-puzzle">NOVO HACK</button>
+                    </div>
+                </div>
+
+                <!-- Overlay de Falha -->
+                <div class="success-overlay" id="fail-overlay" style="background: rgba(255, 23, 68, 0.15); backdrop-filter: blur(8px);">
+                    <div class="success-box">
+                        <div class="lock-icon-wrapper" style="border-color: var(--color-error); color: var(--color-error);">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <h2 style="color: var(--color-error);">FALHA NA CONEXÃO</h2>
+                        <p id="fail-message">O tempo esgotou ou você errou o código.</p>
+                        <button class="btn" style="border-color: var(--color-error); color: var(--color-error);" id="btn-retry-puzzle">TENTAR NOVAMENTE</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Painel de Controle Inferior -->
+            <div class="hud-bottom-panel">
+                <div class="hud-panel-header">
+                    <div class="hud-title">HACKING DEVICE</div>
+                    <div class="hud-stats">
+                        <div class="hud-stat-box timer-box" id="timer-val">00:00</div>
+                        <div class="hud-stat-box picks-box" id="picks-val">5</div>
+                    </div>
+                </div>
+
+                <!-- Atalhos / Botões de Ação na Base -->
+                <div class="hud-actions-footer">
+                    <button class="hud-footer-btn" id="btn-stop-game" title="Parar (Espaço)" style="color: #ff3333; border-color: rgba(255,51,51,0.3);">
+                        <i class="fa-solid fa-stop"></i> ESPAÇO
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- PAINEL LATERAL (DRAWER): Ajustes, Dificuldade e Instruções -->
+    <div class="settings-drawer" id="settings-drawer">
+        <div class="drawer-header">
+            <h3><i class="fa-solid fa-sliders"></i> CONFIGURAÇÕES DE HACKING</h3>
+            <button class="close-drawer-btn" id="close-drawer"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="drawer-body">
+            <!-- Dificuldade (Número de divisões) -->
+            <div class="drawer-section">
+                <h4>DIFICULDADE</h4>
+                <div class="drawer-difficulty-selector">
+                    <button class="diff-btn active" data-difficulty="easy" id="btn-easy">FÁCIL</button>
+                    <button class="diff-btn" data-difficulty="medium" id="btn-medium">MÉDIO</button>
+                    <button class="diff-btn" data-difficulty="hard" id="btn-hard">DIFÍCIL</button>
+                </div>
+            </div>
+
+            <!-- Ajustes -->
+            <div class="drawer-section">
+                <h4>CONFIGURAÇÕES</h4>
+                <div class="option-row">
+                    <label for="opt-sound"><i class="fa-solid fa-volume-high"></i> Efeitos Sonoros</label>
+                    <input type="checkbox" id="opt-sound" checked class="toggle-switch">
+                </div>
+            </div>
+
+            <!-- Guia de Controles -->
+            <div class="drawer-section">
+                <h4>CONTROLES RÁPIDOS</h4>
+                <ul class="shortcuts-list-drawer">
+                    <li><kbd>Mouse</kbd> <span>Clicar no bloco correto</span></li>
+                    <li><kbd>Enter</kbd> / <kbd>Espaço</kbd> <span>Novo Jogo (se perder/ganhar)</span></li>
+                    <li><kbd>Espaço</kbd> <span>Stop (Cancel)</span></li>
+                </ul>
+            </div>
+            
+            <!-- Descrição instrutiva -->
+            <div class="drawer-section" style="margin-top: 10px;">
+                <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
+                    <i class="fa-solid fa-circle-info"></i> <strong>Instruções:</strong> No topo da tela aparece o <strong>TARGET IP</strong> que você precisa encontrar. Olhe rapidamente a malha de códigos embaralhados (que mudam a cada poucos segundos) e clique no bloco exato que contém aquele IP antes que o tempo se esgote!
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de Hacking -->
+</body>
+</html>
