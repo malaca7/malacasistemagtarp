@@ -27,7 +27,7 @@
     </a>
 
     <div class="app-container">
-        <!-- HUD Centralizado (Mesmo Padrão de Organização do Lockpick) -->
+        <!-- HUD Centralizado -->
         <main class="hud-container hacking-hud-container">
             
             <!-- 1. BARRA DE CONFIGURAÇÕES NA TELA (NO MEIO) -->
@@ -70,7 +70,33 @@
                 </div>
             </div>
 
-            <!-- 2. DISPOSITIVO CENTRAL DE HACKING -->
+            <!-- 2. BANNER DE MENSAGENS ACIMA DO SISTEMA -->
+            <div class="top-status-banner" id="status-banner">
+                <!-- Mensagem de Sucesso -->
+                <div class="success-overlay" id="success-overlay">
+                    <div class="banner-box success-box-top">
+                        <div class="banner-text">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <strong>ACESSO CONCEDIDO:</strong> <span id="success-message">Sequência encontrada com sucesso!</span>
+                            <span class="banner-stats-inline">(Tempo: <strong id="succ-time">0.00s</strong> | Streak: <strong id="succ-streak">0</strong>)</span>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="btn-next-puzzle">PRÓXIMO HACK (ENTER)</button>
+                    </div>
+                </div>
+                
+                <!-- Mensagem de Falha -->
+                <div class="success-overlay" id="fail-overlay">
+                    <div class="banner-box fail-box-top">
+                        <div class="banner-text">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <strong>ACESSO NEGADO:</strong> <span id="fail-message">Sequência incorreta ou tempo esgotado.</span>
+                        </div>
+                        <button class="btn btn-danger btn-sm" id="btn-retry-puzzle">TENTAR NOVAMENTE (ENTER)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. DISPOSITIVO CENTRAL DE HACKING -->
             <div class="hacking-device-wrapper">
                 <div class="hacking-top-bar">
                     <h2 class="hacking-main-title">
@@ -93,37 +119,9 @@
                         <!-- Gerado dinamicamente via JS -->
                     </div>
                 </div>
-
-                <!-- Overlay de Sucesso -->
-                <div class="success-overlay" id="success-overlay">
-                    <div class="success-box">
-                        <div class="lock-icon-wrapper animate-pulse">
-                            <i class="fa-solid fa-circle-check"></i>
-                        </div>
-                        <h2>ACESSO CONCEDIDO</h2>
-                        <p id="success-message">Sequência encontrada com sucesso!</p>
-                        <div class="success-stats">
-                            <div>Tempo: <strong id="succ-time">0.00s</strong></div>
-                            <div>Streak Atual: <strong id="succ-streak">0</strong></div>
-                        </div>
-                        <button class="btn btn-primary" id="btn-next-puzzle">PRÓXIMO HACK (ENTER)</button>
-                    </div>
-                </div>
-
-                <!-- Overlay de Falha -->
-                <div class="success-overlay" id="fail-overlay">
-                    <div class="success-box">
-                        <div class="lock-icon-wrapper red-wrapper">
-                            <i class="fa-solid fa-triangle-exclamation"></i>
-                        </div>
-                        <h2 class="red-title">ACESSO NEGADO</h2>
-                        <p id="fail-message">Sequência incorreta ou tempo esgotado.</p>
-                        <button class="btn red-btn" id="btn-retry-puzzle">TENTAR NOVAMENTE (ENTER)</button>
-                    </div>
-                </div>
             </div>
 
-            <!-- 3. PAINEL DE CONTROLE INFERIOR (MESMO PADRÃO DO LOCKPICK) -->
+            <!-- 4. PAINEL DE CONTROLE INFERIOR -->
             <div class="hud-bottom-panel">
                 <div class="hud-panel-header">
                     <div class="hud-title">PAINEL DE CONTROLE</div>
