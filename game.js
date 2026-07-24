@@ -439,15 +439,16 @@ function keyFitsRingAtAnyRotation(key, ring) {
     return false;
 }
 
-// Verifica se a chave atualmente selecionada cabe no anel ativo com a rotação ATUAL
-function currentKeyFitsActiveRing() {
+// Verifica se a chave atualmente selecionada cabe no anel ativo com a rotação ATUAL (ou com offset)
+function currentKeyFitsActiveRing(offset = 0) {
     const key = state.keys[state.selectedKeyIndex];
     if (!key || key.used) return false;
     
     const ring = state.rings[state.activeRingIndex];
     if (!ring) return false;
     
-    const rotatedPins = key.basePins.map(p => (p + key.rotation) % 32);
+    const targetRotation = (key.rotation + offset + 32) % 32;
+    const rotatedPins = key.basePins.map(p => (p + targetRotation) % 32);
     
     for (let p of rotatedPins) {
         if (!ring.notches[p]) {
@@ -503,7 +504,30 @@ function slotKey() {
     const ring = state.rings[ringIndex];
     if (!ring) return;
     
-    if (currentKeyFitsActiveRing()) {
+    // Verificar se encaixa com rotação atual ou assistida nos níveis fáceis
+    let fits = false;
+    let bestOffset = 0;
+    
+    if (currentKeyFitsActiveRing(0)) {
+        fits = true;
+        bestOffset = 0;
+    } else if (state.difficulty === 'novice' || state.difficulty === 'advanced') {
+        const tolerance = (state.difficulty === 'novice') ? 2 : 1;
+        for (let off of [-1, 1, -2, 2]) {
+            if (Math.abs(off) <= tolerance && currentKeyFitsActiveRing(off)) {
+                fits = true;
+                bestOffset = off;
+                break;
+            }
+        }
+    }
+    
+    if (fits) {
+        // Encaixe assistido: ajusta a rotação para a posição correta
+        if (bestOffset !== 0) {
+            key.rotation = (key.rotation + bestOffset + 32) % 32;
+        }
+        
         // Guardar estado no histórico antes de alterar
         state.history.push({
             keyIndex: keyIndex,
@@ -880,20 +904,12 @@ function drawLock() {
         const rot = activeKey.rotation;
         const scale = drawW / CANVAS_SIZE;
         
-        let pinColor = COLORS.cyan;
-        let shadowColor = COLORS.cyanGlow;
-        
-        if (state.errorFlash) {
-            pinColor = COLORS.error;
-            shadowColor = COLORS.errorGlow;
-        } else if (currentKeyFitsActiveRing()) {
-            pinColor = COLORS.green;
-            shadowColor = 'rgba(0, 230, 118, 0.8)';
-        }
+        const pinColor = state.errorFlash ? COLORS.error : COLORS.cyan;
+        const shadowColor = state.errorFlash ? COLORS.errorGlow : COLORS.cyanGlow;
         
         ctx.strokeStyle = pinColor;
         ctx.lineWidth = 8 * scale;
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 4;
         ctx.shadowColor = shadowColor;
         
         for (let k = 0; k < pins.length; k++) {
