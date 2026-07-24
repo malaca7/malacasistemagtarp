@@ -245,6 +245,9 @@ function generatePuzzle(difficulty, seed = null) {
     }
 
     function generateSpacedKeyPins(pinCount) {
+        if (pinCount === 1) {
+            return [Math.floor(state.randomFn() * 32)];
+        }
         const count = Math.max(2, Math.min(4, pinCount));
         const positions = [];
         let p = Math.floor(state.randomFn() * 32);
@@ -269,42 +272,46 @@ function generatePuzzle(difficulty, seed = null) {
         return positions.sort((a, b) => a - b);
     }
     
-    // Gerar chaves de solução e anéis (Exatamente 2 chaves por anel sem interferência entre etapas)
+    // Gerar chaves de solução e anéis (Sempre 1x 3-pinos, 1x 2-pinos e às vezes 1x 1-pino)
     const solutionKeys = [];
     
     for (let r = 0; r < numRings; r++) {
-        let basePins1, basePins2;
-        let r1, r2;
-        let ringPins1, ringPins2;
+        let basePins1, basePins2, basePins3;
+        let r1, r2, r3;
+        let ringPins1, ringPins2, ringPins3 = [];
+        const includeOnePin = (state.randomFn() < 0.5);
         let success = false;
         let attempts = 0;
         
         while (!success && attempts < 500) {
             attempts++;
-            const p1 = Math.floor(state.randomFn() * 3) + 2;
-            const p2 = Math.floor(state.randomFn() * 3) + 2;
-            
-            basePins1 = generateSpacedKeyPins(p1);
-            basePins2 = generateSpacedKeyPins(p2);
+            basePins1 = generateSpacedKeyPins(3);
+            basePins2 = generateSpacedKeyPins(2);
+            if (includeOnePin) {
+                basePins3 = generateSpacedKeyPins(1);
+            }
             
             r1 = Math.floor(state.randomFn() * 32);
             r2 = Math.floor(state.randomFn() * 32);
+            r3 = includeOnePin ? Math.floor(state.randomFn() * 32) : 0;
             
             ringPins1 = basePins1.map(p => (p + r1) % 32);
             ringPins2 = basePins2.map(p => (p + r2) % 32);
+            ringPins3 = includeOnePin ? basePins3.map(p => (p + r3) % 32) : [];
             
-            const allPos = [...ringPins1, ...ringPins2];
-            const uniquePos = new Set(allPos);
-            if (uniquePos.size !== (basePins1.length + basePins2.length)) {
+            const allPos = [...ringPins1, ...ringPins2, ...ringPins3];
+            const expectedCount = basePins1.length + basePins2.length + (includeOnePin ? 1 : 0);
+            
+            if (new Set(allPos).size !== expectedCount) {
                 continue;
             }
             
-            // Garantir que as chaves do anel r não caibam em anéis anteriores prevR < r
             let stealsPreviousRing = false;
             for (let prevR = 0; prevR < r; prevR++) {
                 const prevNotches = state.rings[prevR].initialNotches;
                 if (keyFitsNotchesAtAnyRotation(basePins1, prevNotches) || 
-                    keyFitsNotchesAtAnyRotation(basePins2, prevNotches)) {
+                    keyFitsNotchesAtAnyRotation(basePins2, prevNotches) ||
+                    (includeOnePin && keyFitsNotchesAtAnyRotation(basePins3, prevNotches))) {
                     stealsPreviousRing = true;
                     break;
                 }
@@ -318,6 +325,9 @@ function generatePuzzle(difficulty, seed = null) {
         const notches = Array(32).fill(false);
         ringPins1.forEach(p => notches[p] = true);
         ringPins2.forEach(p => notches[p] = true);
+        if (includeOnePin) {
+            ringPins3.forEach(p => notches[p] = true);
+        }
         
         state.rings.push({
             notches: notches,
@@ -341,12 +351,24 @@ function generatePuzzle(difficulty, seed = null) {
             ringIndex: r,
             used: false
         });
+        
+        if (includeOnePin) {
+            solutionKeys.push({
+                basePins: basePins3,
+                rotation: 0,
+                solvedRotation: r3,
+                isSolution: true,
+                ringIndex: r,
+                used: false
+            });
+        }
     }
     
-    // Gerar chaves falsas (duds) com 2..4 pinos
+    // Gerar chaves falsas (duds) com distribuição de 3, 2 e 1 pinos
     const dudKeys = [];
+    const dudCounts = [3, 2, 1];
     for (let d = 0; d < numDuds; d++) {
-        const dp = Math.floor(state.randomFn() * 3) + 2;
+        const dp = dudCounts[d % dudCounts.length];
         let basePins = generateSpacedKeyPins(dp);
         
         let dudAttempts = 0;
