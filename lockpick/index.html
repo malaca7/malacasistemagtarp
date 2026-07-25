@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lockpick Simulator | Portal de Treinamento</title>
+    <meta name="description" content="Simulador e treinador do minijogo de arrombamento Lockpick.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Link para a folha de estilo -->
+    
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" crossorigin src="/assets/lockpick-QY6fsqZL.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Dezn_h7o.js">
+  <link rel="stylesheet" crossorigin href="/assets/styles-MF4u5RTq.css">
+</head>
+<body>
+    <!-- Canvas de Fundo Estrelado -->
+    <canvas id="starfield-bg"></canvas>
+
+    <!-- Botão de voltar para a Home -->
+    <a href="../" class="home-back-btn" title="Voltar para a Home">
+        <i class="fa-solid fa-house"></i>
+    </a>
+
+    <div class="app-container">
+        <!-- HUD Centralizado -->
+        <main class="hud-container">
+            
+            <!-- 1. SELETOR DE DIFICULDADE NO MEIO DA TELA -->
+            <div class="on-screen-settings-panel lockpick-settings">
+                <div class="setting-row-center">
+                    <span class="setting-label"><i class="fa-solid fa-gauge-high"></i> DIFICULDADE:</span>
+                    <div class="drawer-difficulty-selector flex-row-buttons">
+                        <button class="diff-btn active" data-difficulty="novice" id="btn-novice">NOVATO</button>
+                        <button class="diff-btn" data-difficulty="advanced" id="btn-advanced">AVANÇADO</button>
+                        <button class="diff-btn" data-difficulty="expert" id="btn-expert">PERITO</button>
+                        <button class="diff-btn" data-difficulty="master" id="btn-master">MESTRE</button>
+                        <button class="diff-btn daily-btn" data-difficulty="daily" id="btn-daily">
+                            <i class="fa-solid fa-calendar-day"></i> DIÁRIO
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. BANNER DE MENSAGENS ACIMA DO SISTEMA -->
+            <div class="top-status-banner" id="status-banner">
+                <!-- Mensagem de Sucesso -->
+                <div class="success-overlay" id="success-overlay">
+                    <div class="banner-box success-box-top">
+                        <div class="banner-text">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <strong>DESBLOQUEADO:</strong> <span id="success-message">Acesso concedido.</span>
+                            <span class="banner-stats-inline">(Tempo: <strong id="succ-time">00:00</strong> | Chaves: <strong id="succ-keys">0</strong>)</span>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="btn-next-puzzle">NOVO PUZZLE</button>
+                    </div>
+                </div>
+                
+                <!-- Mensagem de Falha -->
+                <div class="success-overlay" id="fail-overlay">
+                    <div class="banner-box fail-box-top">
+                        <div class="banner-text">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <strong>FALHA NO LOCKPICK:</strong> <span id="fail-message">Tempo esgotado ou cancelado.</span>
+                        </div>
+                        <button class="btn btn-danger btn-sm" id="btn-retry-puzzle">TENTAR NOVAMENTE</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. O DISPOSITIVO CIRCULAR DE LOCKPICK -->
+            <div class="lockpick-device-wrapper">
+                <div class="canvas-container">
+                    <canvas id="digipick-canvas" width="600" height="600"></canvas>
+                    <div class="lockpick-center-badge">LOCKPICK</div>
+                </div>
+            </div>
+
+            <!-- 4. O PAINEL DE CONTROLE INFERIOR -->
+            <div class="hud-bottom-panel">
+                <div class="hud-panel-header">
+                    <div class="hud-title">LOCKPICK SIMULATOR</div>
+                    <div class="hud-stats">
+                        <div class="hud-stat-box timer-box" id="timer-val">00:00</div>
+                        <div class="hud-stat-box picks-box" id="picks-val">99</div>
+                    </div>
+                </div>
+                
+                <!-- Grade de Chaves -->
+                <div class="hud-keys-grid" id="keys-container">
+                    <!-- Gerado dinamicamente via JS -->
+                </div>
+                
+            </div>
+        </main>
+    </div>
+
+    <!-- Script Principal -->
+</body>
+</html>

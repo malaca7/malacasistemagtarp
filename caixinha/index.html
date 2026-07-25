@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caixinha Eletrônico | Portal de Treinamento</title>
+    <meta name="description" content="Simulador de Caixinha Eletrônico. Minijogo de digitação rápida de letras.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Link para a folha de estilo -->
+    
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" crossorigin src="/assets/caixinha-DAqivd4h.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Dezn_h7o.js">
+  <link rel="stylesheet" crossorigin href="/assets/styles-MF4u5RTq.css">
+</head>
+<body>
+    <!-- Canvas de Fundo Estrelado -->
+    <canvas id="starfield-bg"></canvas>
+
+    <!-- Botão de voltar para a Home -->
+    <a href="../" class="home-back-btn" title="Voltar para a Home">
+        <i class="fa-solid fa-house"></i>
+    </a>
+
+    <div class="app-container">
+        <!-- HUD Centralizado -->
+        <main class="hud-container caixinha-eletronico-container">
+            
+            <!-- 1. BARRA DE CONFIGURAÇÕES NA TELA (NO MEIO) -->
+            <div class="on-screen-settings-panel">
+                <div class="setting-row-center inline-settings">
+                    <div class="setting-group">
+                        <span class="setting-label"><i class="fa-solid fa-gauge-high"></i> TEMPO:</span>
+                        <div class="drawer-difficulty-selector flex-row-buttons">
+                            <button class="diff-btn" data-difficulty="easy" id="btn-easy">FÁCIL (12s)</button>
+                            <button class="diff-btn active" data-difficulty="medium" id="btn-medium">MÉDIO (9s)</button>
+                            <button class="diff-btn" data-difficulty="hard" id="btn-hard">DIFÍCIL (6.5s)</button>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <span class="setting-label"><i class="fa-solid fa-gamepad"></i> MODO:</span>
+                        <div class="drawer-difficulty-selector flex-row-buttons">
+                            <button class="diff-btn mode-btn active" data-mode="standard" id="btn-mode-standard">PADRÃO (3 SEQS)</button>
+                            <button class="diff-btn mode-btn" data-mode="endless" id="btn-mode-endless">INFINITO</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. BANNER DE MENSAGENS ACIMA DO SISTEMA -->
+            <div class="top-status-banner" id="status-banner">
+                <!-- Mensagem de Sucesso -->
+                <div class="success-overlay" id="success-overlay">
+                    <div class="banner-box success-box-top">
+                        <div class="banner-text">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <strong>SISTEMA HACKEADO:</strong> <span id="success-message">Acesso eletrônico concedido.</span>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="btn-next-puzzle">PRÓXIMA CAIXINHA</button>
+                    </div>
+                </div>
+                
+                <!-- Mensagem de Falha -->
+                <div class="success-overlay" id="fail-overlay">
+                    <div class="banner-box fail-box-top">
+                        <div class="banner-text">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <strong>FALHA NO SISTEMA:</strong> Sequência incorreta ou tempo esgotado.
+                        </div>
+                        <button class="btn btn-danger btn-sm" id="btn-retry-puzzle">TENTAR NOVAMENTE</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. DISPOSITIVO CENTRAL DA CAIXINHA -->
+            <div class="caixinha-device-wrapper">
+                <div class="caixinha-card-header">
+                    <h2>CAIXINHA ELETRÔNICO</h2>
+                    <div class="streaks-hud">
+                        <span>TEMPO: <strong id="level-val" style="color: var(--color-cyan);">8.0s</strong></span>
+                        <span>STATUS: <strong id="instruction-val" style="color: var(--color-success);">AGUARDANDO INÍCIO</strong></span>
+                    </div>
+                </div>
+                
+                <div class="typing-sequence-container">
+                    <div class="caixinha-counter" id="caixinha-counter">0/8</div>
+                    
+                    <div class="caixinha-timer-bar">
+                        <div class="timer-fill" id="timer-fill"></div>
+                    </div>
+                    
+                    <div class="typing-sequence" id="typing-sequence">
+                        <!-- Quadrados de letras gerados via JS -->
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Script Principal -->
+</body>
+</html>

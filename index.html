@@ -3,95 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal de Treinamento RP | Simuladores de Roubo</title>
-    <meta name="description" content="Treine suas habilidades para roleplay. Simulador de lockpick, decodificação de cofre (caixinha) e hacking de digital.">
+    <title>Malaca System | Portal de Treinamento GTARP</title>
+    <meta name="description" content="Portal oficial de treinamento de invasão e arrombamento para servidores de GTA RP. Simuladores de Lockpick, Caixinha Eletrônico e Hacking Device.">
+    
+    <!-- OpenGraph / SEO -->
+    <meta property="og:title" content="Malaca System - Simuladores GTARP">
+    <meta property="og:description" content="Treine seus reflexos e habilidades nos minijogos de arrombamento de GTA RP.">
+    <meta property="og:type" content="website">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Link para CSS -->
     
     <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" crossorigin href="/assets/styles-CpgOJoVg.css">
+  <link rel="stylesheet" crossorigin href="/assets/styles-MF4u5RTq.css">
 </head>
-<body>
+<body class="home-body">
     <!-- Canvas de Fundo Estrelado -->
     <canvas id="starfield-bg"></canvas>
 
-    <div class="home-container">
-        <header class="home-header">
-            <div class="home-logo">
-                <span class="logo-accent">★</span>
-                <h1>MALACA <span class="cyan-glow-text">SYSTEM</span></h1>
+    <div class="home-layout-wrapper">
+        <!-- BARRA SUPERIOR PRO -->
+        <nav class="home-navbar">
+            <div class="navbar-brand">
+                <span class="brand-star">★</span>
+                <span class="brand-title">MALACA <span class="cyan-glow-text">SYSTEM</span></span>
             </div>
-            <p class="home-subtitle">PORTAL DE TREINAMENTO DE HABILIDADES DE INVASÃO</p>
+            <div class="navbar-status-badge">
+                <span class="status-dot-pulse"></span>
+                <span>SISTEMA ONLINE</span>
+            </div>
+        </nav>
+
+        <!-- HERO SECTION -->
+        <header class="home-hero-section">
+            <div class="hero-badge">
+                <i class="fa-solid fa-shield-halved"></i> CENTRO DE TREINAMENTO GTARP
+            </div>
+            <h1 class="hero-title">
+                DOMINE AS HABILIDADES DE <span class="gradient-text">INVASÃO & ARROMBAMENTO</span>
+            </h1>
+            <p class="hero-subtitle">
+                Plataforma profissional projetada para aprimorar reflexos, precisão motora e agilidade nos minijogos mais exigentes dos servidores de Roleplay.
+            </p>
+
+            <!-- STATS COUNTER BAR -->
+            <div class="hero-stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number">3</span>
+                    <span class="stat-label">Simuladores Ativos</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">100%</span>
+                    <span class="stat-label">Precisão RP</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">FIVEM</span>
+                    <span class="stat-label">Compatível</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">0.0s</span>
+                    <span class="stat-label">Latência Ultra Smooth</span>
+                </div>
+            </div>
         </header>
 
-        <main class="home-grid">
-            <!-- Card 1: Lockpick Simulator -->
-            <div class="simulator-card lockpick-card">
-                <div class="card-glow"></div>
-                <div class="card-content">
-                    <div class="card-icon-wrapper">
-                        <i class="fa-solid fa-key"></i>
+        <!-- CARDS DOS SIMULADORES -->
+        <main class="home-simulators-container">
+            <div class="simulators-grid">
+                
+                <!-- Card 1: Lockpick Simulator -->
+                <article class="sim-card lockpick-theme">
+                    <div class="sim-card-banner">
+                        <span class="sim-tag"><i class="fa-solid fa-star"></i> ENGINE STARFIELD</span>
                     </div>
-                    <h2>LOCKPICK SIMULATOR</h2>
-                    <p class="card-desc">Arrombamento eletrônico avançado inspirado em Starfield. Gire e encaixe os pinos corretos nas ranhuras de cada camada para destravar.</p>
-                    <div class="card-details">
-                        <span><i class="fa-solid fa-gamepad"></i> 5 Níveis</span>
-                    </div>
-                    <a href="lockpick.html" class="play-btn">
-                        <span>JOGAR</span> <i class="fa-solid fa-chevron-right"></i>
-                    </a>
-                </div>
-            </div>
+                    <div class="sim-card-body">
+                        <div class="sim-icon-circle">
+                            <i class="fa-solid fa-key"></i>
+                        </div>
+                        <h2 class="sim-title">LOCKPICK SIMULATOR</h2>
+                        <p class="sim-description">
+                            Arrombamento de fechadura circular de 32 furos. Encaixe as combinações exatas de pinos em cada camada para liberar o cilindro central sem desperdiçar tentativas.
+                        </p>
 
-            <!-- Card 2: Caixinha Simulator (Safe Cracking) -->
-            <div class="simulator-card safe-card">
-                <div class="card-glow"></div>
-                <div class="card-content">
-                    <div class="card-icon-wrapper">
-                        <i class="fa-solid fa-vault"></i>
-                    </div>
-                    <h2>CAIXINHA ELETRÔNICO</h2>
-                    <p class="card-desc">O clássico minijogo de arrombamento de cofre (caixinha). Gire o dial analógico para a esquerda ou direita e sinta a vibração mecânica no segredo correto.</p>
-                    <div class="card-details">
-                        <span><i class="fa-solid fa-gauge-high"></i> Feedback Tátil</span>
-                    </div>
-                    <a href="caixinha.html" class="play-btn">
-                        <span>JOGAR</span> <i class="fa-solid fa-chevron-right"></i>
-                    </a>
-                </div>
-            </div>
+                        <div class="sim-features-list">
+                            <span><i class="fa-solid fa-layer-group"></i> 2 a 4 Camadas</span>
+                            <span><i class="fa-solid fa-calendar-day"></i> Desafio Diário</span>
+                            <span><i class="fa-solid fa-gauge-high"></i> 4 Dificuldades</span>
+                        </div>
 
-            <!-- Card 3: Hacking Simulator (Cayo Perico Fingerprint) -->
-            <div class="simulator-card hack-card">
-                <div class="card-glow"></div>
-                <div class="card-content">
-                    <div class="card-icon-wrapper">
-                        <i class="fa-solid fa-network-wired"></i>
+                        <a href="lockpick/" class="sim-btn-play">
+                            <span>INICIAR TREINO</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
                     </div>
-                    <h2>HACKING DEVICE</h2>
-                    <p class="card-desc">Simulador avançado de invasão de sistema e decodificação. Encontre a sequência alvo na malha de caracteres antes que o tempo esgote.</p>
-                    <div class="card-details">
-                        <span><i class="fa-solid fa-microchip"></i> Decodificador</span>
+                </article>
+
+                <!-- Card 2: Caixinha Eletrônico -->
+                <article class="sim-card safe-theme">
+                    <div class="sim-card-banner">
+                        <span class="sim-tag"><i class="fa-solid fa-bolt"></i> REFLEXOS & VELOCIDADE</span>
                     </div>
-                    <a href="hacking.html" class="play-btn">
-                        <span>JOGAR</span> <i class="fa-solid fa-chevron-right"></i>
-                    </a>
-                </div>
+                    <div class="sim-card-body">
+                        <div class="sim-icon-circle">
+                            <i class="fa-solid fa-vault"></i>
+                        </div>
+                        <h2 class="sim-title">CAIXINHA ELETRÔNICO</h2>
+                        <p class="sim-description">
+                            Minijogo de digitação sequencial de alta precisão. Complete as palavras-chave na barra dinâmica antes que a contagem regressiva chegue a zero.
+                        </p>
+
+                        <div class="sim-features-list">
+                            <span><i class="fa-solid fa-keyboard"></i> Digitação Rápida</span>
+                            <span><i class="fa-solid fa-infinity"></i> Modo Infinito</span>
+                            <span><i class="fa-solid fa-stopwatch"></i> Animação 60 FPS</span>
+                        </div>
+
+                        <a href="caixinha/" class="sim-btn-play">
+                            <span>INICIAR TREINO</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </article>
+
+                <!-- Card 3: Hacking Device -->
+                <article class="sim-card hack-theme">
+                    <div class="sim-card-banner">
+                        <span class="sim-tag"><i class="fa-solid fa-microchip"></i> VARREDURA DE MATRIZ</span>
+                    </div>
+                    <div class="sim-card-body">
+                        <div class="sim-icon-circle">
+                            <i class="fa-solid fa-network-wired"></i>
+                        </div>
+                        <h2 class="sim-title">HACKING DEVICE</h2>
+                        <p class="sim-description">
+                            Simulador avançado de invasão cibernética. Localize a sequência de caracteres alvo na matriz de dados embaralhada e mantenha sua sequência de vitórias (Streak).
+                        </p>
+
+                        <div class="sim-features-list">
+                            <span><i class="fa-solid fa-font"></i> 8 Tipos de Símbolos</span>
+                            <span><i class="fa-solid fa-fire"></i> Sistema de Streaks</span>
+                            <span><i class="fa-solid fa-terminal"></i> Layout Cyberpunk</span>
+                        </div>
+
+                        <a href="hacking/" class="sim-btn-play">
+                            <span>INICIAR TREINO</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </article>
+
             </div>
         </main>
 
-        <footer class="home-footer">
-            <p>Malaca System &copy; 2026. Desenvolvido para simulação e aprimoramento de reflexos em servidores de Roleplay.</p>
+        <!-- FOOTER PRO -->
+        <footer class="home-footer-pro">
+            <div class="footer-content">
+                <p><strong>MALACA SYSTEM GTARP</strong> &copy; 2026. Desenvolvido para máxima otimização e treinamento de reflexos em Roleplay.</p>
+                <div class="footer-links">
+                    <a href="lockpick/">Lockpick</a>
+                    <span class="dot-separator">•</span>
+                    <a href="caixinha/">Caixinha</a>
+                    <span class="dot-separator">•</span>
+                    <a href="hacking/">Hacking</a>
+                </div>
+            </div>
         </footer>
     </div>
 
-    <!-- Script de Estrelas de Fundo na Home -->
+    <!-- Script de Estrelas de Fundo Animadas -->
     <script>
         const bgCanvas = document.getElementById('starfield-bg');
         const bgCtx = bgCanvas.getContext('2d');
@@ -105,12 +189,12 @@
 
         function initStars() {
             stars = [];
-            const count = Math.floor((bgCanvas.width * bgCanvas.height) / 18000);
+            const count = Math.floor((bgCanvas.width * bgCanvas.height) / 16000);
             for (let i = 0; i < count; i++) {
                 stars.push({
                     x: Math.random() * bgCanvas.width,
                     y: Math.random() * bgCanvas.height,
-                    size: Math.random() * 1.5 + 0.5,
+                    size: Math.random() * 1.6 + 0.4,
                     twinkleSpeed: Math.random() * 0.02 + 0.005,
                     phase: Math.random() * Math.PI
                 });
