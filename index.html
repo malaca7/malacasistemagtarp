@@ -20,7 +20,7 @@
     
     <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script type="module" crossorigin src="/assets/i18n-BfsoL1IT.js"></script>
+  <script type="module" crossorigin src="/assets/i18n-lehgsvsK.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/i18n-DtOl0V2J.css">
 </head>
 <body class="home-body">
@@ -178,49 +178,118 @@
 
     <!-- Engine i18n & Tema -->
 
-    <!-- Script de Estrelas de Fundo Animadas -->
+    <!-- Canvas de Fundo FiveM Cyber Grid -->
+    <canvas id="starfield-bg"></canvas>
+
+    <!-- Script de Fundo Cyber Grid GTA RP / FiveM HUD -->
     <script>
         const bgCanvas = document.getElementById('starfield-bg');
         const bgCtx = bgCanvas.getContext('2d');
-        let stars = [];
+        let nodes = [];
+        let time = 0;
 
         function resizeBgCanvas() {
             bgCanvas.width = window.innerWidth;
             bgCanvas.height = window.innerHeight;
-            initStars();
+            initNodes();
         }
 
-        function initStars() {
-            stars = [];
-            const count = Math.floor((bgCanvas.width * bgCanvas.height) / 16000);
+        function initNodes() {
+            nodes = [];
+            const count = Math.floor((bgCanvas.width * bgCanvas.height) / 22000);
             for (let i = 0; i < count; i++) {
-                stars.push({
+                nodes.push({
                     x: Math.random() * bgCanvas.width,
                     y: Math.random() * bgCanvas.height,
-                    size: Math.random() * 1.6 + 0.4,
-                    twinkleSpeed: Math.random() * 0.02 + 0.005,
-                    phase: Math.random() * Math.PI
+                    vx: (Math.random() - 0.5) * 0.4,
+                    vy: (Math.random() - 0.5) * 0.4,
+                    radius: Math.random() * 2 + 1,
+                    isGreen: Math.random() < 0.6,
+                    pulse: Math.random() * Math.PI * 2
                 });
             }
         }
 
-        function animateStars() {
-            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-            stars.forEach(star => {
-                star.phase += star.twinkleSpeed;
-                const opacity = (Math.sin(star.phase) + 1) / 2 * 0.7 + 0.3;
-                bgCtx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.65})`;
+        function drawGrid() {
+            bgCtx.save();
+            bgCtx.strokeStyle = document.body.classList.contains('light-theme') 
+                ? 'rgba(0, 136, 204, 0.04)' 
+                : 'rgba(0, 255, 136, 0.03)';
+            bgCtx.lineWidth = 1;
+            const gridSize = 60;
+            
+            for (let x = 0; x < bgCanvas.width; x += gridSize) {
                 bgCtx.beginPath();
-                bgCtx.arc(star.x, star.y, star.size, 0, 2 * Math.PI);
+                bgCtx.moveTo(x, 0);
+                bgCtx.lineTo(x, bgCanvas.height);
+                bgCtx.stroke();
+            }
+            for (let y = 0; y < bgCanvas.height; y += gridSize) {
+                bgCtx.beginPath();
+                bgCtx.moveTo(0, y);
+                bgCtx.lineTo(bgCanvas.width, y);
+                bgCtx.stroke();
+            }
+            bgCtx.restore();
+        }
+
+        function animateBg() {
+            time += 0.02;
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            
+            drawGrid();
+
+            const isLight = document.body.classList.contains('light-theme');
+            
+            // Conectar nós próximos
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    const dx = nodes[i].x - nodes[j].x;
+                    const dy = nodes[i].y - nodes[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 130) {
+                        const alpha = (1 - dist / 130) * (isLight ? 0.08 : 0.15);
+                        bgCtx.strokeStyle = nodes[i].isGreen 
+                            ? (isLight ? `rgba(0, 168, 84, ${alpha})` : `rgba(0, 255, 136, ${alpha})`)
+                            : (isLight ? `rgba(0, 136, 204, ${alpha})` : `rgba(0, 229, 255, ${alpha})`);
+                        bgCtx.lineWidth = 1;
+                        bgCtx.beginPath();
+                        bgCtx.moveTo(nodes[i].x, nodes[i].y);
+                        bgCtx.lineTo(nodes[j].x, nodes[j].y);
+                        bgCtx.stroke();
+                    }
+                }
+            }
+
+            // Desenhar nós
+            nodes.forEach(node => {
+                node.x += node.vx;
+                node.y += node.vy;
+
+                if (node.x < 0 || node.x > bgCanvas.width) node.vx *= -1;
+                if (node.y < 0 || node.y > bgCanvas.height) node.vy *= -1;
+
+                node.pulse += 0.03;
+                const pAlpha = (Math.sin(node.pulse) + 1) / 2 * 0.4 + 0.4;
+                
+                const nodeColor = node.isGreen 
+                    ? (isLight ? `rgba(0, 168, 84, ${pAlpha})` : `rgba(0, 255, 136, ${pAlpha})`)
+                    : (isLight ? `rgba(0, 136, 204, ${pAlpha})` : `rgba(0, 229, 255, ${pAlpha})`);
+
+                bgCtx.fillStyle = nodeColor;
+                bgCtx.beginPath();
+                bgCtx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
                 bgCtx.fill();
             });
-            requestAnimationFrame(animateStars);
+
+            requestAnimationFrame(animateBg);
         }
 
         window.addEventListener('load', () => {
             resizeBgCanvas();
             window.addEventListener('resize', resizeBgCanvas);
-            requestAnimationFrame(animateStars);
+            requestAnimationFrame(animateBg);
         });
     </script>
 </body>
