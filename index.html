@@ -39,45 +39,51 @@
             </div>
         </nav>
 
-        <!-- HERO SECTION -->
+        <!-- HERO SECTION COM BANNER TOP GTA RP -->
         <header class="home-hero-section">
-            <div class="hero-badge">
-                <i class="fa-solid fa-shield-halved"></i> <span data-i18n="hero_badge">CENTRO DE TREINAMENTO GTARP</span>
+            <div class="hero-banner-card">
+                <img src="./images/hero_banner.jpg" alt="GTA RP Heists Banner" class="hero-banner-img">
+                <div class="hero-banner-overlay"></div>
+                <div class="hero-banner-content">
+                    <div class="hero-badge">
+                        <i class="fa-solid fa-shield-halved"></i> <span data-i18n="hero_badge">SIMULADOR DE ROUBOS & HACKS GTARP</span>
+                    </div>
+                    <h1 class="hero-title">
+                        <span data-i18n="hero_title_1">TREINO DE ALTA PERFORMANCE PARA </span><br><span class="gradient-text" data-i18n="hero_title_accent">SERVIDORES GTA RP / FIVEM</span>
+                    </h1>
+                    <p class="hero-subtitle" data-i18n="hero_subtitle">
+                        Aprimore sua agilidade, tempo de resposta e memória nos minijogos fiéis de arrombamento de portas, caixinhas eletrônicas e hacks de cofres do GTA 5.
+                    </p>
+                </div>
             </div>
-            <h1 class="hero-title">
-                <span data-i18n="hero_title_1">DOMINE AS HABILIDADES DE </span><span class="gradient-text" data-i18n="hero_title_accent">INVASÃO & ARROMBAMENTO</span>
-            </h1>
-            <p class="hero-subtitle" data-i18n="hero_subtitle">
-                Plataforma profissional projetada para aprimorar reflexos, precisão motora e agilidade nos minijogos mais exigentes dos servidores de Roleplay.
-            </p>
 
             <!-- STATS COUNTER BAR -->
             <div class="hero-stats-grid">
                 <div class="stat-card">
                     <span class="stat-number">3</span>
-                    <span class="stat-label" data-i18n="stat_sims">Simuladores Ativos</span>
+                    <span class="stat-label" data-i18n="stat_sims">Simuladores FiveM</span>
                 </div>
                 <div class="stat-card">
                     <span class="stat-number">100%</span>
-                    <span class="stat-label" data-i18n="stat_precision">Precisão RP</span>
+                    <span class="stat-label" data-i18n="stat_precision">Fidelidade RP</span>
                 </div>
                 <div class="stat-card">
                     <span class="stat-number">FIVEM</span>
-                    <span class="stat-label" data-i18n="stat_fivem">Compatível</span>
+                    <span class="stat-label" data-i18n="stat_fivem">FiveM & RedM</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-number">0.0s</span>
-                    <span class="stat-label" data-i18n="stat_latency">Latência Ultra Smooth</span>
+                    <span class="stat-number">60 FPS</span>
+                    <span class="stat-label" data-i18n="stat_latency">60 FPS NUI Smooth</span>
                 </div>
             </div>
         </header>
 
-        <!-- CARDS DOS SIMULADORES -->
+        <!-- CARDS DOS SIMULADORES (CLICÁVEIS EM QUALQUER PARTE) -->
         <main class="home-simulators-container">
             <div class="simulators-grid">
                 
                 <!-- Card 1: Lockpick Simulator -->
-                <article class="sim-card lockpick-theme">
+                <a href="lockpick/" class="sim-card lockpick-theme sim-card-clickable">
                     <div class="sim-card-img-wrapper">
                         <img src="./images/lockpick.jpg" alt="GTA RP Lockpick Simulator" class="sim-card-img">
                         <div class="sim-card-img-overlay"></div>
@@ -100,15 +106,15 @@
                             <span><i class="fa-solid fa-gauge-high"></i> <span data-i18n="lockpick_f3">Fidelidade Starfield/FiveM</span></span>
                         </div>
 
-                        <a href="lockpick/" class="sim-btn-play">
+                        <div class="sim-btn-play">
                             <span data-i18n="play_button">JOGAR MINIJOGO</span>
                             <i class="fa-solid fa-arrow-right"></i>
-                        </a>
+                        </div>
                     </div>
-                </article>
+                </a>
 
                 <!-- Card 2: Caixinha Eletrônico -->
-                <article class="sim-card safe-theme">
+                <a href="caixinha/" class="sim-card safe-theme sim-card-clickable">
                     <div class="sim-card-img-wrapper">
                         <img src="./images/caixinha.jpg" alt="GTA RP Caixinha Eletronico" class="sim-card-img">
                         <div class="sim-card-img-overlay"></div>
@@ -131,15 +137,15 @@
                             <span><i class="fa-solid fa-stopwatch"></i> <span data-i18n="caixinha_f3">Feedback Tátil & Som</span></span>
                         </div>
 
-                        <a href="caixinha/" class="sim-btn-play">
+                        <div class="sim-btn-play">
                             <span data-i18n="play_button">JOGAR MINIJOGO</span>
                             <i class="fa-solid fa-arrow-right"></i>
-                        </a>
+                        </div>
                     </div>
-                </article>
+                </a>
 
                 <!-- Card 3: Hacking Device -->
-                <article class="sim-card hack-theme">
+                <a href="hacking/" class="sim-card hack-theme sim-card-clickable">
                     <div class="sim-card-img-wrapper">
                         <img src="./images/hacking.jpg" alt="GTA RP Hacking Device" class="sim-card-img">
                         <div class="sim-card-img-overlay"></div>
@@ -162,12 +168,12 @@
                             <span><i class="fa-solid fa-terminal"></i> <span data-i18n="hacking_f3">HUD Cyberpunk GTA 5</span></span>
                         </div>
 
-                        <a href="hacking/" class="sim-btn-play">
+                        <div class="sim-btn-play">
                             <span data-i18n="play_button">JOGAR MINIJOGO</span>
                             <i class="fa-solid fa-arrow-right"></i>
-                        </a>
+                        </div>
                     </div>
-                </article>
+                </a>
 
             </div>
         </main>
