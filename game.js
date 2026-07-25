@@ -193,6 +193,21 @@ function generatePuzzle(difficulty, seed = null) {
     state.difficulty = difficulty;
     state.isDailyChallenge = (difficulty === 'daily');
     
+    // LIMPEZA COMPLETA DE ESTADO ANTERIOR AO MUDAR DIFICULDADE
+    state.rings = [];
+    state.keys = [];
+    state.activeRingIndex = 0;
+    state.selectedKeyIndex = 0;
+    state.history = [];
+    state.gameWon = false;
+    state.gameLost = false;
+    keyCardElements = [];
+    
+    const failOverlay = document.getElementById('fail-overlay');
+    if (failOverlay) failOverlay.classList.remove('show');
+    const successOverlay = document.getElementById('success-overlay');
+    if (successOverlay) successOverlay.classList.remove('show');
+    
     // Definir semente
     if (state.isDailyChallenge && seed) {
         state.randomFn = createRandom(seed);
@@ -1131,10 +1146,6 @@ window.addEventListener('keydown', (e) => {
     }
     
     switch (keyUpper) {
-        case ' ': // ESPAÇO para Stop
-            failGame();
-            e.preventDefault();
-            break;
         case 'A':
         case 'ARROWLEFT':
             rotateSelectedKey(-1); // girar anti-horário
