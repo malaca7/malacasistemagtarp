@@ -30,6 +30,149 @@
     --font-body: 'Inter', sans-serif;
 }
 
+/* ==========================================================================
+   TEMA CLARO (LIGHT THEME OVERRIDES)
+   ========================================================================== */
+body.light-theme {
+    --bg-primary: #f0f4f9 !important;
+    --bg-secondary: #ffffff !important;
+    --bg-panel: rgba(255, 255, 255, 0.85) !important;
+    --bg-panel-hover: rgba(240, 244, 249, 0.95) !important;
+    
+    --border-color: rgba(0, 150, 214, 0.25) !important;
+    --border-color-active: rgba(0, 150, 214, 0.8) !important;
+    --border-color-success: rgba(0, 180, 80, 0.6) !important;
+    
+    --color-cyan: #0088cc !important;
+    --color-blue: #0066cc !important;
+    --color-inactive: #94a3b8 !important;
+    --color-success: #00a854 !important;
+    --color-error: #e11d48 !important;
+    --color-warning: #d97706 !important;
+    
+    --text-primary: #0f172a !important;
+    --text-secondary: #334155 !important;
+    --text-muted: #64748b !important;
+    
+    --glow-cyan: 0 0 12px rgba(0, 136, 204, 0.4) !important;
+    --glow-success: 0 0 12px rgba(0, 168, 84, 0.4) !important;
+    --glow-error: 0 0 12px rgba(225, 29, 72, 0.4) !important;
+    
+    background-color: #f0f4f9 !important;
+    background-image: 
+        radial-gradient(circle at 50% 20%, rgba(0, 150, 214, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(124, 77, 255, 0.05) 0%, transparent 50%) !important;
+}
+
+body.light-theme .sim-card {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-color: rgba(0, 150, 214, 0.2) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+}
+
+body.light-theme .sim-title,
+body.light-theme .hero-title,
+body.light-theme .brand-title,
+body.light-theme .hud-title,
+body.light-theme .hacking-main-title {
+    color: #0f172a !important;
+}
+
+body.light-theme .home-navbar,
+body.light-theme .stat-card,
+body.light-theme .on-screen-settings-panel,
+body.light-theme .hud-bottom-panel,
+body.light-theme .caixinha-device-wrapper,
+body.light-theme .hacking-device-wrapper {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-color: rgba(0, 150, 214, 0.2) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-theme .char-cell {
+    background: #f8fafc !important;
+    color: #334155 !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+body.light-theme .char-cell.selected {
+    background: rgba(0, 136, 204, 0.15) !important;
+    color: #0088cc !important;
+    border-color: #0088cc !important;
+}
+
+/* ==========================================================================
+   WIDGET FLUTUANTE DE TEMA E IDIOMA
+   ========================================================================== */
+.floating-controls {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 10000;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: rgba(14, 22, 38, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 8px 12px;
+    border-radius: 30px;
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+body.light-theme .floating-controls {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 136, 204, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.floating-controls:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-cyan);
+}
+
+.floating-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: var(--font-header);
+    font-size: 1rem;
+    padding: 8px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.floating-btn:hover {
+    background: rgba(0, 229, 255, 0.15);
+    color: var(--color-cyan);
+}
+
+body.light-theme .floating-btn:hover {
+    background: rgba(0, 136, 204, 0.15);
+    color: #0088cc;
+}
+
+.lang-btn {
+    font-weight: 800;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+}
+
+#lang-badge {
+    background: var(--color-cyan);
+    color: #000;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 900;
+}
+
 /* RESET & BASE STYLES */
 * {
     margin: 0;
