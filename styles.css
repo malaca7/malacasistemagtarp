@@ -183,11 +183,12 @@ body.light-theme .floating-btn:hover {
 }
 
 body {
-    background-color: #040814 !important;
+    background-color: #0d1017 !important;
     background-image: 
-        radial-gradient(circle at 50% 20%, rgba(0, 229, 255, 0.08) 0%, transparent 60%),
-        radial-gradient(circle at 80% 80%, rgba(0, 136, 255, 0.05) 0%, transparent 50%),
-        radial-gradient(circle at 10% 90%, rgba(10, 18, 42, 0.8) 0%, transparent 50%) !important;
+        linear-gradient(rgba(10, 15, 26, 0.82), rgba(10, 15, 26, 0.90)),
+        url('/images/bg_wallpaper.jpg') !important;
+    background-size: cover !important;
+    background-position: center !important;
     background-attachment: fixed !important;
     color: var(--text-primary);
     font-family: var(--font-body);
