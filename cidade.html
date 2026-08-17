@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistemas da Cidade | Malaca System GTARP</title>
+    <meta name="description" content="Central de sistemas e minijogos disponíveis para a cidade selecionada no Malaca System GTARP.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Link para CSS -->
+    
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" crossorigin href="/assets/styles-Drn9Jq0l.css">
+</head>
+<body class="home-body">
+    <!-- Canvas de Fundo Estrelado -->
+    <canvas id="starfield-bg"></canvas>
+
+    <div class="home-layout-wrapper">
+        <!-- BARRA SUPERIOR PRO -->
+        <nav class="home-navbar">
+            <div class="navbar-left flex-items-center">
+                <a href="./" class="back-to-cities-btn" title="Voltar para a seleção de Cidades">
+                    <i class="fa-solid fa-arrow-left"></i> <span>TODAS AS CIDADES</span>
+                </a>
+                <div class="navbar-brand">
+                    <span class="brand-star">★</span>
+                    <span class="brand-title">MALACA <span class="cyan-glow-text">SYSTEM</span></span>
+                </div>
+            </div>
+            <div class="navbar-status-badge">
+                <span class="status-dot-pulse"></span>
+                <span>SISTEMA DA CIDADE</span>
+            </div>
+        </nav>
+
+        <!-- HERO BANNER DA CIDADE -->
+        <header class="home-hero-section">
+            <div class="hero-banner-card">
+                <img id="city-banner-img" src="./images/hero_banner.jpg" alt="Cidade Banner" class="hero-banner-img">
+                <div class="hero-banner-overlay"></div>
+                <div class="hero-banner-content">
+                    <div class="hero-badge">
+                        <i class="fa-solid fa-city"></i> <span id="city-badge-text">CIDADE SELECIONADA</span>
+                    </div>
+                    <h1 class="hero-title">
+                        <span id="city-name-title">CIDADE ALTA RP</span><br>
+                        <span class="gradient-text" id="city-subtitle">SERVIDORES CDA & VALLEY</span>
+                    </h1>
+                    <p class="hero-subtitle" id="city-desc">
+                        Explore os sistemas ativos, mapa interativo em tempo real e simuladores de minijogos exclusivos integrados para esta cidade.
+                    </p>
+                </div>
+            </div>
+        </header>
+
+        <!-- GRID DE SISTEMAS DA CIDADE -->
+        <main class="home-simulators-container">
+            <div class="section-title-row">
+                <h2 class="section-title"><i class="fa-solid fa-layer-group"></i> SISTEMAS DISPONÍVEIS</h2>
+                <span class="systems-count-badge" id="systems-count-tag">4 SISTEMAS</span>
+            </div>
+
+            <!-- Grade Dinâmica de Sistemas -->
+            <div class="simulators-grid compact-grid" id="city-systems-grid">
+                <!-- Inserido dinamicamente via Script JS -->
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="home-footer-pro">
+            <div class="footer-content">
+                <p><strong>MALACA SYSTEM GTARP</strong> &copy; 2026. Central de Sistemas por Cidade.</p>
+                <div class="footer-links">
+                    <a href="./">Seleção de Cidades</a>
+                    <span class="dot-separator">•</span>
+                    <a href="mapa-interativo/">Mapa Interativo</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Script de Carregamento Dinâmico por Cidade -->
+    <script>
+        const CIDADES_DATA = {
+            'cidade-alta': {
+                nome: 'CIDADE ALTA RP',
+                subtitulo: 'SERVIDORES CDA & VALLEY',
+                banner: './images/hero_banner.jpg',
+                badge: 'CIDADE RP OFICIAL',
+                descricao: 'Explore o mapa colaborativo em tempo real para os servidores CDA e VALLEY, além dos simuladores de Lockpick, Caixinha e Hacking.',
+                sistemas: [
+                    {
+                        id: 'mapa',
+                        titulo: 'MAPA INTERATIVO',
+                        tag: 'CDA & VALLEY REALTIME',
+                        descricao: 'Mapa interativo colaborativo com rastreamento de Hospitais, Desmanches, Mercados e virada do Andarilho.',
+                        imagem: './images/gta_map_bg.webp',
+                        link: 'mapa-interativo/',
+                        temaClass: 'map-theme',
+                        icone: 'fa-compass',
+                        btnTexto: 'ABRIR MAPA RP',
+                        features: ['Servidores CDA & VALLEY', 'Confirmação do Andarilho', 'Supabase Realtime']
+                    },
+                    {
+                        id: 'lockpick',
+                        titulo: 'LOCKPICK SIMULATOR',
+                        tag: 'FIVEM LOCKPICK KIT',
+                        descricao: 'Simulador oficial de arrombamento com fechaduras de anéis e chaves duplas.',
+                        imagem: './images/lockpick.jpg',
+                        link: 'lockpick/',
+                        temaClass: 'lockpick-theme',
+                        icone: 'fa-key',
+                        btnTexto: 'JOGAR MINIJOGO',
+                        features: ['32 Pinos de Fechadura', 'Desafio Diário RP', 'Fidelidade Starfield']
+                    },
+                    {
+                        id: 'caixinha',
+                        titulo: 'CAIXINHA ELETRÔNICO',
+                        tag: 'SAFE & ATM HACK',
+                        descricao: 'Decodificador rápido de cofres e caixas de registradora com sequências de letras.',
+                        imagem: './images/caixinha.jpg',
+                        link: 'caixinha/',
+                        temaClass: 'safe-theme',
+                        icone: 'fa-vault',
+                        btnTexto: 'JOGAR MINIJOGO',
+                        features: ['Sequências Dinâmicas', 'Modo Infinito RP', 'Feedback Tátil']
+                    },
+                    {
+                        id: 'hacking',
+                        titulo: 'HACKING DEVICE',
+                        tag: 'CAYO PERICO TERMINAL',
+                        descricao: 'Terminal de hacking cyberpunk com matrizes de caracteres e contador de streaks.',
+                        imagem: './images/hacking.jpg',
+                        link: 'hacking/',
+                        temaClass: 'hack-theme',
+                        icone: 'fa-network-wired',
+                        btnTexto: 'JOGAR MINIJOGO',
+                        features: ['8 Matrizes de Caracteres', 'Contador de Streaks', 'HUD Cyberpunk']
+                    }
+                ]
+            },
+            'los-santos': {
+                nome: 'LOS SANTOS CENTRAL',
+                subtitulo: 'TREINAMENTO HEISTS & MINIJOGOS',
+                banner: './images/bg_wallpaper.jpg',
+                badge: 'HEIST TRAINING HUB',
+                descricao: 'Central de simuladores e treinamento de reflexos para invasão de cofres, portas e sistemas eletrônicos em Los Santos.',
+                sistemas: [
+                    {
+                        id: 'lockpick',
+                        titulo: 'LOCKPICK SIMULATOR',
+                        tag: 'DOOR & VEHICLE LOCK',
+                        descricao: 'Treine o arrombamento de portas de veículos e estabelecimentos.',
+                        imagem: './images/lockpick.jpg',
+                        link: 'lockpick/',
+                        temaClass: 'lockpick-theme',
+                        icone: 'fa-key',
+                        btnTexto: 'INICIAR TREINO',
+                        features: ['Chaves Múltiplas', 'Modo Mestre', 'Estatísticas']
+                    },
+                    {
+                        id: 'caixinha',
+                        titulo: 'CAIXINHA ELETRÔNICO',
+                        tag: 'ATM & SAFE CRACK',
+                        descricao: 'Pratique a velocidade de digitação para arrombamento de registradoras.',
+                        imagem: './images/caixinha.jpg',
+                        link: 'caixinha/',
+                        temaClass: 'safe-theme',
+                        icone: 'fa-vault',
+                        btnTexto: 'INICIAR TREINO',
+                        features: ['Reflexos Rápido', 'Alarme Tempo', 'Timer']
+                    },
+                    {
+                        id: 'hacking',
+                        titulo: 'HACKING DEVICE',
+                        tag: 'CYBER HACK TERMINAL',
+                        descricao: 'Invasão de painéis de segurança antes do lockdown.',
+                        imagem: './images/hacking.jpg',
+                        link: 'hacking/',
+                        temaClass: 'hack-theme',
+                        icone: 'fa-microchip',
+                        btnTexto: 'INICIAR TREINO',
+                        features: ['Terminal Code', 'Streaks', 'Matriz']
+                    }
+                ]
+            }
+        };
+
+        // Render da página
+        function loadCityPage() {
+            const params = new URLSearchParams(window.location.search);
+            const citySlug = params.get('cidade') || params.get('id') || 'cidade-alta';
+            const cityData = CIDADES_DATA[citySlug] || CIDADES_DATA['cidade-alta'];
+
+            document.title = `${cityData.nome} | Malaca System GTARP`;
+            document.getElementById('city-name-title').textContent = cityData.nome;
+            document.getElementById('city-subtitle').textContent = cityData.subtitulo;
+            document.getElementById('city-desc').textContent = cityData.descricao;
+            document.getElementById('city-badge-text').textContent = cityData.badge;
+            document.getElementById('city-banner-img').src = cityData.banner;
+            document.getElementById('systems-count-tag').textContent = `${cityData.sistemas.length} SISTEMAS`;
+
+            const grid = document.getElementById('city-systems-grid');
+            grid.innerHTML = '';
+
+            cityData.sistemas.forEach(sys => {
+                const card = document.createElement('a');
+                card.href = sys.link;
+                card.className = `sim-card ${sys.temaClass} sim-card-clickable compact-card`;
+
+                card.innerHTML = `
+                    <div class="sim-card-img-wrapper compact-img-wrapper">
+                        <img src="${sys.imagem}" alt="${sys.titulo}" class="sim-card-img">
+                        <div class="sim-card-img-overlay"></div>
+                        <span class="sim-tag"><i class="fa-solid ${sys.icone}"></i> <span>${sys.tag}</span></span>
+                    </div>
+                    <div class="sim-card-body compact-body">
+                        <div class="sim-title-row">
+                            <div class="sim-icon-circle compact-icon">
+                                <i class="fa-solid ${sys.icone}"></i>
+                            </div>
+                            <h3 class="sim-title compact-title">${sys.titulo}</h3>
+                        </div>
+                        <p class="sim-description compact-desc">${sys.descricao}</p>
+                        <div class="sim-btn-play compact-btn">
+                            <span>${sys.btnTexto}</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', loadCityPage);
+    </script>
+
+    <!-- Fundo de Partículas / Estrelado -->
+    <script>
+        const bgCanvas = document.getElementById('starfield-bg');
+        const bgCtx = bgCanvas.getContext('2d');
+        let nodes = [];
+
+        function resizeBgCanvas() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+            initNodes();
+        }
+
+        function initNodes() {
+            nodes = [];
+            const count = Math.floor((bgCanvas.width * bgCanvas.height) / 24000);
+            for (let i = 0; i < count; i++) {
+                nodes.push({
+                    x: Math.random() * bgCanvas.width,
+                    y: Math.random() * bgCanvas.height,
+                    vx: (Math.random() - 0.5) * 0.3,
+                    vy: (Math.random() - 0.5) * 0.3,
+                    radius: Math.random() * 1.8 + 1,
+                    pulse: Math.random() * Math.PI * 2
+                });
+            }
+        }
+
+        function animateBg() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            nodes.forEach(node => {
+                node.x += node.vx;
+                node.y += node.vy;
+                if (node.x < 0 || node.x > bgCanvas.width) node.vx *= -1;
+                if (node.y < 0 || node.y > bgCanvas.height) node.vy *= -1;
+
+                bgCtx.fillStyle = 'rgba(167, 139, 250, 0.4)';
+                bgCtx.beginPath();
+                bgCtx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+                bgCtx.fill();
+            });
+            requestAnimationFrame(animateBg);
+        }
+
+        window.addEventListener('load', () => {
+            resizeBgCanvas();
+            window.addEventListener('resize', resizeBgCanvas);
+            requestAnimationFrame(animateBg);
+        });
+    </script>
+</body>
+</html>
