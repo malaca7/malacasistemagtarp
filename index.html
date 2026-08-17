@@ -1,16 +1,314 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Sistema de Mapa Interativo Oficial para Cidade Alta RP (CDA) e Valley RP. Localização de NPCs, hospitais, desmanches e rotação em tempo real do Andarilho." />
-    <title>Cidade Alta RP — Mapa Interativo (CDA & VALLEY)</title>
-    <script type="module" crossorigin src="/assets/main-C0LzwTYg.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
-    <link rel="stylesheet" crossorigin href="/assets/main-C0weRnCS.css">
-  </head>
-  <body class="bg-slate-950 text-slate-100 overflow-hidden">
-    <div id="root"></div>
-  </body>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malaca System | Portal de Treinamento GTARP</title>
+    <meta name="description" content="Portal oficial de treinamento de invasão e arrombamento para servidores de GTA RP. Simuladores de Lockpick, Caixinha Eletrônico e Hacking Device.">
+    
+    <!-- OpenGraph / SEO -->
+    <meta property="og:title" content="Malaca System - Simuladores GTARP">
+    <meta property="og:description" content="Treine seus reflexos e habilidades nos minijogos de arrombamento de GTA RP.">
+    <meta property="og:type" content="website">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Link para CSS -->
+    
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" crossorigin src="/assets/i18n-gMnqT1aK.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/i18n-B58pv5v3.css">
+</head>
+<body class="home-body">
+    <!-- Canvas de Fundo Estrelado -->
+    <canvas id="starfield-bg"></canvas>
+
+    <div class="home-layout-wrapper">
+        <!-- BARRA SUPERIOR PRO -->
+        <nav class="home-navbar">
+            <div class="navbar-brand">
+                <span class="brand-star">★</span>
+                <span class="brand-title" data-i18n="nav_brand">MALACA <span class="cyan-glow-text">SYSTEM</span></span>
+            </div>
+            <div class="navbar-status-badge">
+                <span class="status-dot-pulse"></span>
+                <span data-i18n="nav_system_online">SISTEMA ONLINE</span>
+            </div>
+        </nav>
+
+        <!-- HERO SECTION COM BANNER TOP GTA RP -->
+        <header class="home-hero-section">
+            <div class="hero-banner-card">
+                <img src="./images/hero_banner.jpg" alt="GTA RP Heists Banner" class="hero-banner-img">
+                <div class="hero-banner-overlay"></div>
+                <div class="hero-banner-content">
+                    <div class="hero-badge">
+                        <i class="fa-solid fa-shield-halved"></i> <span data-i18n="hero_badge">SIMULADOR DE ROUBOS & HACKS GTARP</span>
+                    </div>
+                    <h1 class="hero-title">
+                        <span data-i18n="hero_title_1">TREINO DE ALTA PERFORMANCE PARA </span><br><span class="gradient-text" data-i18n="hero_title_accent">SERVIDORES GTA RP / FIVEM</span>
+                    </h1>
+                    <p class="hero-subtitle" data-i18n="hero_subtitle">
+                        Aprimore sua agilidade, tempo de resposta e memória nos minijogos fiéis de arrombamento de portas, caixinhas eletrônicas e hacks de cofres do GTA 5.
+                    </p>
+                </div>
+            </div>
+
+            <!-- STATS COUNTER BAR -->
+            <div class="hero-stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number">3</span>
+                    <span class="stat-label" data-i18n="stat_sims">Simuladores FiveM</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">100%</span>
+                    <span class="stat-label" data-i18n="stat_precision">Fidelidade RP</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">FIVEM</span>
+                    <span class="stat-label" data-i18n="stat_fivem">FiveM & RedM</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">60 FPS</span>
+                    <span class="stat-label" data-i18n="stat_latency">60 FPS NUI Smooth</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- CARDS DOS SIMULADORES (CLICÁVEIS EM QUALQUER PARTE) -->
+        <main class="home-simulators-container">
+            <div class="simulators-grid">
+                
+                <!-- Card 1: Lockpick Simulator -->
+                <a href="lockpick/" class="sim-card lockpick-theme sim-card-clickable">
+                    <div class="sim-card-img-wrapper">
+                        <img src="./images/lockpick.jpg" alt="GTA RP Lockpick Simulator" class="sim-card-img">
+                        <div class="sim-card-img-overlay"></div>
+                        <span class="sim-tag"><i class="fa-solid fa-star"></i> <span data-i18n="lockpick_tag">FIVEM LOCKPICK KIT</span></span>
+                    </div>
+                    <div class="sim-card-body">
+                        <div class="sim-title-row">
+                            <div class="sim-icon-circle">
+                                <i class="fa-solid fa-key"></i>
+                            </div>
+                            <h2 class="sim-title" data-i18n="lockpick_title">LOCKPICK SIMULATOR</h2>
+                        </div>
+                        <p class="sim-description" data-i18n="lockpick_desc">
+                            Minijogo oficial de arrombamento de veículos e portas com fechadura de 32 pinos. Encaixe as chaves duplas sem desperdiçar gazuas.
+                        </p>
+
+                        <div class="sim-features-list">
+                            <span><i class="fa-solid fa-layer-group"></i> <span data-i18n="lockpick_f1">2 a 4 Anéis de Trava</span></span>
+                            <span><i class="fa-solid fa-calendar-day"></i> <span data-i18n="lockpick_f2">Desafio Diário RP</span></span>
+                            <span><i class="fa-solid fa-gauge-high"></i> <span data-i18n="lockpick_f3">Fidelidade Starfield/FiveM</span></span>
+                        </div>
+
+                        <div class="sim-btn-play">
+                            <span data-i18n="play_button">JOGAR MINIJOGO</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Card 2: Caixinha Eletrônico -->
+                <a href="caixinha/" class="sim-card safe-theme sim-card-clickable">
+                    <div class="sim-card-img-wrapper">
+                        <img src="./images/caixinha.jpg" alt="GTA RP Caixinha Eletronico" class="sim-card-img">
+                        <div class="sim-card-img-overlay"></div>
+                        <span class="sim-tag"><i class="fa-solid fa-bolt"></i> <span data-i18n="caixinha_tag">SAFE & ATM HACK</span></span>
+                    </div>
+                    <div class="sim-card-body">
+                        <div class="sim-title-row">
+                            <div class="sim-icon-circle">
+                                <i class="fa-solid fa-vault"></i>
+                            </div>
+                            <h2 class="sim-title" data-i18n="caixinha_title">CAIXINHA ELETRÔNICO</h2>
+                        </div>
+                        <p class="sim-description" data-i18n="caixinha_desc">
+                            Decodificador de caixinha de registradora e cofres rápidos. Digite a sequência de letras em alta velocidade antes do alarme soar.
+                        </p>
+
+                        <div class="sim-features-list">
+                            <span><i class="fa-solid fa-keyboard"></i> <span data-i18n="caixinha_f1">Sequências Dinâmicas</span></span>
+                            <span><i class="fa-solid fa-infinity"></i> <span data-i18n="caixinha_f2">Modo Infinito RP</span></span>
+                            <span><i class="fa-solid fa-stopwatch"></i> <span data-i18n="caixinha_f3">Feedback Tátil & Som</span></span>
+                        </div>
+
+                        <div class="sim-btn-play">
+                            <span data-i18n="play_button">JOGAR MINIJOGO</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- Card 3: Hacking Device -->
+                <a href="hacking/" class="sim-card hack-theme sim-card-clickable">
+                    <div class="sim-card-img-wrapper">
+                        <img src="./images/hacking.jpg" alt="GTA RP Hacking Device" class="sim-card-img">
+                        <div class="sim-card-img-overlay"></div>
+                        <span class="sim-tag"><i class="fa-solid fa-microchip"></i> <span data-i18n="hacking_tag">CAYO PERICO TERMINAL</span></span>
+                    </div>
+                    <div class="sim-card-body">
+                        <div class="sim-title-row">
+                            <div class="sim-icon-circle">
+                                <i class="fa-solid fa-network-wired"></i>
+                            </div>
+                            <h2 class="sim-title" data-i18n="hacking_title">HACKING DEVICE</h2>
+                        </div>
+                        <p class="sim-description" data-i18n="hacking_desc">
+                            Invasão de painéis de segurança e cofres de grande porte. Encontre o código alvo na matriz de caracteres antes do lockdown do sistema.
+                        </p>
+
+                        <div class="sim-features-list">
+                            <span><i class="fa-solid fa-font"></i> <span data-i18n="hacking_f1">8 Matrizes de Caracteres</span></span>
+                            <span><i class="fa-solid fa-fire"></i> <span data-i18n="hacking_f2">Contador de Streaks</span></span>
+                            <span><i class="fa-solid fa-terminal"></i> <span data-i18n="hacking_f3">HUD Cyberpunk GTA 5</span></span>
+                        </div>
+
+                        <div class="sim-btn-play">
+                            <span data-i18n="play_button">JOGAR MINIJOGO</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </div>
+                </a>
+
+            </div>
+        </main>
+
+        <!-- FOOTER PRO -->
+        <footer class="home-footer-pro">
+            <div class="footer-content">
+                <p><strong>MALACA SYSTEM GTARP</strong> &copy; 2026. <span data-i18n="footer_text">Desenvolvido para máxima otimização e treinamento de reflexos em Roleplay.</span></p>
+                <div class="footer-links">
+                    <a href="lockpick/">Lockpick</a>
+                    <span class="dot-separator">•</span>
+                    <a href="caixinha/">Caixinha</a>
+                    <span class="dot-separator">•</span>
+                    <a href="hacking/">Hacking</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Engine i18n & Tema -->
+
+    <!-- Canvas de Fundo FiveM Cyber Grid -->
+    <canvas id="starfield-bg"></canvas>
+
+    <!-- Script de Fundo Cyber Grid GTA RP / FiveM HUD -->
+    <script>
+        const bgCanvas = document.getElementById('starfield-bg');
+        const bgCtx = bgCanvas.getContext('2d');
+        let nodes = [];
+        let time = 0;
+
+        function resizeBgCanvas() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+            initNodes();
+        }
+
+        function initNodes() {
+            nodes = [];
+            const count = Math.floor((bgCanvas.width * bgCanvas.height) / 22000);
+            for (let i = 0; i < count; i++) {
+                nodes.push({
+                    x: Math.random() * bgCanvas.width,
+                    y: Math.random() * bgCanvas.height,
+                    vx: (Math.random() - 0.5) * 0.4,
+                    vy: (Math.random() - 0.5) * 0.4,
+                    radius: Math.random() * 2 + 1,
+                    isGreen: Math.random() < 0.6,
+                    pulse: Math.random() * Math.PI * 2
+                });
+            }
+        }
+
+        function drawGrid() {
+            bgCtx.save();
+            bgCtx.strokeStyle = document.body.classList.contains('light-theme') 
+                ? 'rgba(0, 136, 204, 0.04)' 
+                : 'rgba(0, 255, 136, 0.03)';
+            bgCtx.lineWidth = 1;
+            const gridSize = 60;
+            
+            for (let x = 0; x < bgCanvas.width; x += gridSize) {
+                bgCtx.beginPath();
+                bgCtx.moveTo(x, 0);
+                bgCtx.lineTo(x, bgCanvas.height);
+                bgCtx.stroke();
+            }
+            for (let y = 0; y < bgCanvas.height; y += gridSize) {
+                bgCtx.beginPath();
+                bgCtx.moveTo(0, y);
+                bgCtx.lineTo(bgCanvas.width, y);
+                bgCtx.stroke();
+            }
+            bgCtx.restore();
+        }
+
+        function animateBg() {
+            time += 0.02;
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            
+            drawGrid();
+
+            const isLight = document.body.classList.contains('light-theme');
+            
+            // Conectar nós próximos
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    const dx = nodes[i].x - nodes[j].x;
+                    const dy = nodes[i].y - nodes[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 130) {
+                        const alpha = (1 - dist / 130) * (isLight ? 0.08 : 0.15);
+                        bgCtx.strokeStyle = nodes[i].isGreen 
+                            ? (isLight ? `rgba(0, 168, 84, ${alpha})` : `rgba(0, 255, 136, ${alpha})`)
+                            : (isLight ? `rgba(0, 136, 204, ${alpha})` : `rgba(0, 229, 255, ${alpha})`);
+                        bgCtx.lineWidth = 1;
+                        bgCtx.beginPath();
+                        bgCtx.moveTo(nodes[i].x, nodes[i].y);
+                        bgCtx.lineTo(nodes[j].x, nodes[j].y);
+                        bgCtx.stroke();
+                    }
+                }
+            }
+
+            // Desenhar nós
+            nodes.forEach(node => {
+                node.x += node.vx;
+                node.y += node.vy;
+
+                if (node.x < 0 || node.x > bgCanvas.width) node.vx *= -1;
+                if (node.y < 0 || node.y > bgCanvas.height) node.vy *= -1;
+
+                node.pulse += 0.03;
+                const pAlpha = (Math.sin(node.pulse) + 1) / 2 * 0.4 + 0.4;
+                
+                const nodeColor = node.isGreen 
+                    ? (isLight ? `rgba(0, 168, 84, ${pAlpha})` : `rgba(0, 255, 136, ${pAlpha})`)
+                    : (isLight ? `rgba(0, 136, 204, ${pAlpha})` : `rgba(0, 229, 255, ${pAlpha})`);
+
+                bgCtx.fillStyle = nodeColor;
+                bgCtx.beginPath();
+                bgCtx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+                bgCtx.fill();
+            });
+
+            requestAnimationFrame(animateBg);
+        }
+
+        window.addEventListener('load', () => {
+            resizeBgCanvas();
+            window.addEventListener('resize', resizeBgCanvas);
+            requestAnimationFrame(animateBg);
+        });
+    </script>
+</body>
 </html>
