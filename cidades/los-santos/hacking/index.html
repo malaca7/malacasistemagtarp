@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hacking Device (Los Santos) | Malaca System GTARP</title>
+    <meta name="description" content="Simulador de Hacking Cyberpunk para Los Santos.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/images/platform_icon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" crossorigin src="/assets/modulepreload-polyfill-P2Xu9kJm.js"></script>
+  <script type="module" crossorigin src="/assets/i18n-A6kVPnnh.js"></script>
+  <script type="module" crossorigin src="/assets/hacking-C-93Tf2I.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/styles-CJ97Wg_3.css">
+</head>
+<body>
+    <canvas id="starfield-bg"></canvas>
+    <a href="/cidades/los-santos/" class="home-back-btn" title="Voltar para Los Santos" id="back-btn">
+        <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div class="app-container">
+        <main class="hud-container hacking-hud-container">
+            <div class="green-telemetry-banner">
+                <div class="telemetry-row">
+                    <span>ACERTOS: <strong id="val-streak">0</strong></span>
+                    <span>TEMPO: <strong id="val-timer" class="highlight-orange">15s</strong></span>
+                </div>
+            </div>
+            <div class="top-status-banner" id="hacking-banner">
+                <div class="status-box success-box hidden" id="status-success">
+                    <i class="fa-solid fa-microchip"></i>
+                    <span>SISTEMA HACKEADO COM SUCESSO!</span>
+                </div>
+                <div class="status-box error-box hidden" id="status-error">
+                    <i class="fa-solid fa-bug"></i>
+                    <span>INVASÃO FALHOU! FIREWALL DETECTOU SEU IP.</span>
+                </div>
+            </div>
+            <div class="hacking-device-wrapper flex-center flex-col">
+                <div class="target-sequence-bar" id="target-matrix"></div>
+                <div class="hacking-grid-container" id="hacking-grid"></div>
+            </div>
+            <div class="hud-bottom-panel">
+                <div class="stat-card">
+                    <span class="stat-label">MODO:</span>
+                    <span class="stat-value font-mono">LOS SANTOS CYBER</span>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

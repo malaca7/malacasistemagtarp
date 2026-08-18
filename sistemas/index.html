@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistemas & Simuladores | Malaca System GTARP</title>
+    <meta name="description" content="Catálogo completo de sistemas e simuladores de minijogos GTA RP (Mapa Interativo, Lockpick, Caixinha, Hacking Device).">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/images/platform_icon.png">
+    
+    <!-- Estilos globais -->
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script type="module" crossorigin src="/assets/modulepreload-polyfill-P2Xu9kJm.js"></script>
+  <script type="module" crossorigin src="/assets/admin-overlay-CkcfN06t.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/admin-overlay-_OPJLxvA.css">
+  <link rel="stylesheet" crossorigin href="/assets/styles-CJ97Wg_3.css">
+</head>
+<body class="hub-body">
+
+    <div class="hub-wrapper">
+        <!-- HEADER / NAVIGATION BAR -->
+        <nav class="hub-navbar" id="hub-navbar">
+            <div class="hub-nav-left">
+                <a href="/cidades/" class="hub-logo hub-brand">
+                    <img src="/images/logo_malaca_sistemas.png" alt="MALACA SISTEMAS" class="hub-logo-img">
+                </a>
+            </div>
+            <div class="hub-nav-links">
+                <a href="/" class="hub-nav-link">PÁGINA INICIAL</a>
+                <a href="/sistemas/" class="hub-nav-link active">SISTEMAS</a>
+                <a href="/plataforma/" class="hub-nav-link">PLATAFORMA</a>
+            </div>
+            <div class="hub-nav-right">
+                <button onclick="openAppearanceModal()" class="hub-nav-link" style="background: rgba(250,118,8,0.15); color: #FFB52E; border: 1px solid rgba(250,118,8,0.3); padding: 6px 14px; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; items-center; gap: 6px;">
+                    <i class="fa-solid fa-sliders" style="color: #FA7608;"></i> APARÊNCIA
+                </button>
+            </div>
+        </nav>
+
+        <!-- HERO BANNER -->
+        <header class="hub-hero">
+            <div class="hub-hero-inner">
+                <p class="hub-hero-eyebrow">CATÁLOGO GLOBAL</p>
+                <h1 class="hub-hero-title">Sistemas e Simuladores de <br><span class="hub-hero-gradient">Treinamento GTA RP</span></h1>
+                <p class="hub-hero-subtitle">Ferramentas de alta precisão para rastreamento no mapa e minijogos de reflexo desenvolvidos para servidores FiveM/GTA RP.</p>
+            </div>
+        </header>
+
+        <!-- MAIN SYSTEMS GRID -->
+        <main class="hub-main" style="grid-template-columns: 1fr;">
+            <section class="hub-featured">
+                <div class="hub-section-header">
+                    <h2 class="hub-section-title"><i class="fa-solid fa-microchip"></i> Sistemas da Plataforma</h2>
+                    <span class="hub-section-badge">AVALIE E ACESSE OS SISTEMAS</span>
+                </div>
+                
+                <div class="hub-cards-grid" id="systems-catalog-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- Sistemas serão injetados dinamicamente via JS -->
+                </div>
+            </section>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="hub-footer">
+            <div class="hub-footer-inner">
+                <div class="hub-footer-links">
+                    <a href="/">PÁGINA INICIAL</a>
+                    <a href="/sistemas/">SISTEMAS</a>
+                    <a href="/plataforma/">PLATAFORMA</a>
+                    <button onclick="openGlobalAdminModal()" class="hub-footer-admin-link"><i class="fa-solid fa-shield-halved"></i> PAINEL ADMIN</button>
+                </div>
+                <div class="hub-footer-social">
+                    <span class="hub-footer-copy">© 2026 <strong>MALACA SISTEMAS</strong> — Todos os direitos reservados.</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- SCRIPT DE MODERAÇÃO E SISTEMAS DINÂMICOS -->
+    <script>
+        const DEFAULT_SYSTEMS = [
+            {
+                id: 'sys-mapa',
+                name: 'MAPA INTERATIVO RP',
+                category: 'REALTIME TRACKER',
+                icon: 'fa-compass',
+                description: 'Rastreamento colaborativo em tempo real de hospitais, desmanches, mercado ilegal e virada do Andarilho.',
+                link: '/cidades/cda/mapa/',
+                cities: ['Cidade Alta (CDA)', 'Valley RP', 'Los Santos']
+            },
+            {
+                id: 'sys-lockpick',
+                name: 'LOCKPICK SIMULATOR',
+                category: 'DOOR & VEHICLE LOCK',
+                icon: 'fa-key',
+                description: 'Simulador oficial de arrombamento de veículos e portas com sistema de travamento de 32 pinos.',
+                link: '/cidades/cda/lockpick/',
+                cities: ['Cidade Alta (CDA)', 'Los Santos']
+            },
+            {
+                id: 'sys-caixinha',
+                name: 'CAIXINHA ELETRÔNICO',
+                category: 'ATM & SAFE HACK',
+                icon: 'fa-vault',
+                description: 'Minijogo de reflexos e velocidade de digitação para arrombamento de cofres e registradoras.',
+                link: '/cidades/cda/caixinha/',
+                cities: ['Cidade Alta (CDA)', 'Los Santos']
+            },
+            {
+                id: 'sys-hacking',
+                name: 'HACKING DEVICE',
+                category: 'CYBER TERMINAL',
+                icon: 'fa-terminal',
+                description: 'Decodificador de segurança cibernética estilo Cayo Perico com matrizes de caracteres e contador de streaks.',
+                link: '/cidades/cda/hacking/',
+                cities: ['Cidade Alta (CDA)', 'Los Santos']
+            }
+        ];
+
+        function getSystemRatings() {
+            try {
+                const stored = localStorage.getItem('malaca_system_ratings');
+                if (stored) return JSON.parse(stored);
+            } catch (e) {}
+            return {
+                'sys-mapa': { rating: 5, votes: 184 },
+                'sys-lockpick': { rating: 5, votes: 126 },
+                'sys-caixinha': { rating: 5, votes: 98 },
+                'sys-hacking': { rating: 5, votes: 142 }
+            };
+        }
+
+        function rateSystem(sysId, stars) {
+            const ratings = getSystemRatings();
+            if (!ratings[sysId]) ratings[sysId] = { rating: 5, votes: 10 };
+            
+            // Re-calc rating
+            const curr = ratings[sysId];
+            curr.votes += 1;
+            ratings[sysId] = curr;
+
+            localStorage.setItem('malaca_system_ratings', JSON.stringify(ratings));
+            renderSystems();
+        }
+
+        function renderSystems() {
+            const grid = document.getElementById('systems-catalog-grid');
+            if (!grid) return;
+
+            const raw = localStorage.getItem('malaca_custom_systems');
+            let systems = DEFAULT_SYSTEMS;
+            if (raw) {
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        systems = parsed.map(s => ({
+                            id: s.id || `sys-${s.slug}`,
+                            name: s.name,
+                            category: s.tag || 'SISTEMA RP',
+                            icon: s.icon || 'fa-microchip',
+                            description: s.description || 'Sistema integrado da plataforma.',
+                            link: s.link || `/cidades/cda/${s.slug}/`,
+                            cities: s.city_ids ? ['Cidade Alta (CDA)', 'Valley RP', 'Los Santos'] : ['Todas as Cidades']
+                        }));
+                    }
+                } catch (e) {}
+            }
+
+            const ratings = getSystemRatings();
+            grid.innerHTML = '';
+
+            systems.forEach(sys => {
+                const sysRating = ratings[sys.id] || { rating: 5, votes: 50 };
+                const card = document.createElement('div');
+                card.className = 'hub-card';
+                card.style.display = 'flex';
+                card.style.flexDirection = 'column';
+                card.style.justifySpaceBetween = 'space-between';
+
+                card.innerHTML = `
+                    <div class="hub-card-header">
+                        <div class="hub-card-icon">
+                            <i class="fa-solid ${sys.icon}"></i>
+                        </div>
+                        <div class="hub-card-meta">
+                            <span class="hub-card-category">${sys.category}</span>
+                            <h3 class="hub-card-title">${sys.name}</h3>
+                        </div>
+                    </div>
+
+                    <p class="hub-card-desc" style="margin-bottom: 12px;">${sys.description}</p>
+
+                    <!-- Principais Cidades do Sistema -->
+                    <div style="margin-bottom: 16px; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(250,118,8,0.2);">
+                        <span style="font-size: 10px; font-weight: 800; color: #FA7608; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px;">
+                            <i class="fa-solid fa-city"></i> Cidades Suportadas:
+                        </span>
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                            ${sys.cities.map(c => `<span style="font-size: 11px; font-weight: 700; background: rgba(255,181,46,0.15); color: #FFB52E; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(255,181,46,0.3);">${c}</span>`).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Opção de Avaliar Sistema -->
+                    <div style="margin-bottom: 16px; display: flex; items-center; justify-content: space-between; background: rgba(13,13,13,0.8); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(250,118,8,0.2);">
+                        <div>
+                            <span style="font-size: 10px; font-weight: 800; color: #94a3b8; display: block;">AVALIAR SISTEMA:</span>
+                            <div style="display: flex; gap: 4px; margin-top: 2px;">
+                                ${[1,2,3,4,5].map(star => `<i class="fa-solid fa-star" onclick="rateSystem('${sys.id}', ${star})" style="color: #FFB52E; cursor: pointer; font-size: 13px; transition: transform 0.1s;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'"></i>`).join('')}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-size: 14px; font-weight: 900; color: #FFB52E;">5.0 ⭐</span>
+                            <span style="font-size: 10px; color: #94a3b8; display: block;">(${sysRating.votes} avaliações)</span>
+                        </div>
+                    </div>
+
+                    <!-- Indicativo de Acesso via Cidades -->
+                    <div style="margin-top: auto; padding: 10px; background: rgba(250,118,8,0.08); border: 1px solid rgba(250,118,8,0.2); border-radius: 10px; text-align: center;">
+                        <span style="font-size: 11px; font-weight: 800; color: #FFB52E; text-transform: uppercase; letter-spacing: 0.05em;">
+                            <i class="fa-solid fa-building-flag" style="color: #FA7608; margin-right: 4px;"></i> Acesse via Página das Cidades
+                        </span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', renderSystems);
+    </script>
+</body>
+</html>
