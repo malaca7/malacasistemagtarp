@@ -23,8 +23,10 @@
     
     <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" crossorigin href="/assets/styles-DkeNUDTw.css">
-  <link rel="stylesheet" crossorigin href="/assets/admin-overlay-C3PmVgii.css">
+  <script type="module" crossorigin src="/assets/modulepreload-polyfill-Dezn_h7o.js"></script>
+  <script type="module" crossorigin src="/assets/admin-overlay-SAnMp2T9.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/admin-overlay-_OPJLxvA.css">
+  <link rel="stylesheet" crossorigin href="/assets/styles-CJ97Wg_3.css">
 </head>
 <body class="hub-body">
 
@@ -35,17 +37,15 @@
                 <a href="./" class="hub-logo hub-brand">
                     <img src="/assets/logo_malaca_sistemas-DLgeDqih.png" alt="MALACA SISTEMAS" class="hub-logo-img">
                 </a>
-            </div>
-            <div class="hub-nav-links">
-                <a href="cda/" class="hub-nav-link active">CIDADE</a>
-                <a href="#sistemas-section" class="hub-nav-link">SISTEMAS</a>
-                <a href="plataforma/" class="hub-nav-link">PLATAFORMA</a>
+            </div>            <div class="hub-nav-links">
+                <a href="/" class="hub-nav-link active">PÁGINA INICIAL</a>
+                <a href="/sistemas/" class="hub-nav-link">SISTEMAS</a>
+                <a href="/plataforma/" class="hub-nav-link">PLATAFORMA</a>
             </div>
             <div class="hub-nav-right">
-                <span class="hub-online-badge">
-                    <span class="hub-pulse-dot"></span>
-                    ONLINE
-                </span>
+                <button onclick="openAppearanceModal()" class="hub-nav-link" style="background: rgba(250,118,8,0.15); color: #FFB52E; border: 1px solid rgba(250,118,8,0.3); padding: 6px 14px; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; items-center; gap: 6px;">
+                    <i class="fa-solid fa-sliders" style="color: #FA7608;"></i> APARÊNCIA
+                </button>
             </div>
         </nav>
 
@@ -59,21 +59,19 @@
                     <h2 class="hub-section-title"><i class="fa-solid fa-city"></i> Cidades Disponíveis</h2>
                     <span class="hub-section-badge">SELECIONE UMA CIDADE</span>
                 </div>
-
-                <!-- Grid de Cards de Cidades -->
-                <div class="hub-cards-grid" id="cities-container">
-                    <!-- Serão carregados dinamicamente via JS / Fallback inicial -->
-                    <a href="cda/" class="hub-card" id="city-card-cda">
+                
+                <div class="hub-grid" id="custom-cities-grid">
+                    <a href="/cidades/cda/" class="hub-card" id="city-card-cda">
                         <div class="hub-card-header">
                             <div class="hub-card-icon">
-                                <i class="fa-solid fa-star"></i>
+                                <i class="fa-solid fa-building-flag"></i>
                             </div>
                             <div class="hub-card-meta">
-                                <span class="hub-card-category">CIDADE OFICIAL</span>
-                                <h3 class="hub-card-title">CIDADE ALTA RP</h3>
+                                <span class="hub-card-category">CIDADE ALTA HUB</span>
+                                <h3 class="hub-card-title">CIDADE ALTA RP (CDA)</h3>
                             </div>
                         </div>
-                        <p class="hub-card-desc">Mapa Interativo em tempo real para os servidores CDA e VALLEY com virada do Andarilho, além de Lockpick, Caixinha e Hacking.</p>
+                        <p class="hub-card-desc">Servidor Cidade Alta com mapa interativo colaborativo em tempo real, rastreamento de desmanches, hospitais e andarilho.</p>
                         <div class="hub-card-footer">
                             <div class="hub-card-rating">
                                 <i class="fa-solid fa-star"></i>
@@ -91,7 +89,7 @@
                         </div>
                     </a>
 
-                    <a href="los-santos/" class="hub-card" id="city-card-los-santos">
+                    <a href="/cidades/valley/" class="hub-card" id="city-card-valley">
                         <div class="hub-card-header">
                             <div class="hub-card-icon">
                                 <i class="fa-solid fa-shield-halved"></i>
@@ -295,9 +293,9 @@
         <footer class="hub-footer">
             <div class="hub-footer-inner">
                 <div class="hub-footer-links">
-                    <a href="cidade.html?cidade=cda">CIDADE</a>
-                    <a href="#sistemas-section">SISTEMAS</a>
-                    <a href="plataforma.html">PLATAFORMA</a>
+                    <a href="/cidades/">CIDADES</a>
+                    <a href="/sistemas/">SISTEMAS</a>
+                    <a href="/plataforma/">PLATAFORMA</a>
                     <button onclick="openGlobalAdminModal()" class="hub-footer-admin-link"><i class="fa-solid fa-shield-halved"></i> PAINEL ADMIN</button>
                 </div>
                 <div class="hub-footer-social">
@@ -314,24 +312,45 @@
     <script>
         function loadCustomCities() {
             try {
-                const raw = localStorage.getItem('malaca_custom_servers');
-                if (!raw) return;
-                const cities = JSON.parse(raw);
-                if (!cities || !Array.isArray(cities) || cities.length === 0) return;
-
-                const container = document.getElementById('cities-container');
+                const container = document.getElementById('custom-cities-grid') || document.getElementById('cities-container');
                 if (!container) return;
 
+                const raw = localStorage.getItem('malaca_custom_servers');
+                let cities = null;
+                if (raw !== null) {
+                    cities = JSON.parse(raw);
+                } else {
+                    cities = [
+                        { id: 'cda-server-uuid', slug: 'cda', name: 'CIDADE ALTA RP (CDA)', subtitle: 'SERVIDORES OFICIAIS', description: 'Mapa Interativo em tempo real para os servidores CDA e VALLEY com virada do Andarilho, além de Lockpick, Caixinha e Hacking.', icon: 'fa-building-flag', image_url: '/images/hero_banner.jpg' },
+                        { id: 'valley-server-uuid', slug: 'valley', name: 'VALLEY RP', subtitle: 'VALLEY HUB', description: 'Servidor Valley com rastreamento de pontos ilegais, lavanderia e localizações reportadas do andarilho em tempo real.', icon: 'fa-mountain-city', image_url: '/images/bg_wallpaper.jpg' },
+                        { id: 'los-santos-server-uuid', slug: 'los-santos', name: 'LOS SANTOS CENTRAL', subtitle: 'LOS SANTOS HUB', description: 'Central de simuladores e treinamento de reflexos para arrombamento e invasão de cofres em Los Santos.', icon: 'fa-shield-halved', image_url: '/images/gta_map_bg.webp' }
+                    ];
+                }
+
                 container.innerHTML = '';
+
+                if (!cities || cities.length === 0) {
+                    container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 40px; font-weight: 600;">Nenhuma cidade cadastrada no momento.</p>';
+                    return;
+                }
+
                 cities.filter(c => c.active !== false).forEach(city => {
                     const card = document.createElement('a');
-                    card.href = `cidade.html?cidade=${encodeURIComponent(city.slug)}`;
+                    card.href = `/cidades/${encodeURIComponent(city.slug)}/`;
                     card.className = 'hub-card';
+                    const imgUrl = city.image_url || city.banner_image_url || '/images/hero_banner.jpg';
 
                     card.innerHTML = `
+                        <div class="hub-card-banner" style="width: 100%; height: 130px; border-radius: 12px; overflow: hidden; margin-bottom: 14px; border: 1px solid rgba(250,118,8,0.3); position: relative;">
+                            <img src="${imgUrl}" alt="${city.name}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease;" class="city-card-cover" />
+                            <div style="position: absolute; inset: 0; background: linear-gradient(0deg, rgba(13,13,13,0.95) 0%, rgba(0,0,0,0.2) 60%);"></div>
+                            <span style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.75); border: 1px solid rgba(250,118,8,0.4); color: #FFB52E; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; text-transform: uppercase;">
+                                <i class="fa-solid fa-circle-check" style="color: #22c55e; margin-right: 4px;"></i> ATIVA
+                            </span>
+                        </div>
                         <div class="hub-card-header">
                             <div class="hub-card-icon">
-                                <i class="fa-solid fa-city"></i>
+                                <i class="fa-solid ${city.icon || 'fa-city'}"></i>
                             </div>
                             <div class="hub-card-meta">
                                 <span class="hub-card-category">${city.subtitle || 'CIDADE RP'}</span>
@@ -358,9 +377,11 @@
                     container.appendChild(card);
                 });
             } catch (e) {
-                console.error('Erro ao carregar cidades customizadas:', e);
+                console.error('Erro ao carregar cidades:', e);
             }
         }
+
+        document.addEventListener('DOMContentLoaded', loadCustomCities);
 
         function initSystemVotes() {
             const defaultVotes = {
@@ -439,6 +460,5 @@
             }
         });
     </script>
-    <script src="admin-overlay.js"></script>
 </body>
 </html>

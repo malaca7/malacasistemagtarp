@@ -42,7 +42,7 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
     reliabilityColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
   } else if (confirmations >= 5) {
     reliabilityText = 'Confirmado pela Comunidade';
-    reliabilityColor = 'text-purple-400 bg-purple-500/10 border-purple-500/20';
+    reliabilityColor = 'text-[#FFB52E] bg-[#FA7608]/10 border-[#FA7608]/20';
   }
 
   const handleToggleConfirm = async () => {
@@ -56,19 +56,19 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 md:left-auto md:top-20 md:right-6 md:bottom-auto w-full md:w-96 bg-slate-950/95 backdrop-blur-xl border border-slate-800 rounded-t-3xl md:rounded-2xl shadow-2xl z-40 p-5 space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+    <div className="fixed bottom-0 left-0 right-0 md:left-auto md:top-20 md:right-6 md:bottom-auto w-full md:w-96 bg-[#0D0D0D]/95 backdrop-blur-xl border border-[#FA7608]/30 rounded-t-3xl md:rounded-2xl shadow-2xl z-40 p-5 space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
       {/* Mobile Drag Handle */}
       <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto -mt-1 mb-1 md:hidden" />
 
       {/* Header */}
       <div className="flex items-start justify-between border-b border-slate-800/80 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-lg shadow-inner">
+          <div className="w-10 h-10 rounded-xl bg-[#FA7608]/20 border border-[#FA7608]/30 flex items-center justify-center text-lg shadow-inner">
             {location.category === 'andarilho' ? '🚶‍♂️' : location.category === 'desmanche' ? '🔧' : location.category === 'hospital_ilegal' ? '🏥' : location.category === 'mercado_ilegal' ? '🛒' : '📍'}
           </div>
           <div>
             <h3 className="font-extrabold text-white text-base leading-tight">{location.name}</h3>
-            <span className="text-[11px] text-purple-400 font-semibold uppercase tracking-wider">
+            <span className="text-[11px] text-[#FFB52E] font-semibold uppercase tracking-wider">
               {location.category.replace('_', ' ')}
             </span>
           </div>
@@ -94,16 +94,16 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
 
       {/* Coordinates & Status */}
       <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-purple-400" />
+        <div className="bg-[#000000]/60 p-2.5 rounded-xl border border-[#FA7608]/20 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-[#FA7608]" />
           <div>
             <span className="text-[10px] text-slate-400 block font-semibold">COORDENADAS</span>
             <span className="font-mono font-bold text-slate-200">X: {location.x} | Y: {location.y}</span>
           </div>
         </div>
 
-        <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center gap-2">
-          <Clock className="w-4 h-4 text-purple-400" />
+        <div className="bg-[#000000]/60 p-2.5 rounded-xl border border-[#FA7608]/20 flex items-center gap-2">
+          <Clock className="w-4 h-4 text-[#FA7608]" />
           <div>
             <span className="text-[10px] text-slate-400 block font-semibold">ATUALIZADO</span>
             <span className="text-slate-200 font-semibold">Hoje</span>
@@ -113,20 +113,20 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
 
       {/* Description */}
       {location.description && (
-        <div className="bg-slate-900/40 p-3 rounded-xl border border-slate-800/60">
+        <div className="bg-[#000000]/40 p-3 rounded-xl border border-slate-800/60">
           <p className="text-xs text-slate-300 leading-relaxed">{location.description}</p>
         </div>
       )}
 
       {/* Andarilho Special Confirmation System */}
       {isAndarilho && (
-        <div className="bg-gradient-to-br from-purple-950/40 to-slate-900/80 p-4 rounded-xl border border-purple-900/40 space-y-3">
+        <div className="bg-gradient-to-br from-[#FA7608]/20 to-[#0D0D0D]/90 p-4 rounded-xl border border-[#FA7608]/30 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-purple-400" />
+              <ShieldCheck className="w-4 h-4 text-[#FFB52E]" />
               Confirmações da Comunidade
             </span>
-            <span className="text-sm font-black text-purple-300 font-mono">
+            <span className="text-sm font-black text-[#FFB52E] font-mono">
               {confirmations} votos
             </span>
           </div>
@@ -144,7 +144,7 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
             className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg ${
               location.user_confirmed
                 ? 'bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40'
-                : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-purple-600/20'
+                : 'bg-gradient-to-r from-[#FA7608] via-[#E73701] to-[#FFB52E] hover:from-[#FA7608] hover:to-[#FFB52E] text-white shadow-[#FA7608]/25'
             }`}
           >
             {location.user_confirmed ? (

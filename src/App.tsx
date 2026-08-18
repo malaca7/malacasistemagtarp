@@ -6,6 +6,7 @@ import { Sidebar } from './components/Sidebar';
 import { MapContainer } from './components/map/MapContainer';
 import { LocationDrawer } from './components/map/LocationDrawer';
 import { AdminModal } from './components/admin/AdminModal';
+import { AppearanceModal } from './components/AppearanceModal';
 
 export const App: React.FC = () => {
   const [servers, setServers] = useState<Server[]>([]);
@@ -29,6 +30,7 @@ export const App: React.FC = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
 
   // Admin Pin Mode
   const [isAdminPinMode, setIsAdminPinMode] = useState(false);
@@ -41,11 +43,25 @@ export const App: React.FC = () => {
       setServers(data);
       if (data.length > 0) {
         const params = new URLSearchParams(window.location.search);
-        const cityParam = params.get('cidade') || params.get('server') || params.get('id');
+        let cityParam = params.get('cidade') || params.get('server') || params.get('id');
+
         if (!cityParam) {
-          window.location.replace('../cidade.html?cidade=cda');
-          return;
+          const pathParts = window.location.pathname.split('/').filter(Boolean);
+          for (const part of pathParts) {
+            const found = data.find(
+              (s) => s.slug.toLowerCase() === part.toLowerCase() || s.id.toLowerCase() === part.toLowerCase()
+            );
+            if (found) {
+              cityParam = found.slug;
+              break;
+            }
+          }
         }
+
+        if (!cityParam) {
+          cityParam = 'cda';
+        }
+
         let selected = data[0];
         const match = data.find(
           (s) => s.slug.toLowerCase() === cityParam.toLowerCase() || s.id.toLowerCase() === cityParam.toLowerCase()
@@ -227,7 +243,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
-      {/* Header */}
+      {/* Header Bar */}
       <Header
         servers={servers}
         currentServer={currentServer}
@@ -237,10 +253,10 @@ export const App: React.FC = () => {
         }}
         onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
         onOpenAdmin={() => setAdminOpen(true)}
+        onOpenAppearance={() => setAppearanceOpen(true)}
       />
 
-      {/* Main Layout Area */}
-      <div className="flex flex-1 relative overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         {/* Sidebar */}
         <Sidebar
           isOpen={sidebarOpen}
@@ -252,7 +268,7 @@ export const App: React.FC = () => {
           onAddSuggestion={handleAddSuggestion}
         />
 
-        {/* Interactive Map Area */}
+        {/* Map Container View */}
         <main className="flex-1 relative h-full w-full">
           <MapContainer
             mapImageUrl={
@@ -290,6 +306,12 @@ export const App: React.FC = () => {
         onUpdateSuggestionStatus={handleUpdateSuggestionStatus}
         onStartPinMode={() => setIsAdminPinMode(true)}
         pendingPinCoords={pendingPinCoords}
+      />
+
+      {/* Appearance Customization Modal */}
+      <AppearanceModal
+        isOpen={appearanceOpen}
+        onClose={() => setAppearanceOpen(false)}
       />
     </div>
   );

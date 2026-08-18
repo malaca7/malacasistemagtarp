@@ -126,14 +126,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Panel */}
       <aside
-        className={`fixed md:static top-0 left-0 h-full w-80 md:w-84 bg-slate-950/95 backdrop-blur-xl border-r border-slate-800/80 z-40 flex flex-col transition-transform duration-300 ${
+        className={`fixed md:static top-0 left-0 h-full w-80 md:w-84 bg-[#0D0D0D] backdrop-blur-xl border-r border-[#FA7608]/20 z-40 flex flex-col transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
         {/* Top Header inside Sidebar */}
-        <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
+        <div className="p-4 border-b border-[#FA7608]/20 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-purple-400" />
+            <Filter className="w-4 h-4 text-[#FA7608]" />
             <span className="font-bold text-sm text-slate-200 uppercase tracking-wider">
               Painel do Jogador
             </span>
@@ -147,13 +147,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Andarilho Cycle Status Widget */}
-        <div className="p-4 bg-gradient-to-br from-purple-950/40 via-slate-900/60 to-slate-950 border-b border-purple-900/30">
+        <div className="p-4 bg-gradient-to-br from-[#FA7608]/10 via-[#0D0D0D] to-[#000000] border-b border-[#FA7608]/25">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-purple-300 flex items-center gap-1.5 uppercase tracking-wide">
-              <Clock className="w-3.5 h-3.5 text-purple-400" />
+            <span className="text-xs font-bold text-[#FFB52E] flex items-center gap-1.5 uppercase tracking-wide">
+              <Clock className="w-3.5 h-3.5 text-[#FA7608]" />
               Troca do Andarilho
             </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-medium border border-purple-500/30">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FA7608]/20 text-[#FFB52E] font-medium border border-[#FA7608]/40">
               06h & 18h
             </span>
           </div>
@@ -207,32 +207,77 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* TAB 1: FILTERS */}
           {activeTab === 'filters' && (
             <div className="space-y-3">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                Exibir no mapa
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Filtros de Marcação
+                </span>
+                <button
+                  onClick={() => {
+                    CATEGORIES.forEach(c => {
+                      if (!selectedCategories.includes(c.id)) onToggleCategory(c.id);
+                    });
+                  }}
+                  className="text-[10px] font-bold text-[#FFB52E] hover:underline"
+                >
+                  MOSTRAR TODOS
+                </button>
+              </div>
 
               {CATEGORIES.map((cat) => {
+                const isOnly = selectedCategories.length === 1 && selectedCategories.includes(cat.id);
                 const isChecked = selectedCategories.includes(cat.id);
                 return (
-                  <label
+                  <div
                     key={cat.id}
-                    className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
-                      isChecked
-                        ? 'bg-slate-900 border-purple-500/40 text-white shadow-md'
-                        : 'bg-slate-950/40 border-slate-800/60 text-slate-400 hover:border-slate-700'
+                    className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${
+                      isOnly
+                        ? 'bg-[#FA7608]/20 border-[#FA7608] text-white shadow-lg shadow-[#FA7608]/20'
+                        : isChecked
+                        ? 'bg-[#0D0D0D] border-[#FA7608]/40 text-slate-200'
+                        : 'bg-[#000000]/60 border-slate-800 text-slate-500 opacity-60'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
+                    <button
+                      onClick={() => {
+                        // Isolate this category (show only this item)
+                        CATEGORIES.forEach(c => {
+                          if (c.id === cat.id) {
+                            if (!selectedCategories.includes(c.id)) onToggleCategory(c.id);
+                          } else {
+                            if (selectedCategories.includes(c.id)) onToggleCategory(c.id);
+                          }
+                        });
+                      }}
+                      className="flex items-center gap-2.5 text-left flex-1 hover:text-white"
+                      title="Clique para mostrar apenas esta categoria"
+                    >
                       <span className="text-base">{cat.icon}</span>
                       <span className="text-xs font-semibold">{cat.label}</span>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          CATEGORIES.forEach(c => {
+                            if (c.id === cat.id) {
+                              if (!selectedCategories.includes(c.id)) onToggleCategory(c.id);
+                            } else {
+                              if (selectedCategories.includes(c.id)) onToggleCategory(c.id);
+                            }
+                          });
+                        }}
+                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#FA7608]/15 border border-[#FA7608]/30 text-[#FFB52E] hover:bg-[#FA7608]/30 transition-all"
+                      >
+                        Apenas Este
+                      </button>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => onToggleCategory(cat.id)}
+                        className="w-4 h-4 rounded border-slate-700 text-[#FA7608] focus:ring-[#FA7608] bg-[#000000] cursor-pointer"
+                      />
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => onToggleCategory(cat.id)}
-                      className="w-4 h-4 rounded border-slate-700 text-purple-600 focus:ring-purple-500 bg-slate-900"
-                    />
-                  </label>
+                  </div>
                 );
               })}
             </div>

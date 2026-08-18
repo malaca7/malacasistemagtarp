@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800;900&display=swap');
+
 /* VARIABLES AND THEME CONFIGURATION (MALACA SISTEMAS - 100% LARANJA & DEGRADÊS FOGO) */
 :root {
     --bg-primary: #05070c;
@@ -31,9 +33,55 @@
     --gradient-brand: linear-gradient(135deg, #ff6600 0%, #ff3300 50%, #ffaa00 100%);
     
     --transition-speed: 0.25s;
-    --font-header: 'Orbitron', sans-serif;
-    --font-secondary: 'Rajdhani', sans-serif;
-    --font-body: 'Inter', sans-serif;
+    --font-header: 'Bebas Neue', sans-serif;
+    --font-secondary: 'Bebas Neue', sans-serif;
+    --font-body: 'Bebas Neue', 'Inter', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6, .hub-nav-link, .hub-hero-title, .hub-card-title, .hub-section-title, button {
+    font-family: 'Bebas Neue', sans-serif !important;
+    letter-spacing: 0.05em;
+}
+
+/* ==========================================================================
+   THEME SWITCHER OVERRIDES (data-theme)
+   ========================================================================== */
+[data-theme="oled"] {
+    --bg-primary: #000000 !important;
+    --bg-secondary: #000000 !important;
+    --bg-panel: #050505 !important;
+    --text-primary: #ffffff !important;
+}
+
+[data-theme="dracula"] {
+    --bg-primary: #282a36 !important;
+    --bg-secondary: #44475a !important;
+    --bg-panel: rgba(68, 71, 90, 0.9) !important;
+    --text-primary: #f8f8f2 !important;
+    --border-color: rgba(255, 121, 198, 0.4) !important;
+}
+
+[data-theme="cinza_escuro"] {
+    --bg-primary: #18181b !important;
+    --bg-secondary: #27272a !important;
+    --bg-panel: rgba(39, 39, 42, 0.9) !important;
+    --text-primary: #f4f4f5 !important;
+}
+
+[data-theme="cinza_claro"] {
+    --bg-primary: #e4e4e7 !important;
+    --bg-secondary: #f4f4f5 !important;
+    --bg-panel: rgba(255, 255, 255, 0.9) !important;
+    --text-primary: #18181b !important;
+    --text-secondary: #27272a !important;
+}
+
+[data-theme="claro"] {
+    --bg-primary: #ffffff !important;
+    --bg-secondary: #f8fafc !important;
+    --bg-panel: rgba(255, 255, 255, 0.95) !important;
+    --text-primary: #0f172a !important;
+    --text-secondary: #334155 !important;
 }
 
 /* ==========================================================================
@@ -119,25 +167,25 @@ body.light-theme .char-cell.selected {
     display: flex;
     gap: 10px;
     align-items: center;
-    background: rgba(14, 22, 38, 0.85);
+    background: rgba(13, 13, 13, 0.92);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     padding: 8px 12px;
     border-radius: 30px;
-    border: 1px solid rgba(0, 229, 255, 0.3);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(250, 118, 8, 0.35);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
     transition: transform 0.3s ease, border-color 0.3s ease;
 }
 
 body.light-theme .floating-controls {
     background: rgba(255, 255, 255, 0.9);
-    border-color: rgba(0, 136, 204, 0.3);
+    border-color: rgba(250, 118, 8, 0.3);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
 
 .floating-controls:hover {
     transform: translateY(-2px);
-    border-color: var(--color-cyan);
+    border-color: var(--color-orange);
 }
 
 .floating-btn {
@@ -156,13 +204,13 @@ body.light-theme .floating-controls {
 }
 
 .floating-btn:hover {
-    background: rgba(0, 229, 255, 0.15);
-    color: var(--color-cyan);
+    background: rgba(250, 118, 8, 0.18);
+    color: var(--color-orange);
 }
 
 body.light-theme .floating-btn:hover {
-    background: rgba(0, 136, 204, 0.15);
-    color: #0088cc;
+    background: rgba(250, 118, 8, 0.15);
+    color: #FA7608;
 }
 
 .lang-btn {
@@ -172,7 +220,7 @@ body.light-theme .floating-btn:hover {
 }
 
 #lang-badge {
-    background: var(--color-cyan);
+    background: var(--color-orange);
     color: #000;
     padding: 2px 6px;
     border-radius: 6px;
@@ -190,10 +238,10 @@ body.light-theme .floating-btn:hover {
 }
 
 body {
-    background-color: #0d1017 !important;
+    background-color: #000000 !important;
     background-image: 
-        linear-gradient(rgba(10, 15, 26, 0.82), rgba(10, 15, 26, 0.90)),
-        url('/images/bg_wallpaper.jpg') !important;
+        radial-gradient(ellipse at 50% 0%, rgba(250, 118, 8, 0.28) 0%, rgba(13, 13, 13, 0.95) 55%, #000000 100%),
+        linear-gradient(180deg, rgba(250, 118, 8, 0.18) 0%, rgba(13, 13, 13, 0.95) 50%, #000000 100%) !important;
     background-size: cover !important;
     background-position: center !important;
     background-attachment: fixed !important;
@@ -2878,8 +2926,8 @@ html, body, .hacking-page-body {
    ========================================================================== */
 
 .hub-body {
-    background-color: #0a0e1a;
-    color: #e2e8f0;
+    background-color: #000000;
+    color: #FFFFFF;
     font-family: var(--font-body);
     min-height: 100vh;
     display: flex;
@@ -2912,13 +2960,13 @@ html, body, .hacking-page-body {
 }
 
 .hub-navbar.scrolled {
-    background: rgba(10, 14, 26, 0.85);
+    background: rgba(13, 13, 13, 0.92);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.9);
     margin: 0 -24px;
     padding: 14px 24px;
-    border-bottom: 1px solid rgba(0, 180, 255, 0.08);
+    border-bottom: 1px solid rgba(250, 118, 8, 0.2);
 }
 
 .hub-nav-left {
@@ -2940,18 +2988,18 @@ html, body, .hacking-page-body {
     max-height: 34px;
     width: auto;
     object-fit: contain;
-    filter: drop-shadow(0 0 10px rgba(255, 85, 0, 0.55));
+    filter: drop-shadow(0 0 10px rgba(250, 118, 8, 0.6));
     transition: transform 0.25s ease, filter 0.25s ease;
 }
 
 .hub-brand:hover .hub-logo-img {
     transform: scale(1.04);
-    filter: drop-shadow(0 0 16px rgba(255, 170, 0, 0.8));
+    filter: drop-shadow(0 0 16px rgba(255, 181, 46, 0.85));
 }
 
 .hub-accent {
-    color: #ffaa00;
-    text-shadow: 0 0 8px rgba(255, 170, 0, 0.5);
+    color: #FFB52E;
+    text-shadow: 0 0 8px rgba(255, 181, 46, 0.5);
 }
 
 .hub-nav-links {
@@ -2965,7 +3013,7 @@ html, body, .hacking-page-body {
     font-size: 0.82rem;
     font-weight: 600;
     letter-spacing: 1.5px;
-    color: #94a3b8;
+    color: #9E9E9E;
     text-decoration: none;
     transition: color 0.25s ease;
     position: relative;
@@ -2983,9 +3031,9 @@ html, body, .hacking-page-body {
     left: 0;
     width: 100%;
     height: 2px;
-    background: linear-gradient(90deg, #ff5500, #ffaa00);
+    background: linear-gradient(90deg, #FA7608, #FFB52E);
     border-radius: 2px;
-    box-shadow: 0 0 10px rgba(255, 85, 0, 0.7);
+    box-shadow: 0 0 12px rgba(250, 118, 8, 0.8);
 }
 
 .hub-nav-right {
@@ -2997,28 +3045,28 @@ html, body, .hacking-page-body {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255, 170, 0, 0.08);
-    border: 1px solid rgba(255, 170, 0, 0.3);
+    background: rgba(255, 181, 46, 0.08);
+    border: 1px solid rgba(255, 181, 46, 0.3);
     padding: 6px 14px;
     border-radius: 20px;
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 1px;
-    color: #ffaa00;
+    color: #FFB52E;
 }
 
 .hub-pulse-dot {
     width: 7px;
     height: 7px;
-    background: #ffaa00;
+    background: #FFB52E;
     border-radius: 50%;
-    box-shadow: 0 0 8px #ffaa00;
+    box-shadow: 0 0 8px #FFB52E;
     animation: hubPulse 2s infinite;
 }
 
 @keyframes hubPulse {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 170, 0, 0.6); }
-    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(255, 170, 0, 0); }
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 181, 46, 0.6); }
+    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(255, 181, 46, 0); }
     100% { transform: scale(0.95); }
 }
 
@@ -3042,8 +3090,8 @@ html, body, .hacking-page-body {
     font-size: 0.82rem;
     font-weight: 700;
     letter-spacing: 4px;
-    color: #ffaa00;
-    text-shadow: 0 0 15px rgba(255, 170, 0, 0.4);
+    color: #FFB52E;
+    text-shadow: 0 0 15px rgba(255, 181, 46, 0.45);
 }
 
 .hub-hero-title {
@@ -3171,8 +3219,8 @@ html, body, .hacking-page-body {
 }
 
 .hub-card {
-    background: rgba(12, 20, 40, 0.65);
-    border: 1px solid rgba(0, 180, 255, 0.12);
+    background: #0D0D0D;
+    border: 1px solid rgba(250, 118, 8, 0.22);
     border-radius: 16px;
     padding: 22px 24px;
     display: flex;
@@ -3192,16 +3240,16 @@ html, body, .hacking-page-body {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 85, 0, 0.6) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, #FA7608 50%, transparent 100%);
     opacity: 0;
     transition: opacity 0.35s ease;
 }
 
 .hub-card:hover {
-    border-color: rgba(255, 170, 0, 0.5);
-    background: rgba(18, 24, 38, 0.9);
+    border-color: rgba(255, 181, 46, 0.5);
+    background: #0D0D0D;
     transform: translateY(-3px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(255, 85, 0, 0.25);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.95), 0 0 25px rgba(250, 118, 8, 0.25);
 }
 
 .hub-card:hover::before {
@@ -3218,13 +3266,13 @@ html, body, .hacking-page-body {
     width: 48px;
     height: 48px;
     border-radius: 12px;
-    background: rgba(255, 85, 0, 0.1);
-    border: 1px solid rgba(255, 170, 0, 0.3);
+    background: rgba(250, 118, 8, 0.12);
+    border: 1px solid rgba(255, 181, 46, 0.35);
     display: flex;
     justify-content: center;
     align-items: center;
     font-size: 1.2rem;
-    color: #ffaa00;
+    color: #FFB52E;
     flex-shrink: 0;
     transition: transform 0.3s ease;
 }
@@ -3244,7 +3292,7 @@ html, body, .hacking-page-body {
     font-size: 0.65rem;
     font-weight: 700;
     letter-spacing: 1.5px;
-    color: #ff5500;
+    color: #FA7608;
 }
 
 .hub-card-title {
@@ -3296,9 +3344,9 @@ html, body, .hacking-page-body {
     gap: 8px;
     padding: 11px 20px;
     border-radius: 10px;
-    background: linear-gradient(135deg, rgba(0, 212, 255, 0.12) 0%, rgba(0, 136, 204, 0.08) 100%);
-    border: 1px solid rgba(0, 212, 255, 0.25);
-    color: #00d4ff;
+    background: linear-gradient(135deg, rgba(250, 118, 8, 0.15) 0%, rgba(231, 55, 1, 0.1) 100%);
+    border: 1px solid rgba(255, 181, 46, 0.3);
+    color: #FFB52E;
     font-family: var(--font-header);
     font-size: 0.75rem;
     font-weight: 700;
@@ -3307,10 +3355,10 @@ html, body, .hacking-page-body {
 }
 
 .hub-card:hover .hub-card-btn {
-    background: linear-gradient(135deg, #00d4ff 0%, #0088cc 100%);
-    color: #000;
-    border-color: #00d4ff;
-    box-shadow: 0 4px 20px rgba(0, 212, 255, 0.35);
+    background: linear-gradient(135deg, #FA7608 0%, #E73701 50%, #FFB52E 100%);
+    color: #FFFFFF;
+    border-color: #FA7608;
+    box-shadow: 0 4px 20px rgba(250, 118, 8, 0.45);
 }
 
 .hub-card-btn i {
@@ -3330,8 +3378,8 @@ html, body, .hacking-page-body {
 }
 
 .hub-feed {
-    background: rgba(12, 20, 40, 0.5);
-    border: 1px solid rgba(0, 180, 255, 0.1);
+    background: #0D0D0D;
+    border: 1px solid rgba(250, 118, 8, 0.22);
     border-radius: 16px;
     padding: 6px;
     display: flex;
@@ -3417,14 +3465,14 @@ html, body, .hacking-page-body {
 }
 
 .hub-tab:hover {
-    background: rgba(0, 212, 255, 0.06);
-    color: #c0d0e0;
+    background: rgba(250, 118, 8, 0.08);
+    color: #FFFFFF;
 }
 
 .hub-tab.active {
-    background: rgba(0, 212, 255, 0.12);
-    border-color: rgba(0, 212, 255, 0.3);
-    color: #00d4ff;
+    background: rgba(250, 118, 8, 0.15);
+    border-color: rgba(255, 181, 46, 0.4);
+    color: #FA7608;
 }
 
 .hub-explore-grid {
@@ -3434,8 +3482,8 @@ html, body, .hacking-page-body {
 }
 
 .hub-explore-card {
-    background: rgba(12, 20, 40, 0.5);
-    border: 1px solid rgba(0, 180, 255, 0.08);
+    background: #0D0D0D;
+    border: 1px solid rgba(250, 118, 8, 0.18);
     border-radius: 14px;
     overflow: hidden;
     text-decoration: none;
@@ -3444,9 +3492,9 @@ html, body, .hacking-page-body {
 }
 
 .hub-explore-card:hover {
-    border-color: rgba(0, 180, 255, 0.3);
+    border-color: rgba(255, 181, 46, 0.5);
     transform: translateY(-3px);
-    box-shadow: 0 8px 30px rgba(0, 180, 255, 0.08);
+    box-shadow: 0 8px 30px rgba(250, 118, 8, 0.2);
 }
 
 .hub-explore-thumb {
@@ -3535,7 +3583,7 @@ html, body, .hacking-page-body {
 }
 
 .hub-footer-links a:hover {
-    color: #00d4ff;
+    color: #FA7608;
 }
 
 .hub-footer-social {
@@ -3544,14 +3592,14 @@ html, body, .hacking-page-body {
 }
 
 .hub-footer-social a {
-    color: #4b5e74;
+    color: #9E9E9E;
     font-size: 1.3rem;
     transition: all 0.25s ease;
     text-decoration: none;
 }
 
 .hub-footer-social a:hover {
-    color: #00d4ff;
+    color: #FFB52E;
     transform: translateY(-2px);
 }
 

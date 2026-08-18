@@ -405,21 +405,21 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
       {/* Toast Banner */}
       {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-cyan-600 text-white font-bold text-xs px-5 py-3 rounded-full shadow-2xl border border-cyan-400 z-50 animate-in fade-in duration-200">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-[#FA7608] text-white font-bold text-xs px-5 py-3 rounded-full shadow-2xl border border-[#FFB52E] z-50 animate-in fade-in duration-200">
           {toastMessage}
         </div>
       )}
 
-      <div className="bg-slate-950 border border-slate-800/90 rounded-2xl w-[90vw] h-[90vh] max-w-[90vw] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl z-50">
+      <div className="bg-[#0D0D0D] border border-[#FA7608]/35 rounded-2xl w-[90vw] h-[90vh] max-w-[90vw] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl z-50">
         {/* Top Header Bar */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+        <div className="p-4 border-b border-[#FA7608]/20 flex items-center justify-between bg-[#000000]/90">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-orange-500 to-amber-600 p-[1.5px] shadow-md flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#FA7608] to-[#FFB52E] p-[1.5px] shadow-md flex items-center justify-center">
               <img src="/images/platform_icon.png" alt="MALACA ICON" className="w-full h-full object-contain p-0.5" />
             </div>
             <div>
               <h2 className="font-extrabold text-white text-sm leading-tight">Painel Administrativo — Malaca System GTARP</h2>
-              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Gestão de Cidades, Sistemas, Mapa & Moderação</p>
+              <p className="text-[10px] text-[#FFD485] font-semibold uppercase tracking-wider">Gestão de Cidades, Sistemas, Mapa & Moderação</p>
             </div>
           </div>
 
@@ -427,7 +427,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             {isAuthenticated && (
               <button
                 onClick={() => setIsAuthenticated(false)}
-                className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-[#000000] border border-slate-800 text-slate-400 hover:text-rose-400 text-xs font-semibold flex items-center gap-1.5 transition-colors"
                 title="Sair do Painel"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -446,7 +446,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         {/* Authentication Modal View */}
         {!isAuthenticated ? (
           <div className="p-10 flex flex-col items-center justify-center space-y-4 max-w-md mx-auto my-auto text-center">
-            <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-xl">
+            <div className="w-14 h-14 rounded-2xl bg-[#FA7608]/20 border border-[#FA7608]/40 flex items-center justify-center text-[#FFB52E] shadow-xl">
               <Lock className="w-7 h-7" />
             </div>
             <h3 className="font-extrabold text-xl text-white">Autenticação Administrativa</h3>
@@ -464,7 +464,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     placeholder="Digite o usuário (ex: malaca)"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 transition-colors"
+                    className="w-full bg-[#000000] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#FA7608] transition-colors"
                   />
                 </div>
               </div>
@@ -478,7 +478,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     placeholder="Digite a senha"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 transition-colors"
+                    className="w-full bg-[#000000] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#FA7608] transition-colors"
                   />
                 </div>
               </div>
@@ -491,7 +491,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-3 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-cyan-500/25 mt-2"
+                className="w-full py-3 bg-gradient-to-r from-[#FA7608] via-[#E73701] to-[#FFB52E] hover:from-[#FA7608] hover:to-[#FFB52E] text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-[#FA7608]/30 mt-2"
               >
                 Entrar no Painel Admin
               </button>
@@ -506,7 +506,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('dashboard')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'dashboard'
-                    ? 'border-cyan-400 text-cyan-300 bg-cyan-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -518,11 +518,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('cities')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'cities'
-                    ? 'border-cyan-400 text-cyan-300 bg-cyan-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Building2 className="w-4 h-4 text-cyan-400" />
+                <Building2 className="w-4 h-4 text-[#FA7608]" />
                 Gerenciar Cidades ({serversList.length})
               </button>
 
@@ -530,11 +530,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('systems')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'systems'
-                    ? 'border-cyan-400 text-cyan-300 bg-cyan-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Layers className="w-4 h-4 text-indigo-400" />
+                <Layers className="w-4 h-4 text-[#FFB52E]" />
                 Gerenciar Sistemas ({systemsList.length})
               </button>
 
@@ -542,11 +542,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('locations')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'locations'
-                    ? 'border-cyan-400 text-cyan-300 bg-cyan-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <MapPin className="w-4 h-4 text-emerald-400" />
+                <MapPin className="w-4 h-4 text-[#FA7608]" />
                 Locais do Mapa ({locations.length})
               </button>
 
@@ -554,11 +554,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('wanderer')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'wanderer'
-                    ? 'border-cyan-400 text-cyan-300 bg-cyan-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Clock className="w-4 h-4 text-amber-400" />
+                <Clock className="w-4 h-4 text-[#FFB52E]" />
                 Ciclo do Andarilho
               </button>
 
@@ -566,11 +566,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('comments')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'comments'
-                    ? 'border-cyan-400 text-cyan-300 bg-cyan-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <MessageSquare className="w-4 h-4 text-blue-400" />
+                <MessageSquare className="w-4 h-4 text-[#FA7608]" />
                 Comentários ({commentsList.length})
               </button>
 
@@ -578,11 +578,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('suggestions')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'suggestions'
-                    ? 'border-cyan-400 text-cyan-300 bg-cyan-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Sparkles className="w-4 h-4 text-purple-400" />
+                <Sparkles className="w-4 h-4 text-[#FFB52E]" />
                 Sugestões ({suggestions.length})
               </button>
             </div>
@@ -593,32 +593,32 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               {activeTab === 'dashboard' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-1">
+                    <div className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 space-y-1">
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">CIDADES ATIVAS</span>
-                      <span className="text-2xl font-black text-cyan-400 font-mono">{serversList.length}</span>
+                      <span className="text-2xl font-black text-[#FA7608] font-mono">{serversList.length}</span>
                       <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">CDA, Valley, Los Santos</p>
                     </div>
 
-                    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-1">
+                    <div className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 space-y-1">
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">SISTEMAS HABILITADOS</span>
-                      <span className="text-2xl font-black text-indigo-400 font-mono">{systemsList.length}</span>
+                      <span className="text-2xl font-black text-[#FFB52E] font-mono">{systemsList.length}</span>
                       <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Mapa, Minijogos</p>
                     </div>
 
-                    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-1">
+                    <div className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 space-y-1">
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">MARCAÇÕES NO MAPA</span>
-                      <span className="text-2xl font-black text-emerald-400 font-mono">{locations.length}</span>
+                      <span className="text-2xl font-black text-[#FA7608] font-mono">{locations.length}</span>
                       <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Hospitais, Desmanches, Andarilho</p>
                     </div>
 
-                    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-1">
+                    <div className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 space-y-1">
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">COMENTÁRIOS DA COMUNIDADE</span>
-                      <span className="text-2xl font-black text-amber-400 font-mono">{commentsList.length}</span>
+                      <span className="text-2xl font-black text-[#FFB52E] font-mono">{commentsList.length}</span>
                       <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Mensagens enviadas</p>
                     </div>
                   </div>
 
-                  <div className="bg-slate-900/40 p-5 rounded-xl border border-slate-800 space-y-3">
+                  <div className="bg-[#0D0D0D] p-5 rounded-xl border border-[#FA7608]/20 space-y-3">
                     <h4 className="font-extrabold text-white text-sm">Resumo da Plataforma</h4>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       Use as abas acima para criar e gerenciar **Cidades**, vincular **Sistemas**, gerenciar **Pontos do Andarilho** e moderar **Comentários**.
@@ -631,9 +631,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               {activeTab === 'cities' && (
                 <div className="space-y-6">
                   {/* Create City Form */}
-                  <form onSubmit={handleCreateCity} className="bg-slate-900/60 p-5 rounded-xl border border-slate-800 space-y-4">
+                  <form onSubmit={handleCreateCity} className="bg-[#0D0D0D] p-5 rounded-xl border border-[#FA7608]/25 space-y-4">
                     <h4 className="font-bold text-white text-sm flex items-center gap-2">
-                      <Plus className="w-4 h-4 text-cyan-400" />
+                      <Plus className="w-4 h-4 text-[#FA7608]" />
                       Criar Nova Cidade na Plataforma
                     </h4>
 
@@ -645,7 +645,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: CIDADE ALTA RP"
                           value={cityName}
                           onChange={(e) => setCityName(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#FA7608]"
                           required
                         />
                       </div>
@@ -657,7 +657,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: cda ou los-santos"
                           value={citySlug}
                           onChange={(e) => setCitySlug(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#FA7608]"
                           required
                         />
                       </div>
@@ -669,7 +669,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: SERVIDORES CDA & VALLEY"
                           value={citySubtitle}
                           onChange={(e) => setCitySubtitle(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#FA7608]"
                         />
                       </div>
 
@@ -680,7 +680,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: /images/hero_banner.jpg"
                           value={cityBannerUrl}
                           onChange={(e) => setCityBannerUrl(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#FA7608]"
                         />
                       </div>
 
@@ -691,14 +691,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           value={cityDescription}
                           onChange={(e) => setCityDescription(e.target.value)}
                           rows={2}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-cyan-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#FA7608]"
                         />
                       </div>
                     </div>
 
                     <button
                       type="submit"
-                      className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold text-xs rounded-xl shadow-lg hover:from-cyan-400 hover:to-indigo-500 transition-all flex items-center gap-2"
+                      className="px-5 py-2.5 bg-gradient-to-r from-[#FA7608] via-[#E73701] to-[#FFB52E] text-white font-bold text-xs rounded-xl shadow-lg hover:from-[#FA7608] hover:to-[#FFB52E] transition-all flex items-center gap-2"
                     >
                       <Plus className="w-4 h-4" />
                       Salvar Nova Cidade
@@ -710,7 +710,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     <h4 className="font-bold text-white text-sm">Cidades Cadastradas ({serversList.length})</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {serversList.map((c, idx) => (
-                        <div key={c.id} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                        <div key={c.id} className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3">
                             <div className="flex flex-col gap-1">
                               <button
@@ -733,7 +733,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             <img src={c.banner_image_url || '/images/hero_banner.jpg'} alt={c.name} className="w-12 h-12 rounded-lg object-cover border border-slate-700" />
                             <div>
                               <h5 className="font-bold text-white text-xs">{c.name}</h5>
-                              <span className="text-[10px] text-cyan-400 font-mono">/{c.slug}</span>
+                              <span className="text-[10px] text-[#FFB52E] font-mono">/{c.slug}</span>
                               <p className="text-[11px] text-slate-400 line-clamp-1">{c.subtitle || c.description}</p>
                             </div>
                           </div>
@@ -741,7 +741,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleStartEditCity(c)}
-                              className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 transition-colors"
+                              className="p-1.5 rounded-lg bg-[#FA7608]/15 border border-[#FA7608]/30 text-[#FFB52E] hover:bg-[#FA7608]/25 transition-colors"
                               title="Editar Cidade"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -773,9 +773,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               {activeTab === 'systems' && (
                 <div className="space-y-6">
                   {/* Create System Form */}
-                  <form onSubmit={handleCreateSystem} className="bg-slate-900/60 p-5 rounded-xl border border-slate-800 space-y-4">
+                  <form onSubmit={handleCreateSystem} className="bg-[#0D0D0D] p-5 rounded-xl border border-[#FA7608]/25 space-y-4">
                     <h4 className="font-bold text-white text-sm flex items-center gap-2">
-                      <Plus className="w-4 h-4 text-indigo-400" />
+                      <Plus className="w-4 h-4 text-[#FA7608]" />
                       Criar Novo Sistema na Plataforma
                     </h4>
 
@@ -787,7 +787,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: HACKING DEVICE"
                           value={sysName}
                           onChange={(e) => setSysName(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#FA7608]"
                           required
                         />
                       </div>
@@ -799,7 +799,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: hacking"
                           value={sysSlug}
                           onChange={(e) => setSysSlug(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#FA7608]"
                           required
                         />
                       </div>
@@ -811,7 +811,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: CYBER TERMINAL"
                           value={sysTag}
                           onChange={(e) => setSysTag(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#FA7608]"
                         />
                       </div>
 
@@ -822,19 +822,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: hacking/ ou mapa-interativo/"
                           value={sysLink}
                           onChange={(e) => setSysLink(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#FA7608]"
                         />
                       </div>
 
                       <div className="md:col-span-2">
                         <label className="block text-slate-400 font-semibold mb-1.5">Vincular a Cidades Específicas</label>
-                        <div className="flex flex-wrap gap-2 bg-slate-950 p-3 rounded-lg border border-slate-800">
+                        <div className="flex flex-wrap gap-2 bg-[#000000] p-3 rounded-lg border border-slate-800">
                           {serversList.map((server) => {
                             const isChecked = sysCityIds.includes(server.id) || sysCityIds.includes(server.slug);
                             return (
                               <label key={server.id} className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-2 ${
                                 isChecked
-                                  ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300'
+                                  ? 'bg-[#FA7608]/20 border-[#FA7608]/50 text-[#FFB52E]'
                                   : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300'
                               }`}>
                                 <input
@@ -864,14 +864,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           value={sysDescription}
                           onChange={(e) => setSysDescription(e.target.value)}
                           rows={2}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#FA7608]"
                         />
                       </div>
                     </div>
 
                     <button
                       type="submit"
-                      className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-xs rounded-xl shadow-lg hover:from-indigo-400 hover:to-purple-500 transition-all flex items-center gap-2"
+                      className="px-5 py-2.5 bg-gradient-to-r from-[#FA7608] via-[#E73701] to-[#FFB52E] text-white font-bold text-xs rounded-xl shadow-lg hover:from-[#FA7608] hover:to-[#FFB52E] transition-all flex items-center gap-2"
                     >
                       <Plus className="w-4 h-4" />
                       Salvar Novo Sistema
@@ -883,7 +883,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     <h4 className="font-bold text-white text-sm">Sistemas Cadastrados ({systemsList.length})</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {systemsList.map((sys, idx) => (
-                        <div key={sys.id} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                        <div key={sys.id} className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3">
                             <div className="flex flex-col gap-1">
                               <button
@@ -903,18 +903,18 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 <ArrowDown className="w-3 h-3" />
                               </button>
                             </div>
-                            <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold">
+                            <div className="w-10 h-10 rounded-lg bg-[#FA7608]/15 border border-[#FA7608]/30 flex items-center justify-center text-[#FFB52E] font-bold">
                               <i className={`fa-solid ${sys.icon}`}></i>
                             </div>
                             <div>
                               <h5 className="font-bold text-white text-xs">{sys.name}</h5>
-                              <span className="text-[10px] text-indigo-400 font-mono">{sys.tag}</span>
+                              <span className="text-[10px] text-[#FA7608] font-mono">{sys.tag}</span>
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {sys.city_ids && sys.city_ids.length > 0 ? (
                                   serversList
                                     .filter((serv) => sys.city_ids.includes(serv.id) || sys.city_ids.includes(serv.slug))
                                     .map((serv) => (
-                                      <span key={serv.id} className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[9px] font-bold border border-indigo-500/30">
+                                      <span key={serv.id} className="px-1.5 py-0.5 rounded bg-[#FA7608]/20 text-[#FFB52E] text-[9px] font-bold border border-[#FA7608]/30">
                                         {serv.name}
                                       </span>
                                     ))
@@ -930,7 +930,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleStartEditSystem(sys)}
-                              className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 transition-colors"
+                              className="p-1.5 rounded-lg bg-[#FA7608]/15 border border-[#FA7608]/30 text-[#FFB52E] hover:bg-[#FA7608]/25 transition-colors"
                               title="Editar Sistema"
                             >
                               <Edit2 className="w-3.5 h-3.5" />

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Server } from '../types';
-import { Menu, Settings, ArrowLeft } from 'lucide-react';
+import { Menu, Settings, ArrowLeft, Sliders } from 'lucide-react';
 
 interface HeaderProps {
   servers: Server[];
@@ -8,6 +8,7 @@ interface HeaderProps {
   onSelectServer: (server: Server) => void;
   onToggleSidebar: () => void;
   onOpenAdmin: () => void;
+  onOpenAppearance?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,72 +17,74 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectServer,
   onToggleSidebar,
   onOpenAdmin,
+  onOpenAppearance,
 }) => {
   return (
-    <header className="h-16 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/80 px-4 md:px-6 flex items-center justify-between z-30 relative shadow-2xl">
+    <header className="h-16 bg-black/95 backdrop-blur-xl border-b border-[#FA7608]/20 px-4 md:px-6 flex items-center justify-between z-30 relative shadow-2xl">
       {/* Navigation Left: Back Button & Brand */}
       <div className="flex items-center gap-4">
         <a 
-          href={currentServer ? `../cidade.html?cidade=${currentServer.slug}` : '../'} 
-          className="px-3 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition-all flex items-center gap-2 text-xs font-semibold"
+          href={currentServer ? `/cidades/${currentServer.slug}/` : '/'} 
+          className="px-3 py-1.5 rounded-lg bg-[#0D0D0D] border border-[#FA7608]/30 text-slate-300 hover:text-[#FFB52E] hover:border-[#FA7608]/60 transition-all flex items-center gap-2 text-xs font-semibold"
           title="Voltar para a Cidade"
         >
-          <ArrowLeft className="w-4 h-4 text-cyan-400" />
+          <ArrowLeft className="w-4 h-4 text-[#FA7608]" />
           <span className="hidden sm:inline">VOLTAR</span>
         </a>
 
         <button
           onClick={onToggleSidebar}
-          className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white md:hidden transition-colors"
+          className="p-2 rounded-lg bg-[#0D0D0D] border border-[#FA7608]/30 text-slate-300 hover:text-white md:hidden transition-colors"
           title="Abrir Menu"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        <a href="../" className="flex items-center gap-2.5">
-          <img src="/images/logo_malaca_sistemas.png" alt="MALACA SISTEMAS" className="h-8 md:h-9 object-contain drop-shadow-[0_0_12px_rgba(255,102,0,0.5)]" />
+        <a href="/" className="flex items-center gap-2.5">
+          <img src="/images/logo_malaca_sistemas.png" alt="MALACA SISTEMAS" className="h-8 md:h-9 object-contain drop-shadow-[0_0_12px_rgba(250,118,8,0.5)]" />
         </a>
       </div>
 
-      {/* Main Standard Nav Links: Cidade, Sistemas, Plataforma */}
+      {/* Main Standard Nav Links: PÁGINA INICIAL, Sistemas, Plataforma */}
       <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold tracking-wider text-slate-300">
-        <a href="../cda/" className="hover:text-amber-400 transition-colors py-1">CIDADE</a>
-        <a href="../#sistemas-section" className="hover:text-amber-400 transition-colors py-1">SISTEMAS</a>
-        <a href="../plataforma/" className="hover:text-amber-400 transition-colors py-1">PLATAFORMA</a>
+        <a href="/" className="hover:text-[#FFB52E] transition-colors py-1">PÁGINA INICIAL</a>
+        <a href="/sistemas/" className="hover:text-[#FFB52E] transition-colors py-1">SISTEMAS</a>
+        <a href="/plataforma/" className="hover:text-[#FFB52E] transition-colors py-1">PLATAFORMA</a>
       </nav>
 
-      {/* Server Switcher & Actions */}
-      <div className="flex items-center gap-3">
-        {/* City Selector */}
-        {servers.length > 0 && (
-          <div className="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800">
-            {servers.map((server) => {
-              const isSelected = currentServer?.id === server.id;
-              return (
-                <button
-                  key={server.id}
-                  onClick={() => onSelectServer(server)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/25'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                  }`}
-                >
-                  {server.name}
-                </button>
-              );
-            })}
+      {/* Active City Badge & Actions */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {currentServer && (
+          <div className="hidden sm:flex items-center gap-2.5 bg-[#0D0D0D] border border-[#FA7608]/40 px-3 py-1.5 rounded-xl shadow-lg">
+            <img 
+              src={currentServer.banner_image_url || '/images/hero_banner.jpg'} 
+              alt={currentServer.name} 
+              className="w-7 h-7 rounded-lg object-cover border border-[#FFB52E]/40"
+            />
+            <div className="flex flex-col">
+              <span className="text-[9px] font-extrabold text-[#FA7608] uppercase tracking-wider leading-none">CIDADE ATIVA</span>
+              <span className="text-xs font-black text-white leading-tight">{currentServer.name}</span>
+            </div>
           </div>
         )}
 
-        {/* Admin Button */}
+        {onOpenAppearance && (
+          <button
+            onClick={onOpenAppearance}
+            className="p-2 sm:px-3 sm:py-1.5 rounded-lg bg-[#0D0D0D] border border-[#FA7608]/30 hover:border-[#FA7608] text-slate-300 hover:text-[#FFB52E] text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md"
+            title="Configurações de Aparência (Tema, Brilho, Idioma)"
+          >
+            <Sliders className="w-4 h-4 text-[#FA7608]" />
+            <span className="hidden md:inline">APARÊNCIA</span>
+          </button>
+        )}
+
         <button
           onClick={onOpenAdmin}
-          className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-orange-400 hover:border-orange-500/30 transition-all flex items-center gap-1.5 text-xs font-bold"
-          title="Abrir Painel Administrativo"
+          className="px-3 py-1.5 rounded-lg bg-[#0D0D0D] border border-[#FA7608]/30 hover:border-[#FA7608] text-slate-300 hover:text-[#FFB52E] text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md"
         >
-          <Settings className="w-4 h-4 text-orange-500" />
-          <span className="hidden md:inline">ADMIN</span>
+          <Settings className="w-4 h-4 text-[#FA7608]" />
+          <span className="hidden sm:inline">PAINEL ADMIN</span>
         </button>
       </div>
     </header>

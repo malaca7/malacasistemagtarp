@@ -3,11 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plataforma | Malaca System GTARP</title>
-    <script>
-        window.location.replace('../plataforma.html');
-    </script>
+    <title>Sobre a Plataforma | Malaca System GTARP</title>
+    <meta name="description" content="Central da plataforma Malaca System GTARP desenvolvida por MALACA (Discord: malaca7). Ecossistema completo para cidades e minijogos GTA RP.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/images/platform_icon.png">
+    
+    <!-- Estilos globais -->
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/admin-overlay.css">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="hub-body">
+
+    <div class="hub-wrapper">
+        <!-- HEADER / NAVIGATION BAR -->
+        <nav class="hub-navbar" id="hub-navbar">
+            <div class="hub-nav-left">
+                <a href="/cidades/" class="hub-logo hub-brand">
+                    <img src="/images/logo_malaca_sistemas.png" alt="MALACA SISTEMAS" class="hub-logo-img">
+                </a>
+            </div>
+            <div class="hub-nav-links">
+                <a href="/" class="hub-nav-link">PÁGINA INICIAL</a>
+                <a href="/sistemas/" class="hub-nav-link">SISTEMAS</a>
+                <a href="/plataforma/" class="hub-nav-link active">PLATAFORMA</a>
+            </div>
+            <div class="hub-nav-right">
+                <button onclick="openAppearanceModal()" class="hub-nav-link" style="background: rgba(250,118,8,0.15); color: #FFB52E; border: 1px solid rgba(250,118,8,0.3); padding: 6px 14px; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; items-center; gap: 6px;">
+                    <i class="fa-solid fa-sliders" style="color: #FA7608;"></i> APARÊNCIA
+                </button>
+            </div>
+        </nav>
+
+        <!-- HERO BANNER -->
+        <header class="hub-hero">
+            <div class="hub-hero-inner">
+                <p class="hub-hero-eyebrow">CONECTANDO COMUNIDADES RP</p>
+                <h1 class="hub-hero-title">O Hub Definitivo para <br><span class="hub-hero-gradient">Cidades e Sistemas de GTA RP</span></h1>
+                <p class="hub-hero-subtitle">Projetado com arquitetura de alta performance para sincronização em tempo real, moderação dinâmica de pontos e treinamento de minijogos.</p>
+            </div>
+        </header>
+
+        <!-- DEVELOPER CARD & PLATFORM DETAILS -->
+        <main class="hub-main" style="grid-template-columns: 1fr; max-width: 900px; margin: 0 auto; gap: 24px;">
+            <section class="hub-dev-card" style="background: #0D0D0D; border: 1px solid rgba(250, 118, 8, 0.35); border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8); position: relative; overflow: hidden;">
+                <div style="position: absolute; top: -60px; right: -60px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(250, 118, 8, 0.25) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
+                
+                <div style="width: 84px; height: 84px; border-radius: 24px; background: linear-gradient(135deg, #FA7608 0%, #E73701 50%, #FFB52E 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 2.2rem; color: #FFFFFF; box-shadow: 0 10px 30px rgba(250, 118, 8, 0.4);">
+                    <i class="fa-solid fa-code"></i>
+                </div>
+
+                <span style="font-family: var(--font-header); font-size: 0.75rem; font-weight: 800; letter-spacing: 2px; color: #FFB52E; text-transform: uppercase; background: rgba(250, 118, 8, 0.15); padding: 6px 18px; border-radius: 20px; border: 1px solid rgba(250, 118, 8, 0.4);">
+                    DESENVOLVEDOR OFICIAL
+                </span>
+
+                <h2 style="font-family: var(--font-header); font-size: 2.5rem; font-weight: 900; color: #FFFFFF; margin-top: 16px; letter-spacing: 1px;">
+                    MALACA
+                </h2>
+
+                <p style="color: #94a3b8; font-size: 1rem; max-width: 650px; margin: 14px auto 28px; line-height: 1.7;">
+                    Desenvolvedor e arquiteto criador da plataforma <strong>Malaca System GTARP</strong>. Desenvolvido sob medida para oferecer os melhores ecossistemas de mapa interativo colaborativo, rastreamento de andarilho e minijogos FiveM.
+                </p>
+
+                <!-- DISCORD HIGHLIGHT BADGE & ACTIONS -->
+                <div style="display: inline-flex; flex-direction: column; align-items: center; gap: 14px; background: rgba(250, 118, 8, 0.08); border: 1px solid rgba(250, 118, 8, 0.3); border-radius: 20px; padding: 24px 36px;">
+                    <div style="display: flex; align-items: center; gap: 12px; color: #FFB52E; font-family: var(--font-header); font-size: 1.15rem; font-weight: 800;">
+                        <i class="fa-brands fa-discord" style="font-size: 1.6rem; color: #FA7608;"></i>
+                        <span>DISCORD: <strong style="color: #FFFFFF; font-family: monospace; font-size: 1.3rem;">malaca7</strong></span>
+                    </div>
+                    <button onclick="navigator.clipboard.writeText('malaca7'); alert('Tag do Discord malaca7 copiada com sucesso!')" style="background: linear-gradient(135deg, #FA7608 0%, #E73701 50%, #FFB52E 100%); color: #FFFFFF; border: none; padding: 12px 24px; border-radius: 12px; font-family: var(--font-header); font-size: 0.85rem; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 10px; box-shadow: 0 6px 20px rgba(250, 118, 8, 0.35);">
+                        <i class="fa-solid fa-copy"></i> COPIAR DISCORD (malaca7)
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="hub-footer">
+            <div class="hub-footer-inner">
+                <div class="hub-footer-links">
+                    <a href="/cidades/">CIDADES</a>
+                    <a href="/sistemas/">SISTEMAS</a>
+                    <a href="/plataforma/">PLATAFORMA</a>
+                    <button onclick="openGlobalAdminModal()" class="hub-footer-admin-link"><i class="fa-solid fa-shield-halved"></i> PAINEL ADMIN</button>
+                </div>
+                <div class="hub-footer-social">
+                    <span class="hub-footer-copy">© 2026 <strong>MALACA SISTEMAS</strong> — Todos os direitos reservados.</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- SCRIPT DE MODERAÇÃO E DADOS DINÂMICOS -->
+    <script type="module" src="/admin-overlay.js"></script>
 </body>
 </html>

@@ -471,7 +471,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('dashboard')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'dashboard'
-                    ? 'border-orange-400 text-orange-300 bg-orange-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -483,11 +483,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('cities')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'cities'
-                    ? 'border-orange-400 text-orange-300 bg-orange-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Building2 className="w-4 h-4 text-orange-400" />
+                <Building2 className="w-4 h-4 text-[#FA7608]" />
                 Gerenciar Cidades ({serversList.length})
               </button>
 
@@ -495,11 +495,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('systems')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'systems'
-                    ? 'border-orange-400 text-orange-300 bg-orange-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Layers className="w-4 h-4 text-amber-400" />
+                <Layers className="w-4 h-4 text-[#FFB52E]" />
                 Gerenciar Sistemas ({systemsList.length})
               </button>
 
@@ -507,11 +507,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('locations')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'locations'
-                    ? 'border-orange-400 text-orange-300 bg-orange-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <MapPin className="w-4 h-4 text-emerald-400" />
+                <MapPin className="w-4 h-4 text-[#FA7608]" />
                 Locais do Mapa ({locations.length})
               </button>
 
@@ -519,11 +519,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('wanderer')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'wanderer'
-                    ? 'border-orange-400 text-orange-300 bg-orange-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <RefreshCw className="w-4 h-4 text-purple-400" />
+                <Clock className="w-4 h-4 text-[#FFB52E]" />
                 Ciclo do Andarilho
               </button>
 
@@ -531,11 +531,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('comments')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'comments'
-                    ? 'border-orange-400 text-orange-300 bg-orange-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <MessageSquare className="w-4 h-4 text-amber-400" />
+                <MessageSquare className="w-4 h-4 text-[#FA7608]" />
                 Comentários ({commentsList.length})
               </button>
 
@@ -543,52 +543,63 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('suggestions')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'suggestions'
-                    ? 'border-orange-400 text-orange-300 bg-orange-500/10'
+                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Sparkles className="w-4 h-4 text-pink-400" />
+                <Sparkles className="w-4 h-4 text-[#FFB52E]" />
                 Sugestões ({suggestions.length})
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
+            {/* Tab Contents View */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* TAB 1: DASHBOARD OVERVIEW */}
               {activeTab === 'dashboard' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                      <span className="text-slate-400 text-xs font-semibold block">Total de Cidades</span>
-                      <strong className="text-2xl text-white font-extrabold">{serversList.length}</strong>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">CIDADES ATIVAS</span>
+                      <span className="text-2xl font-black text-[#FA7608] font-mono">{serversList.length}</span>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">CDA, Valley, Los Santos</p>
                     </div>
-                    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                      <span className="text-slate-400 text-xs font-semibold block">Total de Sistemas</span>
-                      <strong className="text-2xl text-amber-400 font-extrabold">{systemsList.length}</strong>
+
+                    <div className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">SISTEMAS HABILITADOS</span>
+                      <span className="text-2xl font-black text-[#FFB52E] font-mono">{systemsList.length}</span>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Mapa, Minijogos</p>
                     </div>
-                    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                      <span className="text-slate-400 text-xs font-semibold block">Locais no Mapa</span>
-                      <strong className="text-2xl text-emerald-400 font-extrabold">{locations.length}</strong>
+
+                    <div className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">MARCAÇÕES NO MAPA</span>
+                      <span className="text-2xl font-black text-[#FA7608] font-mono">{locations.length}</span>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Hospitais, Desmanches, Andarilho</p>
                     </div>
-                    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                      <span className="text-slate-400 text-xs font-semibold block">Comentários</span>
-                      <strong className="text-2xl text-amber-400 font-extrabold">{commentsList.length}</strong>
+
+                    <div className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">COMENTÁRIOS DA COMUNIDADE</span>
+                      <span className="text-2xl font-black text-[#FFB52E] font-mono">{commentsList.length}</span>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Mensagens enviadas</p>
                     </div>
+                  </div>
+
+                  <div className="bg-[#0D0D0D] p-5 rounded-xl border border-[#FA7608]/20 space-y-3">
+                    <h4 className="font-extrabold text-white text-sm">Resumo da Plataforma</h4>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Use as abas acima para criar e gerenciar **Cidades**, vincular **Sistemas**, gerenciar **Pontos do Andarilho** e moderar **Comentários**.
+                    </p>
                   </div>
                 </div>
               )}
 
+              {/* TAB 2: CIDADES (SERVERS) MANAGEMENT */}
               {activeTab === 'cities' && (
                 <div className="space-y-6">
-                  <form onSubmit={editingCity ? handleSaveEditCity : handleCreateCity} className="bg-slate-900/60 p-5 rounded-xl border border-slate-800 space-y-4">
-                    <h4 className="font-bold text-white text-sm flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <Plus className="w-4 h-4 text-orange-400" />
-                        {editingCity ? `Editar Cidade "${editingCity.name}"` : 'Criar Nova Cidade na Plataforma'}
-                      </span>
-                      {editingCity && (
-                        <button type="button" onClick={handleCancelEditCity} className="text-xs text-rose-400 hover:underline">
-                          Cancelar Edição
-                        </button>
-                      )}
+                  {/* Create City Form */}
+                  <form onSubmit={handleCreateCity} className="bg-[#0D0D0D] p-5 rounded-xl border border-[#FA7608]/25 space-y-4">
+                    <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                      <Plus className="w-4 h-4 text-[#FA7608]" />
+                      Criar Nova Cidade na Plataforma
                     </h4>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
@@ -599,7 +610,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: CIDADE ALTA RP"
                           value={cityName}
                           onChange={(e) => setCityName(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#FA7608]"
                           required
                         />
                       </div>

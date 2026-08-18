@@ -5,7 +5,7 @@
         <div class="global-admin-dialog">
             <div class="global-admin-header">
                 <div class="global-admin-title-area">
-                    <div class="global-admin-badge"><img src="./images/platform_icon.png" alt="MALACA ICON" style="width: 100%; height: 100%; object-fit: contain;"></div>
+                    <div class="global-admin-badge"><img src="/images/platform_icon.png" alt="MALACA ICON" style="width: 100%; height: 100%; object-fit: contain;"></div>
                     <div>
                         <h2 class="global-admin-title">Painel Administrativo — Malaca System GTARP</h2>
                         <span class="global-admin-subtitle">Gestão Global da Plataforma, Cidades & Sistemas</span>
@@ -19,9 +19,137 @@
             </div>
         </div>
     </div>
+
+    <!-- Appearance Modal -->
+    <div id="global-appearance-modal" class="global-admin-overlay">
+        <div class="global-admin-dialog" style="max-width: 460px;">
+            <div class="global-admin-header">
+                <div class="global-admin-title-area">
+                    <div class="global-admin-badge" style="background: rgba(250,118,8,0.2);"><i class="fa-solid fa-sliders" style="color: #FA7608;"></i></div>
+                    <div>
+                        <h2 class="global-admin-title">Personalização Visual</h2>
+                        <span class="global-admin-subtitle">Ajuste o tema, brilho e idioma da plataforma</span>
+                    </div>
+                </div>
+                <button class="global-admin-close" onclick="closeAppearanceModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div style="padding: 24px; display: flex; flex-direction: column; gap: 20px; background: #0D0D0D;">
+                <!-- Temas -->
+                <div>
+                    <label style="font-size: 11px; font-weight: 800; color: #FA7608; text-transform: uppercase; display: block; margin-bottom: 10px;"><i class="fa-solid fa-palette"></i> Tema Visual</label>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                        <button onclick="setGlobalTheme('escuro')" class="global-theme-btn" id="gtheme-escuro">Escuro (Padrão)</button>
+                        <button onclick="setGlobalTheme('oled')" class="global-theme-btn" id="gtheme-oled">OLED (Black)</button>
+                        <button onclick="setGlobalTheme('dracula')" class="global-theme-btn" id="gtheme-dracula">Dracula</button>
+                        <button onclick="setGlobalTheme('cinza_escuro')" class="global-theme-btn" id="gtheme-cinza_escuro">Cinza Escuro</button>
+                        <button onclick="setGlobalTheme('cinza_claro')" class="global-theme-btn" id="gtheme-cinza_claro">Cinza Claro</button>
+                        <button onclick="setGlobalTheme('claro')" class="global-theme-btn" id="gtheme-claro">Claro</button>
+                    </div>
+                </div>
+
+                <!-- Brilho -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="font-size: 11px; font-weight: 800; color: #FA7608; text-transform: uppercase;"><i class="fa-solid fa-sun"></i> Brilho da Tela</label>
+                        <span id="g-brightness-val" style="font-size: 13px; font-weight: 900; color: #FFB52E;">100%</span>
+                    </div>
+                    <input type="range" min="0" max="150" value="100" id="g-brightness-slider" style="width: 100%; accent-color: #FA7608; cursor: pointer;" oninput="updateGlobalBrightness(this.value)" ondblclick="updateGlobalBrightness(100)">
+                    <span style="font-size: 10px; color: #94a3b8; display: block; margin-top: 4px;">Dica: dando dois cliques no controle ele volta para 100%.</span>
+                </div>
+
+                <!-- Idioma -->
+                <div>
+                    <label style="font-size: 11px; font-weight: 800; color: #FA7608; text-transform: uppercase; display: block; margin-bottom: 10px;"><i class="fa-solid fa-language"></i> Idioma</label>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="setGlobalLang('pt')" class="global-theme-btn" id="glang-pt" style="flex:1;">🇧🇷 Português (BR)</button>
+                        <button onclick="setGlobalLang('en')" class="global-theme-btn" id="glang-en" style="flex:1;">🇺🇸 English (EN)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    window.openAppearanceModal = function () {
+        document.getElementById('global-appearance-modal').classList.add('active');
+        syncAppearanceState();
+    };
+
+    window.closeAppearanceModal = function () {
+        document.getElementById('global-appearance-modal').classList.remove('active');
+    };
+
+    window.setGlobalTheme = function (theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('malaca_theme', theme);
+        syncAppearanceState();
+    };
+
+    window.updateGlobalBrightness = function (val) {
+        const num = Number(val);
+        document.documentElement.style.filter = `brightness(${num}%)`;
+        localStorage.setItem('malaca_brightness', String(num));
+        const lbl = document.getElementById('g-brightness-val');
+        if (lbl) lbl.textContent = `${num}%`;
+        const slider = document.getElementById('g-brightness-slider');
+        if (slider) slider.value = num;
+    };
+
+    window.setGlobalLang = function (lang) {
+        localStorage.setItem('malaca_lang', lang);
+        syncAppearanceState();
+    };
+
+    function syncAppearanceState() {
+        const theme = localStorage.getItem('malaca_theme') || 'escuro';
+        const bright = localStorage.getItem('malaca_brightness') || '100';
+        const lang = localStorage.getItem('malaca_lang') || 'pt';
+
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.style.filter = `brightness(${bright}%)`;
+
+        ['escuro', 'oled', 'dracula', 'cinza_escuro', 'cinza_claro', 'claro'].forEach(t => {
+            const btn = document.getElementById(`gtheme-${t}`);
+            if (btn) {
+                if (t === theme) {
+                    btn.style.background = 'linear-gradient(135deg, #FA7608 0%, #E73701 100%)';
+                    btn.style.color = '#fff';
+                    btn.style.borderColor = '#FFB52E';
+                } else {
+                    btn.style.background = 'rgba(255,255,255,0.05)';
+                    btn.style.color = '#94a3b8';
+                    btn.style.borderColor = 'rgba(250,118,8,0.2)';
+                }
+            }
+        });
+
+        const bLbl = document.getElementById('g-brightness-val');
+        if (bLbl) bLbl.textContent = `${bright}%`;
+        const bSlider = document.getElementById('g-brightness-slider');
+        if (bSlider) bSlider.value = bright;
+
+        ['pt', 'en'].forEach(l => {
+            const btn = document.getElementById(`glang-${l}`);
+            if (btn) {
+                if (l === lang) {
+                    btn.style.background = 'linear-gradient(135deg, #FA7608 0%, #E73701 100%)';
+                    btn.style.color = '#fff';
+                    btn.style.borderColor = '#FFB52E';
+                } else {
+                    btn.style.background = 'rgba(255,255,255,0.05)';
+                    btn.style.color = '#94a3b8';
+                    btn.style.borderColor = 'rgba(250,118,8,0.2)';
+                }
+            }
+        });
+    }
+
+    // Auto sync on load
+    document.addEventListener('DOMContentLoaded', syncAppearanceState);
+    syncAppearanceState();
 
     let isAuthenticated = false;
     let activeTab = 'cities';

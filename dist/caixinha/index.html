@@ -15,10 +15,10 @@
     
     <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script type="module" crossorigin src="/assets/caixinha-BHjsfoyC.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Dezn_h7o.js">
-  <link rel="modulepreload" crossorigin href="/assets/i18n-A6kVPnnh.js">
-  <link rel="stylesheet" crossorigin href="/assets/styles-DkeNUDTw.css">
+  <script type="module" crossorigin src="/assets/modulepreload-polyfill-Dezn_h7o.js"></script>
+  <script type="module" crossorigin src="/assets/i18n-A6kVPnnh.js"></script>
+  <script type="module" crossorigin src="/assets/caixinha-9DWFLa9L.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/styles-CJ97Wg_3.css">
 </head>
 <body>
     <!-- Canvas de Fundo Estrelado -->
@@ -31,10 +31,9 @@
     <script>
         const params = new URLSearchParams(window.location.search);
         const city = params.get('cidade') || params.get('server');
-        if (city) {
-            document.getElementById('back-btn').href = `../cidade.html?cidade=${encodeURIComponent(city)}`;
-        } else {
-            window.location.replace('../cidade.html?cidade=cda');
+        const backBtn = document.getElementById('back-btn');
+        if (backBtn) {
+            backBtn.href = city ? `/cidades/${encodeURIComponent(city)}/` : '/cidades/cda/';
         }
     </script>
 
