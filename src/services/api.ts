@@ -1,886 +1,530 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { 
-  Server, 
-  MapLocation, 
-  Comment, 
-  Suggestion, 
-  ServerSlug, 
-  LocationCategory,
-  SuggestionStatus
-} from '../types';
-import { getAnonymousUserId } from '../utils/anonymousUser';
+import { supabase } from '../lib/supabase';
+import type { Server, System, MapLocation, Comment, Suggestion, SuggestionType, SuggestionStatus } from '../types';
+import { getAnonymousUserId } from '../utils/anonymousId';
 
-// OPTIMIZED HIGH QUALITY WEBP MAP IMAGE (2.1MB vs 20.1MB)
-const MAP_IMAGE_URL = '/images/mapa_cda_optimized.webp';
-
-// MOCK INITIAL DATA MATCHING MAPA-CDA.VERCEL.APP EXACTLY
-const INITIAL_SERVERS: Server[] = [
+// Default Fallback Cities when DB or localStorage is empty
+const DEFAULT_SERVERS: Server[] = [
   {
-    id: 'cda-server-001',
-    name: 'Cidade Alta (CDA)',
+    id: 'cda-server-uuid',
+    name: 'CIDADE ALTA RP',
     slug: 'cda',
+    subtitle: 'SERVIDORES CDA & VALLEY',
+    description: 'Mapa Interativo em tempo real para os servidores CDA e VALLEY com virada do Andarilho, além de Lockpick, Caixinha e Hacking.',
+    banner_image_url: '/images/hero_banner.jpg',
+    map_image_url: '/images/mapa_cda_optimized.webp',
     active: true,
-    map_image_url: MAP_IMAGE_URL,
-    created_at: new Date().toISOString()
   },
   {
-    id: 'valley-server-002',
-    name: 'Valley RP',
+    id: 'los-santos-server-uuid',
+    name: 'LOS SANTOS CENTRAL',
+    slug: 'los-santos',
+    subtitle: 'TREINAMENTO HEISTS & MINIJOGOS',
+    description: 'Central de treinamento de reflexos para invasão de cofres de registradoras, fechaduras de 32 pinos e terminais de segurança.',
+    banner_image_url: '/images/gta_map_bg.webp',
+    map_image_url: '/images/mapa_cda_optimized.webp',
+    active: true,
+  },
+  {
+    id: 'valley-server-uuid',
+    name: 'VALLEY RP',
     slug: 'valley',
+    subtitle: 'VALLEY ROLEPLAY HUB',
+    description: 'Servidor Valley com rastreamento de pontos ilegais, lavanderia e localizações do andarilho.',
+    banner_image_url: '/images/bg_wallpaper.jpg',
+    map_image_url: '/images/mapa_cda_optimized.webp',
     active: true,
-    map_image_url: MAP_IMAGE_URL,
-    created_at: new Date().toISOString()
-  }
+  },
 ];
 
-const INITIAL_LOCATIONS: MapLocation[] = [
-  // =========================================================================
-  // CDA LOCATIONS — EXACT COORDINATES FROM MAPA-CDA.VERCEL.APP
-  // =========================================================================
-
-  // 🏥 HOSPITAIS ILEGAIS (#e74c3c)
+// Default Fallback Systems
+const DEFAULT_SYSTEMS: System[] = [
   {
-    id: 'loc-cda-hosp-1',
-    server_id: 'cda-server-001',
-    name: 'Hospital Ilegal Sandy',
-    category: 'Hospital Ilegal',
-    description: 'Localização fixa do Hospital Ilegal em Sandy Shores.',
-    x: 440,
-    y: 450,
-    icon: 'Cross',
-    color: '#e74c3c',
+    id: 'sys-mapa',
+    name: 'MAPA INTERATIVO',
+    slug: 'mapa',
+    tag: 'REALTIME TRACKER',
+    description: 'Mapa interativo colaborativo em tempo real com rastreamento de Hospitais, Desmanches, Mercados e virada do Andarilho.',
+    icon: 'fa-compass',
+    image_url: '/images/gta_map_bg.webp',
+    link: 'mapa-interativo/',
+    city_ids: ['cda-server-uuid', 'valley-server-uuid', 'los-santos-server-uuid'],
     is_active: true,
-    confirmations_count: 0
   },
   {
-    id: 'loc-cda-hosp-2',
-    server_id: 'cda-server-001',
-    name: 'Hospital Ilegal Paleto',
-    category: 'Hospital Ilegal',
-    description: 'Localização fixa do Hospital Ilegal em Paleto Bay.',
-    x: 421,
-    y: 175,
-    icon: 'Cross',
-    color: '#e74c3c',
+    id: 'sys-lockpick',
+    name: 'LOCKPICK SIMULATOR',
+    slug: 'lockpick',
+    tag: 'DOOR & VEHICLE LOCK',
+    description: 'Simulador de arrombamento de portas de veículos e estabelecimentos com fechaduras de 32 pinos.',
+    icon: 'fa-key',
+    image_url: '/images/lockpick.jpg',
+    link: 'lockpick/',
+    city_ids: ['cda-server-uuid', 'los-santos-server-uuid'],
     is_active: true,
-    confirmations_count: 0
   },
   {
-    id: 'loc-cda-hosp-3',
-    server_id: 'cda-server-001',
-    name: 'Hospital Ilegal El Burro',
-    category: 'Hospital Ilegal',
-    description: 'Localização fixa do Hospital Ilegal em El Burro Heights / Cypress.',
-    x: 656,
-    y: 731,
-    icon: 'Cross',
-    color: '#e74c3c',
+    id: 'sys-caixinha',
+    name: 'CAIXINHA ELETRÔNICO',
+    slug: 'caixinha',
+    tag: 'ATM & SAFE CRACK',
+    description: 'Pratique a velocidade de digitação para arrombamento de caixas registradoras e cofres.',
+    icon: 'fa-vault',
+    image_url: '/images/caixinha.jpg',
+    link: 'caixinha/',
+    city_ids: ['cda-server-uuid', 'los-santos-server-uuid'],
     is_active: true,
-    confirmations_count: 0
   },
   {
-    id: 'loc-cda-hosp-4',
-    server_id: 'cda-server-001',
-    name: 'Hospital Ilegal Porto',
-    category: 'Hospital Ilegal',
-    description: 'Localização fixa do Hospital Ilegal na zona portuária ao sul.',
-    x: 556,
-    y: 891,
-    icon: 'Cross',
-    color: '#e74c3c',
+    id: 'sys-hacking',
+    name: 'HACKING DEVICE',
+    slug: 'hacking',
+    tag: 'CYBER TERMINAL',
+    description: 'Terminal de invasão cyberpunk com matrizes de caracteres, streaks e tempo limite.',
+    icon: 'fa-microchip',
+    image_url: '/images/hacking.jpg',
+    link: 'hacking/',
+    city_ids: ['cda-server-uuid', 'los-santos-server-uuid'],
     is_active: true,
-    confirmations_count: 0
   },
-
-  // 🏪 MERCADO ILEGAL (#e74c3c)
-  {
-    id: 'loc-cda-merc-1',
-    server_id: 'cda-server-001',
-    name: 'Mercado Ilegal Mirror Park',
-    category: 'Mercado Ilegal',
-    description: 'Localização fixa do Mercado Ilegal no Mirror Park.',
-    x: 648,
-    y: 569,
-    icon: 'ShoppingBag',
-    color: '#e74c3c',
-    is_active: true,
-    confirmations_count: 0
-  },
-
-  // 🧼 LAVANDERIAS ILEGAIS (#9b59b6)
-  {
-    id: 'loc-cda-lav-1',
-    server_id: 'cda-server-001',
-    name: 'Lavanderia Ilegal Chumash',
-    category: 'Lavanderia Ilegal',
-    description: 'Localização fixa da Lavanderia Ilegal na costa oeste (Chumash).',
-    x: 209,
-    y: 616,
-    icon: 'DollarSign',
-    color: '#9b59b6',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-cda-lav-2',
-    server_id: 'cda-server-001',
-    name: 'Lavanderia Ilegal Paleto',
-    category: 'Lavanderia Ilegal',
-    description: 'Localização fixa da Lavanderia Ilegal em Paleto Bay.',
-    x: 451,
-    y: 159,
-    icon: 'DollarSign',
-    color: '#9b59b6',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-cda-lav-3',
-    server_id: 'cda-server-001',
-    name: 'Lavanderia Ilegal La Puerta',
-    category: 'Lavanderia Ilegal',
-    description: 'Localização fixa da Lavanderia Ilegal perto do canal de La Puerta.',
-    x: 465,
-    y: 803,
-    icon: 'DollarSign',
-    color: '#9b59b6',
-    is_active: true,
-    confirmations_count: 0
-  },
-
-  // 🔧 DESMANCHES (#f39c12)
-  {
-    id: 'loc-cda-desm-1',
-    server_id: 'cda-server-001',
-    name: 'Desmanche Del Perro',
-    category: 'Desmanche',
-    description: 'Localização fixa do Desmanche perto da Praia Del Perro.',
-    x: 421,
-    y: 812,
-    icon: 'Wrench',
-    color: '#f39c12',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-cda-desm-2',
-    server_id: 'cda-server-001',
-    name: 'Desmanche Porto',
-    category: 'Desmanche',
-    description: 'Localização fixa do Desmanche nos galpões do Porto.',
-    x: 562,
-    y: 881,
-    icon: 'Wrench',
-    color: '#f39c12',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-cda-desm-3',
-    server_id: 'cda-server-001',
-    name: 'Desmanche Alamo',
-    category: 'Desmanche',
-    description: 'Localização fixa do Desmanche perto do lago Alamo Sea.',
-    x: 607,
-    y: 365,
-    icon: 'Wrench',
-    color: '#f39c12',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-cda-desm-4',
-    server_id: 'cda-server-001',
-    name: 'Desmanche Grapeseed',
-    category: 'Desmanche',
-    description: 'Localização fixa do Desmanche na área rural de Grapeseed.',
-    x: 631,
-    y: 291,
-    icon: 'Wrench',
-    color: '#f39c12',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-cda-desm-5',
-    server_id: 'cda-server-001',
-    name: 'Desmanche Paleto',
-    category: 'Desmanche',
-    description: 'Localização fixa do Desmanche nos galpões de Paleto Bay.',
-    x: 446,
-    y: 156,
-    icon: 'Wrench',
-    color: '#f39c12',
-    is_active: true,
-    confirmations_count: 0
-  },
-
-  // 🚶 ANDARILHO — LOCAIS POSSÍVEIS (EXACT COORDINATES FROM SCRIPT.JS) (#3498db)
-  {
-    id: 'loc-cda-and-1',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Grapeseed Leste',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho em Grapeseed Leste.',
-    x: 670,
-    y: 300,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 14
-  },
-  {
-    id: 'loc-cda-and-2',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Grapeseed Centro',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho em Grapeseed.',
-    x: 520,
-    y: 340,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 5
-  },
-  {
-    id: 'loc-cda-and-3',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Grapeseed Norte',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho em Grapeseed Norte.',
-    x: 593,
-    y: 277,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 2
-  },
-  {
-    id: 'loc-cda-and-4',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Grapeseed',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho em Grapeseed.',
-    x: 570,
-    y: 320,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 3
-  },
-  {
-    id: 'loc-cda-and-5',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Bennys',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho perto da oficina Bennys.',
-    x: 433,
-    y: 786,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 1
-  },
-  {
-    id: 'loc-cda-and-6',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Porto Mecânica',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho perto da mecânica do Porto.',
-    x: 483,
-    y: 936,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-cda-and-7',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Porto',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho nos galpões do Porto.',
-    x: 456,
-    y: 891,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-cda-and-8',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Bennys Sul',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho em Bennys Sul.',
-    x: 535,
-    y: 813,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-cda-and-9',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Praia',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho perto do calçadão da Praia.',
-    x: 345,
-    y: 756,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 1
-  },
-  {
-    id: 'loc-cda-and-10',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Praia (Construção)',
-    category: 'Andarilho',
-    description: 'Dentro de uma construção ao lado da lixeira (tem que pular o cercado de madeira).',
-    x: 333,
-    y: 762,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 2
-  },
-  {
-    id: 'loc-cda-and-11',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Praia Del Perro',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho em Del Perro.',
-    x: 413,
-    y: 812,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-cda-and-12',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Paleto Galinheiro',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho perto do galinheiro em Paleto.',
-    x: 448,
-    y: 177,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 4
-  },
-  {
-    id: 'loc-cda-and-13',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Paleto Leste',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho em Paleto Leste.',
-    x: 578,
-    y: 164,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-cda-and-14',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Paleto Centro',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho em Paleto Centro.',
-    x: 440,
-    y: 160,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 1
-  },
-  {
-    id: 'loc-cda-and-15',
-    server_id: 'cda-server-001',
-    name: 'Andarilho - Grapeseed Sul',
-    category: 'Andarilho',
-    description: 'Local possível do Andarilho em Grapeseed Sul.',
-    x: 568,
-    y: 321,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 0
-  },
-
-  // ==========================================
-  // VALLEY LOCATIONS (VALLEY RP)
-  // ==========================================
-  {
-    id: 'loc-val-hosp-1',
-    server_id: 'valley-server-002',
-    name: 'Hospital Ilegal Paleto',
-    category: 'Hospital Ilegal',
-    description: 'Hospital Ilegal em Paleto Bay (Valley).',
-    x: 421,
-    y: 175,
-    icon: 'Cross',
-    color: '#e74c3c',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-val-merc-1',
-    server_id: 'valley-server-002',
-    name: 'Mercado Ilegal Mirror Park',
-    category: 'Mercado Ilegal',
-    description: 'Mercado Ilegal no Mirror Park (Valley).',
-    x: 648,
-    y: 569,
-    icon: 'ShoppingBag',
-    color: '#e74c3c',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-val-lav-1',
-    server_id: 'valley-server-002',
-    name: 'Lavanderia Ilegal Paleto',
-    category: 'Lavanderia Ilegal',
-    description: 'Lavanderia Ilegal em Paleto Bay (Valley).',
-    x: 451,
-    y: 159,
-    icon: 'DollarSign',
-    color: '#9b59b6',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-val-desm-1',
-    server_id: 'valley-server-002',
-    name: 'Desmanche Porto',
-    category: 'Desmanche',
-    description: 'Desmanche na área portuária (Valley).',
-    x: 562,
-    y: 881,
-    icon: 'Wrench',
-    color: '#f39c12',
-    is_active: true,
-    confirmations_count: 0
-  },
-  {
-    id: 'loc-val-and-1',
-    server_id: 'valley-server-002',
-    name: 'Andarilho - Grapeseed',
-    category: 'Andarilho',
-    description: 'Ponto do Andarilho em Grapeseed (Valley).',
-    x: 670,
-    y: 300,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 8
-  },
-  {
-    id: 'loc-val-and-2',
-    server_id: 'valley-server-002',
-    name: 'Andarilho - Porto',
-    category: 'Andarilho',
-    description: 'Ponto do Andarilho no Porto (Valley).',
-    x: 456,
-    y: 891,
-    icon: 'UserCheck',
-    color: '#3498db',
-    is_active: true,
-    confirmations_count: 3
-  }
 ];
 
-const INITIAL_COMMENTS: Comment[] = [
-  {
-    id: 'comm-1',
-    server_id: 'cda-server-001',
-    location_id: 'loc-cda-and-1',
-    anonymous_user_id: 'anon_demo_1',
-    nickname: 'FalcãoRP',
-    content: 'Andarilho tá no Grapeseed Leste mesmo! Acabei de pegar o blueprint lá!',
-    created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    location_name: 'Andarilho - Grapeseed Leste'
-  },
-  {
-    id: 'comm-2',
-    server_id: 'cda-server-001',
-    location_id: 'loc-cda-hosp-1',
-    anonymous_user_id: 'anon_demo_2',
-    nickname: 'Dr_Zero',
-    content: 'Médico tá de plantão agora de tarde em Sandy. Pode vir encostar.',
-    created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    location_name: 'Hospital Ilegal Sandy'
-  }
-];
+const MOCK_LOCATIONS: Record<string, MapLocation[]> = {
+  'cda-server-uuid': [
+    { id: 'cda-hosp-1', server_id: 'cda-server-uuid', name: 'Hospital Ilegal #1', category: 'hospital_ilegal', description: 'Localização fixa do Hospital Ilegal', x: 440, y: 550, color: '#ef4444', is_active: true },
+    { id: 'cda-hosp-2', server_id: 'cda-server-uuid', name: 'Hospital Ilegal #2', category: 'hospital_ilegal', description: 'Localização fixa do Hospital Ilegal Paleto', x: 421, y: 825, color: '#ef4444', is_active: true },
+    { id: 'cda-hosp-3', server_id: 'cda-server-uuid', name: 'Hospital Ilegal #3', category: 'hospital_ilegal', description: 'Localização fixa do Hospital Ilegal Leste', x: 656, y: 269, color: '#ef4444', is_active: true },
+    { id: 'cda-merc-1', server_id: 'cda-server-uuid', name: 'Mercado Ilegal Principal', category: 'mercado_ilegal', description: 'Localização fixa do Mercado Ilegal', x: 648, y: 431, color: '#f59e0b', is_active: true },
+    { id: 'cda-lav-1', server_id: 'cda-server-uuid', name: 'Lavanderia Ilegal #1', category: 'lavanderia_ilegal', description: 'Localização fixa da Lavanderia Ilegal', x: 209, y: 384, color: '#3b82f6', is_active: true },
+    { id: 'cda-desm-1', server_id: 'cda-server-uuid', name: 'Desmanche Bennys', category: 'desmanche', description: 'Localização fixa do Desmanche', x: 421, y: 188, color: '#10b981', is_active: true },
+    { id: 'cda-desm-2', server_id: 'cda-server-uuid', name: 'Desmanche Grapeseed', category: 'desmanche', description: 'Localização fixa do Desmanche', x: 631, y: 709, color: '#10b981', is_active: true },
+    { id: 'cda-and-1', server_id: 'cda-server-uuid', name: 'Andarilho - Grapeseed', category: 'local_possivel', description: 'Possível localização do Andarilho em Grapeseed', x: 670, y: 700, color: '#a78bfa', is_active: true, confirmations_count: 14 },
+    { id: 'cda-and-4', server_id: 'cda-server-uuid', name: 'Andarilho - Bennys', category: 'local_possivel', description: 'Possível localização do Andarilho em Bennys', x: 433, y: 214, color: '#a78bfa', is_active: true, confirmations_count: 32 },
+    { id: 'cda-and-7', server_id: 'cda-server-uuid', name: 'Andarilho - Praia', category: 'local_possivel', description: 'Possível localização do Andarilho na Praia', x: 345, y: 244, color: '#a78bfa', is_active: true, confirmations_count: 19 },
+  ],
+  'valley-server-uuid': [
+    { id: 'val-hosp-1', server_id: 'valley-server-uuid', name: 'Hospital Ilegal Valley', category: 'hospital_ilegal', description: 'Atendimento clandestino Valley', x: 440, y: 550, color: '#ef4444', is_active: true },
+    { id: 'val-and-1', server_id: 'valley-server-uuid', name: 'Andarilho Valley - Colinas', category: 'local_possivel', description: 'Localização reportada do Andarilho em Valley', x: 600, y: 600, color: '#a78bfa', is_active: true, confirmations_count: 27 },
+  ],
+};
 
-const INITIAL_SUGGESTIONS: Suggestion[] = [
-  {
-    id: 'sug-1',
-    server_id: 'cda-server-001',
-    location_id: null,
-    anonymous_user_id: 'anon_demo_3',
-    nickname: 'Peaky_Blinder',
-    type: 'Novo NPC',
-    content: 'Adicionar a localização do novo Comprador de Jóias perto do banco de Alta Street.',
-    status: 'Em análise',
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString()
-  }
-];
-
-// Helper for local storage persistence
-function getStoredData<T>(key: string, initial: T): T {
+// Local storage helpers for persistence
+const getLocalServers = (): Server[] => {
   try {
-    const item = localStorage.getItem(`cidade_alta_${key}`);
-    return item ? JSON.parse(item) : initial;
-  } catch (e) {
-    return initial;
-  }
-}
+    const raw = localStorage.getItem('malaca_custom_servers');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return DEFAULT_SERVERS;
+};
 
-function setStoredData<T>(key: string, data: T): void {
+const saveLocalServers = (servers: Server[]) => {
   try {
-    localStorage.setItem(`cidade_alta_${key}`, JSON.stringify(data));
-  } catch (e) {
-    console.error('LocalStorage write failed:', e);
+    localStorage.setItem('malaca_custom_servers', JSON.stringify(servers));
+  } catch {}
+};
+
+const getLocalSystems = (): System[] => {
+  try {
+    const raw = localStorage.getItem('malaca_custom_systems');
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return DEFAULT_SYSTEMS;
+};
+
+const saveLocalSystems = (systems: System[]) => {
+  try {
+    localStorage.setItem('malaca_custom_systems', JSON.stringify(systems));
+  } catch {}
+};
+
+const getLocalConfirmedIds = (): Set<string> => {
+  try {
+    const raw = localStorage.getItem('cidade_alta_user_confirmations');
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw));
+  } catch {
+    return new Set();
   }
-}
+};
 
-// FORCE RE-SEED WITH OPTIMIZED 2.1MB WEBP IMAGE
-setStoredData('servers', INITIAL_SERVERS);
-setStoredData('locations', INITIAL_LOCATIONS);
-
-if (!localStorage.getItem('cidade_alta_confirmations')) {
-  setStoredData('confirmations', [
-    { location_id: 'loc-cda-and-1', anonymous_user_id: 'anon_demo_initial' }
-  ]);
-}
-if (!localStorage.getItem('cidade_alta_comments')) {
-  setStoredData('comments', INITIAL_COMMENTS);
-}
-if (!localStorage.getItem('cidade_alta_suggestions')) {
-  setStoredData('suggestions', INITIAL_SUGGESTIONS);
-}
+const saveLocalConfirmedIds = (set: Set<string>) => {
+  try {
+    localStorage.setItem('cidade_alta_user_confirmations', JSON.stringify(Array.from(set)));
+  } catch {}
+};
 
 export const ApiService = {
-  // SERVERS
-  async getServers(): Promise<Server[]> {
-    if (isSupabaseConfigured && supabase) {
+  // Fetch Servers / Cities
+  async fetchServers(): Promise<Server[]> {
+    const local = getLocalServers();
+    try {
       const { data, error } = await supabase.from('servers').select('*').eq('active', true);
-      if (!error && data && data.length > 0) return data as Server[];
+      if (error || !data || data.length === 0) {
+        return local;
+      }
+      // Merge Remote & Local servers
+      const map = new Map<string, Server>();
+      local.forEach((s) => map.set(s.id, s));
+      data.forEach((s) => map.set(s.id, { ...map.get(s.id), ...s }));
+      return Array.from(map.values());
+    } catch {
+      return local;
     }
-    return getStoredData<Server[]>('servers', INITIAL_SERVERS);
   },
 
-  async saveServer(server: Partial<Server>): Promise<Server> {
-    if (isSupabaseConfigured && supabase) {
-      if (server.id) {
-        const { data } = await supabase.from('servers').update(server).eq('id', server.id).select().single();
-        if (data) return data as Server;
-      } else {
-        const { data } = await supabase.from('servers').insert(server).select().single();
-        if (data) return data as Server;
-      }
-    }
-    const servers = getStoredData<Server[]>('servers', INITIAL_SERVERS);
-    if (server.id) {
-      const idx = servers.findIndex(s => s.id === server.id);
-      if (idx !== -1) {
-        servers[idx] = { ...servers[idx], ...server };
-        setStoredData('servers', servers);
-        return servers[idx];
-      }
-    }
-    const newServer: Server = {
-      id: `server-${Date.now()}`,
-      name: server.name || 'Novo Servidor',
-      slug: (server.slug || 'novo') as ServerSlug,
-      active: true,
-      map_image_url: server.map_image_url || MAP_IMAGE_URL,
-      created_at: new Date().toISOString()
+  // City Management (Admin)
+  async createCity(city: Omit<Server, 'id'>): Promise<Server> {
+    const newCity: Server = {
+      ...city,
+      id: `city-${Date.now()}`,
+      active: city.active ?? true,
     };
-    servers.push(newServer);
-    setStoredData('servers', servers);
-    return newServer;
+    const current = getLocalServers();
+    const updated = [newCity, ...current];
+    saveLocalServers(updated);
+
+    try {
+      await supabase.from('servers').insert([
+        {
+          name: newCity.name,
+          slug: newCity.slug,
+          map_image_url: newCity.map_image_url,
+          active: newCity.active,
+        },
+      ]);
+    } catch {}
+    return newCity;
   },
 
-  // LOCATIONS
-  async getLocations(serverId: string): Promise<MapLocation[]> {
-    const anonId = getAnonymousUserId();
+  async updateCity(id: string, updates: Partial<Server>): Promise<boolean> {
+    const current = getLocalServers();
+    const index = current.findIndex((c) => c.id === id || c.slug === id);
+    if (index !== -1) {
+      current[index] = { ...current[index], ...updates };
+      saveLocalServers(current);
+    }
+    try {
+      await supabase.from('servers').update(updates).eq('id', id);
+    } catch {}
+    return true;
+  },
 
-    if (isSupabaseConfigured && supabase) {
+  async deleteCity(id: string): Promise<boolean> {
+    const current = getLocalServers();
+    const filtered = current.filter((c) => c.id !== id && c.slug !== id);
+    saveLocalServers(filtered);
+    try {
+      await supabase.from('servers').delete().eq('id', id);
+    } catch {}
+    return true;
+  },
+
+  // Fetch Systems
+  async fetchSystems(): Promise<System[]> {
+    return getLocalSystems();
+  },
+
+  // Systems Management (Admin)
+  async createSystem(system: Omit<System, 'id'>): Promise<System> {
+    const newSys: System = {
+      ...system,
+      id: `sys-${Date.now()}`,
+      is_active: system.is_active ?? true,
+    };
+    const current = getLocalSystems();
+    const updated = [newSys, ...current];
+    saveLocalSystems(updated);
+    return newSys;
+  },
+
+  async updateSystem(id: string, updates: Partial<System>): Promise<boolean> {
+    const current = getLocalSystems();
+    const index = current.findIndex((s) => s.id === id);
+    if (index !== -1) {
+      current[index] = { ...current[index], ...updates };
+      saveLocalSystems(current);
+    }
+    return true;
+  },
+
+  async deleteSystem(id: string): Promise<boolean> {
+    const current = getLocalSystems();
+    const filtered = current.filter((s) => s.id !== id);
+    saveLocalSystems(filtered);
+    return true;
+  },
+
+  // Fetch Locations with confirmations
+  async fetchLocations(serverId: string): Promise<MapLocation[]> {
+    const anonId = getAnonymousUserId();
+    const localConfirmedSet = getLocalConfirmedIds();
+
+    try {
       const { data: locations, error } = await supabase
         .from('map_locations')
         .select('*')
         .eq('server_id', serverId)
         .eq('is_active', true);
 
-      if (!error && locations) {
-        // Fetch confirmations
-        const { data: confirmations } = await supabase.from('wanderer_confirmations').select('location_id, anonymous_user_id');
-        
-        const counts: Record<string, number> = {};
-        const userHasConfirmed: Record<string, boolean> = {};
+      const baseLocations = error || !locations || locations.length === 0 
+        ? MOCK_LOCATIONS[serverId] || [] 
+        : locations;
 
-        (confirmations || []).forEach(c => {
+      const { data: confirmations } = await supabase
+        .from('wanderer_confirmations')
+        .select('location_id, anonymous_user_id');
+
+      const counts: Record<string, number> = {};
+      const userConfirmedSet = new Set<string>(localConfirmedSet);
+
+      if (confirmations) {
+        confirmations.forEach((c) => {
           counts[c.location_id] = (counts[c.location_id] || 0) + 1;
           if (c.anonymous_user_id === anonId) {
-            userHasConfirmed[c.location_id] = true;
+            userConfirmedSet.add(c.location_id);
           }
         });
-
-        return locations.map(loc => ({
-          ...loc,
-          confirmations_count: counts[loc.id] || 0,
-          user_has_confirmed: Boolean(userHasConfirmed[loc.id])
-        })) as MapLocation[];
       }
-    }
 
-    // LocalStorage Fallback
-    const allLocs = getStoredData<MapLocation[]>('locations', INITIAL_LOCATIONS);
-    const confirmations = getStoredData<{ location_id: string; anonymous_user_id: string }[]>('confirmations', []);
+      return baseLocations.map((loc) => {
+        const isLocallyConfirmed = localConfirmedSet.has(loc.id);
+        const remoteCount = counts[loc.id] || 0;
+        const totalCount = (loc.confirmations_count || 0) + remoteCount + (isLocallyConfirmed && !remoteCount ? 1 : 0);
 
-    return allLocs
-      .filter(l => l.server_id === serverId && l.is_active)
-      .map(loc => {
-        const locConfs = confirmations.filter(c => c.location_id === loc.id);
-        const userConfirmed = locConfs.some(c => c.anonymous_user_id === anonId);
         return {
           ...loc,
-          confirmations_count: loc.confirmations_count !== undefined ? (loc.confirmations_count + locConfs.length) : locConfs.length,
-          user_has_confirmed: userConfirmed
+          confirmations_count: totalCount,
+          user_confirmed: userConfirmedSet.has(loc.id),
         };
       });
+    } catch {
+      const baseLocations = MOCK_LOCATIONS[serverId] || [];
+      return baseLocations.map((loc) => ({
+        ...loc,
+        confirmations_count: (loc.confirmations_count || 0) + (localConfirmedSet.has(loc.id) ? 1 : 0),
+        user_confirmed: localConfirmedSet.has(loc.id),
+      }));
+    }
   },
 
-  async saveLocation(location: Partial<MapLocation>): Promise<MapLocation> {
-    if (isSupabaseConfigured && supabase) {
-      if (location.id) {
-        const { data } = await supabase.from('map_locations').update(location).eq('id', location.id).select().single();
-        if (data) return data as MapLocation;
-      } else {
-        const { data } = await supabase.from('map_locations').insert(location).select().single();
-        if (data) return data as MapLocation;
-      }
-    }
+  // Confirm Wanderer Location
+  async addWandererConfirmation(locationId: string): Promise<boolean> {
+    const anonId = getAnonymousUserId();
+    const localSet = getLocalConfirmedIds();
+    localSet.add(locationId);
+    saveLocalConfirmedIds(localSet);
 
-    const locations = getStoredData<MapLocation[]>('locations', INITIAL_LOCATIONS);
-    if (location.id) {
-      const idx = locations.findIndex(l => l.id === location.id);
-      if (idx !== -1) {
-        locations[idx] = { ...locations[idx], ...location, updated_at: new Date().toISOString() };
-        setStoredData('locations', locations);
-        return locations[idx];
-      }
-    }
-
-    const newLoc: MapLocation = {
-      id: `loc-${Date.now()}`,
-      server_id: location.server_id || 'cda-server-001',
-      name: location.name || 'Novo Ponto',
-      category: location.category || 'Outros',
-      description: location.description || '',
-      x: location.x || 500,
-      y: location.y || 500,
-      icon: location.icon || 'MapPin',
-      color: location.color || '#f43f5e',
-      image_url: location.image_url || '',
-      is_active: true,
-      confirmations_count: 0,
-      user_has_confirmed: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    locations.push(newLoc);
-    setStoredData('locations', locations);
-    return newLoc;
-  },
-
-  async deleteLocation(locationId: string): Promise<boolean> {
-    if (isSupabaseConfigured && supabase) {
-      await supabase.from('map_locations').delete().eq('id', locationId);
-    }
-    const locations = getStoredData<MapLocation[]>('locations', INITIAL_LOCATIONS);
-    const updated = locations.filter(l => l.id !== locationId);
-    setStoredData('locations', updated);
+    try {
+      await supabase.from('wanderer_confirmations').insert({
+        location_id: locationId,
+        anonymous_user_id: anonId,
+      });
+    } catch {}
     return true;
   },
 
-  // WANDERER CONFIRMATIONS
-  async toggleWandererConfirmation(locationId: string): Promise<{ confirmed: boolean; count: number }> {
+  // Remove Wanderer Confirmation
+  async removeWandererConfirmation(locationId: string): Promise<boolean> {
     const anonId = getAnonymousUserId();
+    const localSet = getLocalConfirmedIds();
+    localSet.delete(locationId);
+    saveLocalConfirmedIds(localSet);
 
-    if (isSupabaseConfigured && supabase) {
-      // Check existing
-      const { data: existing } = await supabase
+    try {
+      await supabase
         .from('wanderer_confirmations')
-        .select('id')
+        .delete()
         .eq('location_id', locationId)
-        .eq('anonymous_user_id', anonId)
-        .maybeSingle();
-
-      if (existing) {
-        await supabase.from('wanderer_confirmations').delete().eq('id', existing.id);
-      } else {
-        await supabase.from('wanderer_confirmations').insert({
-          location_id: locationId,
-          anonymous_user_id: anonId
-        });
-      }
-
-      const { count } = await supabase
-        .from('wanderer_confirmations')
-        .select('*', { count: 'exact', head: true })
-        .eq('location_id', locationId);
-
-      return { confirmed: !existing, count: count || 0 };
-    }
-
-    // LocalStorage
-    const confirmations = getStoredData<{ location_id: string; anonymous_user_id: string }[]>('confirmations', []);
-    const idx = confirmations.findIndex(c => c.location_id === locationId && c.anonymous_user_id === anonId);
-
-    let confirmed = false;
-    if (idx !== -1) {
-      confirmations.splice(idx, 1);
-      confirmed = false;
-    } else {
-      confirmations.push({ location_id: locationId, anonymous_user_id: anonId });
-      confirmed = true;
-    }
-    setStoredData('confirmations', confirmations);
-
-    const count = confirmations.filter(c => c.location_id === locationId).length;
-    return { confirmed, count };
+        .eq('anonymous_user_id', anonId);
+    } catch {}
+    return true;
   },
 
-  // COMMENTS
-  async getComments(serverId: string, locationId?: string | null): Promise<Comment[]> {
-    if (isSupabaseConfigured && supabase) {
-      let query = supabase.from('comments').select('*, map_locations(name)').eq('server_id', serverId).order('created_at', { ascending: false });
-      if (locationId) {
-        query = query.eq('location_id', locationId);
-      }
-      const { data } = await query;
-      if (data) {
-        return data.map((c: any) => ({
-          ...c,
-          location_name: c.map_locations?.name || undefined
-        }));
-      }
-    }
+  // Comments
+  async fetchComments(serverId?: string, locationId?: string): Promise<Comment[]> {
+    try {
+      let query = supabase.from('comments').select('*').order('created_at', { ascending: false }).limit(50);
+      if (serverId) query = query.eq('server_id', serverId);
+      if (locationId) query = query.eq('location_id', locationId);
 
-    const comments = getStoredData<Comment[]>('comments', INITIAL_COMMENTS);
-    return comments
-      .filter(c => c.server_id === serverId && (!locationId || c.location_id === locationId))
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const { data, error } = await query;
+      if (error || !data) return [];
+      return data;
+    } catch {
+      return [];
+    }
   },
 
-  async addComment(comment: { server_id: string; location_id?: string | null; nickname: string; content: string }): Promise<Comment> {
+  async addComment(comment: {
+    server_id: string;
+    location_id?: string;
+    nickname: string;
+    content: string;
+  }): Promise<boolean> {
     const anonId = getAnonymousUserId();
+    const cleanContent = comment.content.replace(/<[^>]*>?/gm, '').trim();
+    const cleanNickname = comment.nickname.replace(/<[^>]*>?/gm, '').trim();
 
-    if (isSupabaseConfigured && supabase) {
-      const { data } = await supabase.from('comments').insert({
+    if (!cleanContent || !cleanNickname) return false;
+
+    try {
+      const { error } = await supabase.from('comments').insert({
         server_id: comment.server_id,
         location_id: comment.location_id || null,
         anonymous_user_id: anonId,
-        nickname: comment.nickname,
-        content: comment.content
-      }).select().single();
-      if (data) return data as Comment;
+        nickname: cleanNickname.substring(0, 30),
+        content: cleanContent.substring(0, 500),
+      });
+      return !error;
+    } catch {
+      return false;
     }
-
-    const comments = getStoredData<Comment[]>('comments', INITIAL_COMMENTS);
-    const locations = getStoredData<MapLocation[]>('locations', INITIAL_LOCATIONS);
-    const loc = comment.location_id ? locations.find(l => l.id === comment.location_id) : null;
-
-    const newComment: Comment = {
-      id: `comm-${Date.now()}`,
-      server_id: comment.server_id,
-      location_id: comment.location_id || null,
-      anonymous_user_id: anonId,
-      nickname: comment.nickname,
-      content: comment.content,
-      created_at: new Date().toISOString(),
-      location_name: loc?.name
-    };
-    comments.unshift(newComment);
-    setStoredData('comments', comments);
-    return newComment;
   },
 
-  async deleteComment(commentId: string): Promise<boolean> {
-    if (isSupabaseConfigured && supabase) {
-      await supabase.from('comments').delete().eq('id', commentId);
+  async deleteComment(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase.from('comments').delete().eq('id', id);
+      return !error;
+    } catch {
+      return false;
     }
-    const comments = getStoredData<Comment[]>('comments', INITIAL_COMMENTS);
-    const updated = comments.filter(c => c.id !== commentId);
-    setStoredData('comments', updated);
-    return true;
   },
 
-  // SUGGESTIONS
-  async getSuggestions(serverId?: string): Promise<Suggestion[]> {
-    if (isSupabaseConfigured && supabase) {
+  // Suggestions
+  async fetchSuggestions(serverId?: string): Promise<Suggestion[]> {
+    try {
       let query = supabase.from('suggestions').select('*').order('created_at', { ascending: false });
-      if (serverId) query = query.eq('server_id', serverId);
-      const { data } = await query;
-      if (data) return data as Suggestion[];
-    }
+      if (serverId && serverId !== 'all') {
+        query = query.eq('server_id', serverId);
+      }
 
-    const suggestions = getStoredData<Suggestion[]>('suggestions', INITIAL_SUGGESTIONS);
-    if (serverId) return suggestions.filter(s => s.server_id === serverId);
-    return suggestions;
+      const { data, error } = await query;
+      if (error || !data) return [];
+      return data;
+    } catch {
+      return [];
+    }
   },
 
-  async addSuggestion(suggestion: { server_id: string; location_id?: string | null; nickname: string; type: any; content: string }): Promise<Suggestion> {
+  async addSuggestion(suggestion: {
+    server_id: string;
+    location_id?: string;
+    nickname: string;
+    type: SuggestionType;
+    content: string;
+  }): Promise<boolean> {
     const anonId = getAnonymousUserId();
+    const cleanContent = suggestion.content.replace(/<[^>]*>?/gm, '').trim();
+    const cleanNickname = suggestion.nickname.replace(/<[^>]*>?/gm, '').trim();
 
-    if (isSupabaseConfigured && supabase) {
-      const { data } = await supabase.from('suggestions').insert({
+    if (!cleanContent || !cleanNickname) return false;
+
+    try {
+      const { error } = await supabase.from('suggestions').insert({
         server_id: suggestion.server_id,
         location_id: suggestion.location_id || null,
         anonymous_user_id: anonId,
-        nickname: suggestion.nickname,
+        nickname: cleanNickname.substring(0, 30),
         type: suggestion.type,
-        content: suggestion.content,
-        status: 'Nova'
-      }).select().single();
-      if (data) return data as Suggestion;
+        content: cleanContent.substring(0, 1000),
+        status: 'nova',
+      });
+      return !error;
+    } catch {
+      return false;
     }
-
-    const suggestions = getStoredData<Suggestion[]>('suggestions', INITIAL_SUGGESTIONS);
-    const newSug: Suggestion = {
-      id: `sug-${Date.now()}`,
-      server_id: suggestion.server_id,
-      location_id: suggestion.location_id || null,
-      anonymous_user_id: anonId,
-      nickname: suggestion.nickname,
-      type: suggestion.type,
-      content: suggestion.content,
-      status: 'Nova',
-      created_at: new Date().toISOString()
-    };
-    suggestions.unshift(newSug);
-    setStoredData('suggestions', suggestions);
-    return newSug;
   },
 
-  async updateSuggestionStatus(suggestionId: string, status: SuggestionStatus): Promise<boolean> {
-    if (isSupabaseConfigured && supabase) {
-      await supabase.from('suggestions').update({ status }).eq('id', suggestionId);
+  // Realtime Subscriptions
+  subscribeToComments(serverId: string, onNewComment: (comment: Comment) => void) {
+    return supabase
+      .channel(`comments:${serverId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'comments',
+          filter: `server_id=eq.${serverId}`,
+        },
+        (payload) => {
+          onNewComment(payload.new as Comment);
+        }
+      )
+      .subscribe();
+  },
+
+  subscribeToConfirmations(onChange: () => void) {
+    return supabase
+      .channel('wanderer_confirmations_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'wanderer_confirmations',
+        },
+        () => {
+          onChange();
+        }
+      )
+      .subscribe();
+  },
+
+  // Admin Location Actions
+  async createLocation(location: Omit<MapLocation, 'id'>): Promise<MapLocation | null> {
+    try {
+      const { data, error } = await supabase.from('map_locations').insert([location]).select().single();
+      if (error) return null;
+      return data;
+    } catch {
+      return null;
     }
-    const suggestions = getStoredData<Suggestion[]>('suggestions', INITIAL_SUGGESTIONS);
-    const idx = suggestions.findIndex(s => s.id === suggestionId);
-    if (idx !== -1) {
-      suggestions[idx].status = status;
-      setStoredData('suggestions', suggestions);
+  },
+
+  async updateLocation(id: string, updates: Partial<MapLocation>): Promise<boolean> {
+    try {
+      const { error } = await supabase.from('map_locations').update(updates).eq('id', id);
+      return !error;
+    } catch {
+      return false;
     }
+  },
+
+  async deleteLocation(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase.from('map_locations').delete().eq('id', id);
+      return !error;
+    } catch {
+      return false;
+    }
+  },
+
+  async updateSuggestionStatus(id: string, status: SuggestionStatus): Promise<boolean> {
+    try {
+      const { error } = await supabase.from('suggestions').update({ status }).eq('id', id);
+      return !error;
+    } catch {
+      return false;
+    }
+  },
+
+  async resetWandererCycle(): Promise<boolean> {
+    try {
+      localStorage.removeItem('cidade_alta_user_confirmations');
+    } catch {}
+
+    try {
+      const { error } = await supabase
+        .from('wanderer_confirmations')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) {
+        console.warn('Supabase reset cycle warning (RLS or offline):', error);
+      }
+    } catch (e) {
+      console.warn('Supabase reset cycle exception:', e);
+    }
+
     return true;
-  }
+  },
 };

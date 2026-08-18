@@ -1,80 +1,59 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+ 
 @layer base {
-  body {
-    @apply bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden select-none;
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+ 
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+ 
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+ 
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+ 
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+ 
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+ 
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+ 
+    --radius: 0.5rem;
+  }
+}
+ 
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  html, body, #root {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #020617;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   }
 }
 
-/* CUSTOM SCROLLBAR FOR MODERN DARK LOOK */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
-  border-radius: 9999px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.8);
-  border-radius: 9999px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 1);
-}
-
-/* LEAFLET OVERRIDES */
 .leaflet-container {
-  background-color: #020617 !important;
-  font-family: 'Inter', sans-serif !important;
+  width: 100% !important;
+  height: 100% !important;
+  background-color: #0b0f19 !important;
   outline: none;
-}
-
-.leaflet-control-zoom {
-  display: none !important;
-}
-
-.custom-map-marker {
-  background: transparent !important;
-  border: none !important;
-}
-
-.custom-draft-marker {
-  background: transparent !important;
-  border: none !important;
-}
-
-/* GTA-style marker hover tooltip */
-.gta-marker-tooltip {
-  background: rgba(0, 0, 0, 0.88) !important;
-  color: #fff !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  border-radius: 4px !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  font-family: 'Inter', system-ui, sans-serif !important;
-  padding: 3px 8px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
-  letter-spacing: 0.3px !important;
-}
-
-.gta-marker-tooltip::before {
-  border-top-color: rgba(0, 0, 0, 0.88) !important;
-}
-
-/* ANIMATIONS */
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.25s ease-out forwards;
 }

@@ -1,367 +1,298 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { Server, MapLocation, ServerSlug, LocationCategory } from './types';
+import React, { useState, useEffect } from 'react';
+import type { Server, MapLocation, LocationCategory, Comment, Suggestion, SuggestionType } from './types';
 import { ApiService } from './services/api';
-import { SettingsProvider, useSettings } from './context/SettingsContext';
-import { PlatformNavbar } from './components/platform/PlatformNavbar';
-import { HomeHub } from './components/platform/HomeHub';
-import { Header } from './components/layout/Header';
-import { WandererBanner } from './components/wanderer/WandererBanner';
-import { MapViewer } from './components/map/MapViewer';
-import { MapControls } from './components/map/MapControls';
-import { MapLegend, CATEGORIES_CONFIG } from './components/map/MapLegend';
-import { LocationDetailsDrawer } from './components/drawer/LocationDetailsDrawer';
-import { CommentsModal } from './components/community/CommentsModal';
-import { SuggestionModal } from './components/community/SuggestionModal';
+import { Header } from './components/Header';
+import { Sidebar } from './components/Sidebar';
+import { MapContainer } from './components/map/MapContainer';
+import { LocationDrawer } from './components/map/LocationDrawer';
 import { AdminModal } from './components/admin/AdminModal';
-import { SettingsModal } from './components/common/SettingsModal';
-import { Footer } from './components/layout/Footer';
 
-// PLATFORM MODULE COMPONENTS
-import { OriginalMinigameContainer } from './components/modules/OriginalMinigameContainer';
-import { MoneyLaunderingCalc } from './components/modules/MoneyLaunderingCalc';
-import { RpReferenceTables } from './components/modules/RpReferenceTables';
-
-// MAP MODULE
-function MapModule() {
+export const App: React.FC = () => {
   const [servers, setServers] = useState<Server[]>([]);
-  const [activeServer, setActiveServer] = useState<Server | null>(null);
+  const [currentServer, setCurrentServer] = useState<Server | null>(null);
+
   const [locations, setLocations] = useState<MapLocation[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(null);
 
-  const [selectedCategories, setSelectedCategories] = useState<LocationCategory[]>(
-    CATEGORIES_CONFIG.map(c => c.category)
-  );
+  const [selectedCategories, setSelectedCategories] = useState<LocationCategory[]>([
+    'hospital_ilegal',
+    'mercado_ilegal',
+    'lavanderia_ilegal',
+    'desmanche',
+    'andarilho',
+    'local_possivel',
+    'outros',
+  ]);
 
-  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
-  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(
-    localStorage.getItem('cidade_alta_admin') === 'true'
-  );
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
-  const [isAddingMarkerMode, setIsAddingMarkerMode] = useState(false);
-  const [newMarkerCoords, setNewMarkerCoords] = useState<{ x: number; y: number } | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
 
+  // Admin Pin Mode
+  const [isAdminPinMode, setIsAdminPinMode] = useState(false);
+  const [pendingPinCoords, setPendingPinCoords] = useState<{ x: number; y: number } | null>(null);
+
+  // Load Servers on Startup & Enforce City Context
   useEffect(() => {
+    const loadServers = async () => {
+      const data = await ApiService.fetchServers();
+      setServers(data);
+      if (data.length > 0) {
+        const params = new URLSearchParams(window.location.search);
+        const cityParam = params.get('cidade') || params.get('server') || params.get('id');
+        if (!cityParam) {
+          window.location.replace('../cidade.html?cidade=cda');
+          return;
+        }
+        let selected = data[0];
+        const match = data.find(
+          (s) => s.slug.toLowerCase() === cityParam.toLowerCase() || s.id.toLowerCase() === cityParam.toLowerCase()
+        );
+        if (match) selected = match;
+        setCurrentServer(selected);
+
+        if (params.get('admin') === 'true' || params.get('admin') === '1') {
+          setAdminOpen(true);
+        }
+      }
+    };
     loadServers();
   }, []);
 
+  // Load Data whenever Current Server changes
   useEffect(() => {
-    if (activeServer) {
-      loadLocations(activeServer.id);
-    }
-  }, [activeServer?.id]);
+    if (!currentServer) return;
 
-  const loadServers = async () => {
-    const data = await ApiService.getServers();
-    setServers(data);
-    const initial = data.find(s => s.slug === 'cda') || data[0] || null;
-    setActiveServer(initial);
-  };
+    const loadServerData = async () => {
+      const locs = await ApiService.fetchLocations(currentServer.id);
+      setLocations(locs);
 
-  const loadLocations = async (serverId: string) => {
-    const data = await ApiService.getLocations(serverId);
-    setLocations(data);
-  };
+      const comms = await ApiService.fetchComments(currentServer.id);
+      setComments(comms);
 
-  const handleSelectServer = (slug: ServerSlug) => {
-    const target = servers.find(s => s.slug === slug);
-    if (target && target.id !== activeServer?.id) {
-      setActiveServer(target);
-      setSelectedLocation(null);
-      setNewMarkerCoords(null);
-      setIsAddingMarkerMode(false);
-    }
-  };
+      const sugs = await ApiService.fetchSuggestions(currentServer.id);
+      setSuggestions(sugs);
+    };
 
-  const handleToggleCategory = useCallback((category: LocationCategory) => {
-    setSelectedCategories(prev => {
-      if (prev.includes(category)) {
-        return prev.filter(c => c !== category);
-      } else {
-        return [...prev, category];
+    loadServerData();
+
+    // Subscribe to Realtime Comments & Confirmations
+    const sub = ApiService.subscribeToComments(currentServer.id, (newComment) => {
+      setComments((prev) => [newComment, ...prev]);
+    });
+
+    const subConf = ApiService.subscribeToConfirmations(async () => {
+      if (currentServer) {
+        const locs = await ApiService.fetchLocations(currentServer.id);
+        setLocations(locs);
       }
     });
-  }, []);
 
-  const handleSelectAllCategories = useCallback(() => {
-    setSelectedCategories(prev => {
-      if (prev.length === CATEGORIES_CONFIG.length) {
-        return [];
-      } else {
-        return CATEGORIES_CONFIG.map(c => c.category);
-      }
-    });
-  }, []);
+    return () => {
+      sub.unsubscribe();
+      subConf.unsubscribe();
+    };
+  }, [currentServer]);
 
-  const handleConfirmWandererLocation = useCallback(async (locationId: string) => {
-    const result = await ApiService.toggleWandererConfirmation(locationId);
-    setLocations(prev =>
-      prev.map(loc => {
-        if (loc.id === locationId) {
-          return {
-            ...loc,
-            confirmations_count: result.count,
-            user_has_confirmed: result.confirmed
-          };
-        }
-        return loc;
-      })
+  // Handlers
+  const handleToggleCategory = (category: LocationCategory) => {
+    setSelectedCategories((prev) =>
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     );
-    setSelectedLocation(prev => {
-      if (prev?.id === locationId) {
-        return {
-          ...prev,
-          confirmations_count: result.count,
-          user_has_confirmed: result.confirmed
-        };
+  };
+
+  const handleConfirmLocation = async (locationId: string) => {
+    const ok = await ApiService.addWandererConfirmation(locationId);
+    if (ok) {
+      setLocations((prev) =>
+        prev.map((loc) =>
+          loc.id === locationId
+            ? {
+                ...loc,
+                confirmations_count: (loc.confirmations_count || 0) + 1,
+                user_confirmed: true,
+              }
+            : loc
+        )
+      );
+      if (selectedLocation?.id === locationId) {
+        setSelectedLocation((prev) =>
+          prev
+            ? {
+                ...prev,
+                confirmations_count: (prev.confirmations_count || 0) + 1,
+                user_confirmed: true,
+              }
+            : null
+        );
       }
-      return prev;
+    }
+  };
+
+  const handleUnconfirmLocation = async (locationId: string) => {
+    const ok = await ApiService.removeWandererConfirmation(locationId);
+    if (ok) {
+      setLocations((prev) =>
+        prev.map((loc) =>
+          loc.id === locationId
+            ? {
+                ...loc,
+                confirmations_count: Math.max(0, (loc.confirmations_count || 1) - 1),
+                user_confirmed: false,
+              }
+            : loc
+        )
+      );
+      if (selectedLocation?.id === locationId) {
+        setSelectedLocation((prev) =>
+          prev
+            ? {
+                ...prev,
+                confirmations_count: Math.max(0, (prev.confirmations_count || 1) - 1),
+                user_confirmed: false,
+              }
+            : null
+        );
+      }
+    }
+  };
+
+  const handleAddComment = async (nickname: string, content: string) => {
+    if (!currentServer) return false;
+    const ok = await ApiService.addComment({
+      server_id: currentServer.id,
+      location_id: selectedLocation?.id,
+      nickname,
+      content,
     });
-  }, []);
+    if (ok) {
+      const freshComms = await ApiService.fetchComments(currentServer.id);
+      setComments(freshComms);
+    }
+    return ok;
+  };
 
-  const handleFocusLocation = useCallback((location: MapLocation) => {
-    setSelectedLocation(location);
-  }, []);
+  const handleAddSuggestion = async (nickname: string, type: SuggestionType, content: string) => {
+    if (!currentServer) return false;
+    const ok = await ApiService.addSuggestion({
+      server_id: currentServer.id,
+      location_id: selectedLocation?.id,
+      nickname,
+      type,
+      content,
+    });
+    if (ok) {
+      const freshSugs = await ApiService.fetchSuggestions(currentServer.id);
+      setSuggestions(freshSugs);
+    }
+    return ok;
+  };
 
-  const handleAdminAuthenticate = useCallback((username: string, passcode: string) => {
-    if (username.trim().toLowerCase() === 'malaca' && passcode.trim() === '199425') {
-      setIsAdminAuthenticated(true);
-      localStorage.setItem('cidade_alta_admin', 'true');
+  // Admin Pin Click Handler
+  const handleAdminMapClick = (x: number, y: number) => {
+    setPendingPinCoords({ x, y });
+    setIsAdminPinMode(false);
+    setAdminOpen(true);
+  };
+
+  const handleSaveAdminLocation = async (locationData: Omit<MapLocation, 'id'>) => {
+    const newLoc = await ApiService.createLocation(locationData);
+    if (newLoc) {
+      setLocations((prev) => [...prev, newLoc]);
+      setPendingPinCoords(null);
       return true;
     }
     return false;
-  }, []);
+  };
 
-  const handleAdminLogout = useCallback(() => {
-    setIsAdminAuthenticated(false);
-    localStorage.removeItem('cidade_alta_admin');
-  }, []);
-
-  const handleMapClickForNewMarker = useCallback((coords: { x: number; y: number }) => {
-    setNewMarkerCoords(coords);
-    setIsAddingMarkerMode(false);
-    setIsAdminOpen(true);
-  }, []);
-
-  const filteredLocations = useMemo(() => {
-    return locations.filter(loc => selectedCategories.includes(loc.category));
-  }, [locations, selectedCategories]);
-
-  const andarilhoSpots = useMemo(() => {
-    return locations.filter(l => l.category === 'Andarilho');
-  }, [locations]);
-
-  const topVotedAndarilho = useMemo(() => {
-    if (andarilhoSpots.length === 0) return null;
-    const sorted = [...andarilhoSpots].sort((a, b) => (b.confirmations_count || 0) - (a.confirmations_count || 0));
-    return sorted[0]?.confirmations_count && sorted[0].confirmations_count > 0 ? sorted[0] : null;
-  }, [andarilhoSpots]);
-
-  const handleZoomIn = useCallback(() => {
-    const el = document.querySelector('.leaflet-container');
-    if (el) {
-      const evt = new WheelEvent('wheel', { deltaY: -100 });
-      el.dispatchEvent(evt);
+  const handleDeleteAdminLocation = async (id: string) => {
+    const ok = await ApiService.deleteLocation(id);
+    if (ok) {
+      setLocations((prev) => prev.filter((l) => l.id !== id));
+      if (selectedLocation?.id === id) setSelectedLocation(null);
     }
-  }, []);
+    return ok;
+  };
 
-  const handleZoomOut = useCallback(() => {
-    const el = document.querySelector('.leaflet-container');
-    if (el) {
-      const evt = new WheelEvent('wheel', { deltaY: 100 });
-      el.dispatchEvent(evt);
+  const handleUpdateSuggestionStatus = async (id: string, status: any) => {
+    const ok = await ApiService.updateSuggestionStatus(id, status);
+    if (ok && currentServer) {
+      const fresh = await ApiService.fetchSuggestions(currentServer.id);
+      setSuggestions(fresh);
     }
-  }, []);
-
-  const handleResetView = useCallback(() => {
-    setActiveServer(prev => {
-      if (prev) {
-        const temp = prev;
-        setTimeout(() => setActiveServer(temp), 50);
-        return null;
-      }
-      return prev;
-    });
-  }, []);
-
-  const handleFocusAndarilho = useCallback(() => {
-    if (topVotedAndarilho) {
-      setSelectedLocation(topVotedAndarilho);
-    }
-  }, [topVotedAndarilho]);
+    return ok;
+  };
 
   return (
-    <>
-      <div className="flex-1 flex flex-col w-full h-full overflow-hidden">
-        <Header
-          servers={servers}
-          activeServer={activeServer}
-          onSelectServer={handleSelectServer}
-          onOpenComments={() => setIsCommentsOpen(true)}
-          onOpenSuggestions={() => setIsSuggestionsOpen(true)}
-          onOpenAdmin={() => setIsAdminOpen(true)}
-          isAdminAuthenticated={isAdminAuthenticated}
-        />
-
-        <WandererBanner
-          locations={locations}
-          onFocusLocation={handleFocusLocation}
-        />
-
-        <div className="relative flex-1 w-full h-full overflow-hidden">
-          <MapLegend
-            locations={locations}
-            selectedCategories={selectedCategories}
-            onToggleCategory={handleToggleCategory}
-            onSelectAll={handleSelectAllCategories}
-          />
-
-          {activeServer && (
-            <MapViewer
-              mapImageUrl={activeServer.map_image_url}
-              locations={filteredLocations}
-              selectedLocation={selectedLocation}
-              onSelectLocation={setSelectedLocation}
-              isAddingMarker={isAddingMarkerMode}
-              onMapClickForNewMarker={handleMapClickForNewMarker}
-              newMarkerDraftCoords={newMarkerCoords}
-              mostVotedAndarilhoId={topVotedAndarilho?.id}
-            />
-          )}
-
-          <MapControls
-            onZoomIn={handleZoomIn}
-            onZoomOut={handleZoomOut}
-            onResetView={handleResetView}
-            onFocusAndarilho={handleFocusAndarilho}
-            hasAndarilhoSpots={Boolean(topVotedAndarilho)}
-          />
-
-          {activeServer && (
-            <LocationDetailsDrawer
-              location={selectedLocation}
-              onClose={() => setSelectedLocation(null)}
-              onConfirmLocation={handleConfirmWandererLocation}
-              currentServerId={activeServer.id}
-            />
-          )}
-        </div>
-      </div>
-
-      <CommentsModal
-        isOpen={isCommentsOpen}
-        onClose={() => setIsCommentsOpen(false)}
-        activeServer={activeServer}
-        isAdminAuthenticated={isAdminAuthenticated}
-      />
-
-      <SuggestionModal
-        isOpen={isSuggestionsOpen}
-        onClose={() => setIsSuggestionsOpen(false)}
-        activeServer={activeServer}
-      />
-
-      <AdminModal
-        isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
-        isAuthenticated={isAdminAuthenticated}
-        onAuthenticate={handleAdminAuthenticate}
-        onLogout={handleAdminLogout}
+    <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
+      {/* Header */}
+      <Header
         servers={servers}
-        activeServer={activeServer}
-        locations={locations}
-        onRefreshData={() => activeServer && loadLocations(activeServer.id)}
-        onStartVisualAddMarker={() => {
-          setIsAddingMarkerMode(true);
+        currentServer={currentServer}
+        onSelectServer={(server) => {
+          setCurrentServer(server);
+          setSelectedLocation(null);
         }}
-        newMarkerCoords={newMarkerCoords}
-        onClearNewMarkerCoords={() => setNewMarkerCoords(null)}
+        onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+        onOpenAdmin={() => setAdminOpen(true)}
       />
-    </>
-  );
-}
 
-// MAIN APP CONTENT WRAPPER WITH THEME, BRIGHTNESS & DARK WALLPAPER
-function AppContent() {
-  const { theme, brightness } = useSettings();
-  const location = useLocation();
-  const isMapRoute = location.pathname === '/mapa';
-
-  // Theme styling mapping
-  const themeClasses: Record<string, string> = {
-    dark: 'bg-slate-950 text-slate-100',
-    midnight: 'bg-black text-slate-100',
-    soft: 'bg-slate-900 text-slate-200',
-    light: 'bg-slate-100 text-slate-950'
-  };
-
-  const themeGradients: Record<string, string> = {
-    dark: 'from-slate-950 via-blue-950/80 to-slate-950',
-    midnight: 'from-black via-slate-950/90 to-black',
-    soft: 'from-slate-950 via-slate-900/90 to-slate-950',
-    light: 'from-slate-100 via-blue-50/80 to-slate-100'
-  };
-
-  return (
-    <div 
-      className={`relative flex flex-col h-screen w-screen overflow-hidden font-sans ${themeClasses[theme] || themeClasses.dark}`}
-      style={{ filter: `brightness(${brightness}%)` }}
-    >
-      {/* GLOBAL BACKGROUND WITH BALANCED WALLPAPER BRIGHTNESS & DEEP BLUE GRADIENT */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-slate-950">
-        {/* Wallpaper image with higher visibility/brightness */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 transition-all duration-500"
-          style={{ backgroundImage: "url('/images/bg_wallpaper.jpg')" }}
+      {/* Main Layout Area */}
+      <div className="flex flex-1 relative overflow-hidden">
+        {/* Sidebar */}
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          selectedCategories={selectedCategories}
+          onToggleCategory={handleToggleCategory}
+          comments={comments}
+          onAddComment={handleAddComment}
+          onAddSuggestion={handleAddSuggestion}
         />
 
-        {/* Rich blue & dark gradient overlay (blended) */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${themeGradients[theme] || themeGradients.dark} opacity-85 transition-colors duration-500`} />
+        {/* Interactive Map Area */}
+        <main className="flex-1 relative h-full w-full">
+          <MapContainer
+            mapImageUrl={
+              currentServer?.map_image_url ||
+              '/images/mapa_cda_optimized.webp'
+            }
+            locations={locations}
+            selectedLocation={selectedLocation}
+            onSelectLocation={(loc) => setSelectedLocation(loc)}
+            selectedCategories={selectedCategories}
+            isAdminPinMode={isAdminPinMode}
+            onAdminMapClick={handleAdminMapClick}
+          />
 
-        {/* Soft radial vignette for subtle contrast */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-slate-950/40 to-slate-950/90" />
+          {/* Selected Location Drawer */}
+          <LocationDrawer
+            location={selectedLocation}
+            onClose={() => setSelectedLocation(null)}
+            onConfirm={handleConfirmLocation}
+            onUnconfirm={handleUnconfirmLocation}
+          />
+        </main>
       </div>
 
-      {/* NAVBAR */}
-      <div className="relative z-20">
-        <PlatformNavbar />
-      </div>
-
-      {/* PAGE CONTENT ROUTER */}
-      <main className="relative z-10 flex-1 flex flex-col w-full h-full overflow-hidden">
-        <Routes>
-          <Route path="/" element={<HomeHub />} />
-          <Route path="/mapa" element={<MapModule />} />
-          <Route path="/caixinha" element={<OriginalMinigameContainer gamePath="/caixinha/index.html" title="Caixinha Eletrônica" />} />
-          <Route path="/hacking" element={<OriginalMinigameContainer gamePath="/hacking/index.html" title="Hacking Keycard" />} />
-          <Route path="/lockpick" element={<OriginalMinigameContainer gamePath="/lockpick/index.html" title="Lockpick Simulator" />} />
-          <Route path="/calculadora" element={<MoneyLaunderingCalc />} />
-          <Route path="/tabelas" element={<RpReferenceTables />} />
-        </Routes>
-      </main>
-
-      {/* FOOTER (hidden on full screen interactive map for clean UX) */}
-      {!isMapRoute && (
-        <div className="relative z-20">
-          <Footer />
-        </div>
-      )}
-
-      {/* APPEARANCE SETTINGS MODAL */}
-      <SettingsModal />
+      {/* Admin Panel Modal */}
+      <AdminModal
+        isOpen={adminOpen}
+        onClose={() => setAdminOpen(false)}
+        servers={servers}
+        locations={locations}
+        suggestions={suggestions}
+        comments={comments}
+        onSaveLocation={handleSaveAdminLocation}
+        onDeleteLocation={handleDeleteAdminLocation}
+        onUpdateSuggestionStatus={handleUpdateSuggestionStatus}
+        onStartPinMode={() => setIsAdminPinMode(true)}
+        pendingPinCoords={pendingPinCoords}
+      />
     </div>
   );
-}
+};
 
-// ROOT PROVIDER WRAPPER
-export default function App() {
-  return (
-    <BrowserRouter>
-      <SettingsProvider>
-        <AppContent />
-      </SettingsProvider>
-    </BrowserRouter>
-  );
-}
+export default App;

@@ -21,10 +21,19 @@
     <!-- Canvas de Fundo Estrelado -->
     <canvas id="starfield-bg"></canvas>
 
-    <!-- Botão de voltar para a Home -->
-    <a href="../" class="home-back-btn" title="Voltar para a Home">
-        <i class="fa-solid fa-house"></i>
+    <!-- Botão de voltar para a Cidade/Home -->
+    <a href="../" class="home-back-btn" title="Voltar" id="back-btn">
+        <i class="fa-solid fa-arrow-left"></i>
     </a>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const city = params.get('cidade') || params.get('server');
+        if (city) {
+            document.getElementById('back-btn').href = `../cidade.html?cidade=${encodeURIComponent(city)}`;
+        } else {
+            window.location.replace('../cidade.html?cidade=cda');
+        }
+    </script>
 
     <div class="app-container">
         <!-- HUD Centralizado -->

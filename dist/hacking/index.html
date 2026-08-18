@@ -15,42 +15,66 @@
     
     <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script type="module" crossorigin src="/assets/hacking-w8Oeuftv.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/i18n-BJKsl-_-.js">
-  <link rel="stylesheet" crossorigin href="/assets/i18n-CkMbtgkE.css">
+  <script type="module" crossorigin src="/assets/hacking-D0A9NTQb.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Dezn_h7o.js">
+  <link rel="modulepreload" crossorigin href="/assets/i18n-A6kVPnnh.js">
+  <link rel="stylesheet" crossorigin href="/assets/styles-DkeNUDTw.css">
 </head>
 <body>
     <!-- Canvas de Fundo Estrelado -->
     <canvas id="starfield-bg"></canvas>
 
-    <!-- Botão de voltar para a Home -->
-    <a href="../" class="home-back-btn" title="Voltar para a Home">
-        <i class="fa-solid fa-house"></i>
+    <!-- Botão de voltar para a Cidade/Home -->
+    <a href="../" class="home-back-btn" title="Voltar" id="back-btn">
+        <i class="fa-solid fa-arrow-left"></i>
     </a>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const city = params.get('cidade') || params.get('server');
+        if (city) {
+            document.getElementById('back-btn').href = `../cidade.html?cidade=${encodeURIComponent(city)}`;
+        } else {
+            window.location.replace('../cidade.html?cidade=cda');
+        }
+    </script>
 
     <div class="app-container">
         <!-- HUD Centralizado -->
         <main class="hud-container hacking-hud-container">
             
+            <!-- BANNER SUPERIOR DE TELEMETRIA (ESTILO EXATO GTARP) -->
+            <div class="green-telemetry-banner">
+                <div class="telemetry-row">
+                    <span><span data-i18n="telemetry_streak">ACERTOS:</span> <strong id="val-streak">0</strong></span>
+                    <i class="fa-solid fa-user-secret telemetry-icon"></i>
+                    <span><span data-i18n="telemetry_max_streak">RECORDE:</span> <strong id="val-max-streak">0</strong></span>
+                </div>
+                <div class="telemetry-row">
+                    <span><span data-i18n="telemetry_time">TEMPO:</span> <strong id="timer-val">0.000</strong></span>
+                    <i class="fa-solid fa-stopwatch telemetry-icon"></i>
+                    <span><span data-i18n="telemetry_best_time">MELHOR TEMPO:</span> <strong id="val-best-time">0.000</strong></span>
+                </div>
+            </div>
+
             <!-- 1. BARRA DE CONFIGURAÇÕES NA TELA (NO MEIO) -->
             <div class="on-screen-settings-panel">
                 <div class="setting-row-center">
-                    <span class="setting-label"><i class="fa-solid fa-font"></i> TIPO:</span>
+                    <span class="setting-label"><i class="fa-solid fa-font"></i> <span data-i18n="type_label">TIPO:</span></span>
                     <div class="char-set-selector">
-                        <button class="charset-btn active" data-set="all">MISTO (TODOS)</button>
-                        <button class="charset-btn" data-set="numeric">Numérico</button>
-                        <button class="charset-btn" data-set="alphabet">Alfabeto</button>
-                        <button class="charset-btn" data-set="alphanumeric">Alfanumérico</button>
-                        <button class="charset-btn" data-set="greek">Grego</button>
-                        <button class="charset-btn" data-set="braille">Braille</button>
-                        <button class="charset-btn" data-set="runes">Runas</button>
-                        <button class="charset-btn" data-set="symbols">Símbolos</button>
+                        <button class="charset-btn active" data-set="all" data-i18n="charset_all">MISTO (TODOS)</button>
+                        <button class="charset-btn" data-set="numeric" data-i18n="charset_numeric">Numérico</button>
+                        <button class="charset-btn" data-set="alphabet" data-i18n="charset_alphabet">Alfabeto</button>
+                        <button class="charset-btn" data-set="alphanumeric" data-i18n="charset_alphanumeric">Alfanumérico</button>
+                        <button class="charset-btn" data-set="greek" data-i18n="charset_greek">Grego</button>
+                        <button class="charset-btn" data-set="braille" data-i18n="charset_braille">Braille</button>
+                        <button class="charset-btn" data-set="runes" data-i18n="charset_runes">Runas</button>
+                        <button class="charset-btn" data-set="symbols" data-i18n="charset_symbols">Símbolos</button>
                     </div>
                 </div>
 
                 <div class="setting-row-center inline-settings">
                     <div class="setting-group">
-                        <span class="setting-label"><i class="fa-solid fa-hashtags"></i> TAMANHO:</span>
+                        <span class="setting-label"><i class="fa-solid fa-hashtags"></i> <span data-i18n="size_label">TAMANHO:</span></span>
                         <div class="drawer-difficulty-selector flex-row-buttons">
                             <button class="length-btn" data-length="3">3</button>
                             <button class="length-btn active" data-length="4">4</button>
@@ -60,7 +84,7 @@
                     </div>
 
                     <div class="setting-group">
-                        <span class="setting-label"><i class="fa-solid fa-stopwatch"></i> TEMPO:</span>
+                        <span class="setting-label"><i class="fa-solid fa-stopwatch"></i> <span data-i18n="time_label">TEMPO:</span></span>
                         <div class="drawer-difficulty-selector flex-row-buttons">
                             <button class="time-btn" data-time="10">10s</button>
                             <button class="time-btn" data-time="15">15s</button>
@@ -78,10 +102,10 @@
                     <div class="banner-box success-box-top">
                         <div class="banner-text">
                             <i class="fa-solid fa-circle-check"></i>
-                            <strong>ACESSO CONCEDIDO:</strong> <span id="success-message">Sequência encontrada com sucesso!</span>
-                            <span class="banner-stats-inline">(Tempo: <strong id="succ-time">0.00s</strong> | Streak: <strong id="succ-streak">0</strong>)</span>
+                            <strong data-i18n="hacking_success_title">ACESSO CONCEDIDO:</strong> <span id="success-message" data-i18n="hacking_success_msg">Sequência encontrada com sucesso!</span>
+                            <span class="banner-stats-inline">(Tempo: <strong id="succ-time">0.000s</strong> | Streak: <strong id="succ-streak">0</strong>)</span>
                         </div>
-                        <button class="btn btn-primary btn-sm" id="btn-next-puzzle">PRÓXIMO HACK (ENTER)</button>
+                        <button class="btn btn-primary btn-sm" id="btn-next-puzzle" data-i18n="btn_next_hack">PRÓXIMO HACK (ENTER)</button>
                     </div>
                 </div>
                 
@@ -90,36 +114,33 @@
                     <div class="banner-box fail-box-top">
                         <div class="banner-text">
                             <i class="fa-solid fa-triangle-exclamation"></i>
-                            <strong>ACESSO NEGADO:</strong> <span id="fail-message">Sequência incorreta ou tempo esgotado.</span>
+                            <strong data-i18n="hacking_fail_title">ACESSO NEGADO:</strong> <span id="fail-message" data-i18n="hacking_fail_msg">Sequência incorreta ou tempo esgotado.</span>
                         </div>
-                        <button class="btn btn-danger btn-sm" id="btn-retry-puzzle">TENTAR NOVAMENTE (ENTER)</button>
+                        <button class="btn btn-danger btn-sm" id="btn-retry-puzzle" data-i18n="btn_retry">TENTAR NOVAMENTE (ENTER)</button>
                     </div>
                 </div>
             </div>
 
-            <!-- 3. DISPOSITIVO CENTRAL DE HACKING -->
+            <!-- 3. DISPOSITIVO CENTRAL DE HACKING (ESTILO GTARP IDENTICO AO PRINT) -->
             <div class="hacking-device-wrapper">
-                <div class="hacking-top-bar">
-                    <h2 class="hacking-main-title">
-                        <i class="fa-solid fa-terminal"></i> SIMULADOR DE HACKING
-                    </h2>
-                    <div class="streaks-hud">
-                        <span>TEMPO: <strong id="timer-val" style="color: var(--color-cyan);">15.0s</strong></span>
-                        <span>STREAK: <strong id="val-streak">0</strong></span>
-                        <span>MAX: <strong id="val-max-streak">0</strong></span>
-                    </div>
+                <!-- Ícone de Espião (Spy Silhouette Icon) -->
+                <div class="spy-icon-wrapper">
+                    <i class="fa-solid fa-user-secret spy-icon"></i>
                 </div>
 
-                <div class="hacking-main-container">
-                    <div class="hacking-target-panel">
-                        <div class="target-label">LOCALIZE A SEQUÊNCIA ALVO:</div>
-                        <div class="target-code-display" id="target-code">LOADING...</div>
-                    </div>
+                <!-- Título Status do Host -->
+                <div class="host-connecting-title" data-i18n="connecting_host_text">
+                    CONECTANDO AO SERVIDOR
+                </div>
 
-                    <!-- Malha de Caracteres (8x10 Grid = 80 Células) -->
-                    <div class="character-soup-grid" id="character-soup-grid">
-                        <!-- Gerado dinamicamente via JS -->
-                    </div>
+                <!-- Sequência Alvo -->
+                <div class="hacking-target-panel">
+                    <div class="target-code-display" id="target-code">LOADING...</div>
+                </div>
+
+                <!-- Malha de Caracteres (8x10 Grid = 80 Células) -->
+                <div class="character-soup-grid" id="character-soup-grid">
+                    <!-- Gerado dinamicamente via JS -->
                 </div>
             </div>
         </main>
