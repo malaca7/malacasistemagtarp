@@ -12,16 +12,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Favicon Icon -->
-    <link rel="icon" type="image/png" href="/assets/platform_icon-K4EJOEs5.png">
+    <link rel="icon" type="image/png" href="/assets/platform_icon-JM2DEVv-.png">
     
     <!-- Link para CSS -->
     
     <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script type="module" crossorigin src="/assets/modulepreload-polyfill-Dezn_h7o.js"></script>
-  <script type="module" crossorigin src="/assets/admin-overlay-SAnMp2T9.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/admin-overlay-_OPJLxvA.css">
-  <link rel="stylesheet" crossorigin href="/assets/styles-CJ97Wg_3.css">
+  <script type="module" crossorigin src="/assets/dist-CJgmpDaA.js"></script>
+  <script type="module" crossorigin src="/assets/admin-overlay-36UZl58m.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/admin-overlay-D8iZ3mG5.css">
+  <link rel="stylesheet" crossorigin href="/assets/styles-CYkFRVVU.css">
 </head>
 <body class="hub-body">
 
@@ -33,7 +34,7 @@
                     <i class="fa-solid fa-arrow-left"></i> <span>VOLTAR</span>
                 </a>
                 <a href="./" class="hub-logo hub-brand">
-                    <img src="/assets/logo_malaca_sistemas-DLgeDqih.png" alt="MALACA SISTEMAS" class="hub-logo-img">
+                    <img src="/assets/platform_icon-JM2DEVv-.png" alt="MALACA SISTEMAS" class="hub-logo-img">
                 </a>
             </div>
             <div class="hub-nav-links">
@@ -291,7 +292,9 @@
                     const targetCityId = cityData.id || citySlug;
                     const filtered = customSystems.filter(sys => 
                         sys.is_active !== false && 
-                        (!sys.city_ids || sys.city_ids.length === 0 || sys.city_ids.includes(targetCityId) || sys.city_ids.includes(citySlug))
+                        sys.city_ids && 
+                        sys.city_ids.length > 0 &&
+                        (sys.city_ids.includes(targetCityId) || sys.city_ids.includes(citySlug))
                     );
                     if (filtered.length > 0) {
                         cityData.sistemas = filtered.map(s => ({
@@ -337,25 +340,20 @@
 
             cityData.sistemas.forEach(sys => {
                 const card = document.createElement('a');
-                const systemUrl = sys.link.includes('?') 
-                    ? `${sys.link}&cidade=${encodeURIComponent(citySlug)}` 
-                    : `${sys.link}?cidade=${encodeURIComponent(citySlug)}`;
+                const sysSlug = sys.id || 'mapa';
+                const systemUrl = `/cidades/${citySlug}/${sysSlug}/`;
                 card.href = systemUrl;
                 card.className = 'hub-city-card';
 
                 card.innerHTML = `
-                    <div class="hub-city-card-img">
-                        <img src="${sys.imagem}" alt="${sys.titulo}">
-                        <div class="hub-city-card-img-overlay"></div>
+                    <div class="hub-city-card-header-clean">
+                        <div class="hub-city-card-icon">
+                            <i class="fa-solid ${sys.icone}"></i>
+                        </div>
                         <span class="hub-city-card-tag"><i class="fa-solid ${sys.icone}"></i> ${sys.tag}</span>
                     </div>
                     <div class="hub-city-card-body">
-                        <div class="hub-city-card-title-row">
-                            <div class="hub-city-card-icon">
-                                <i class="fa-solid ${sys.icone}"></i>
-                            </div>
-                            <h3 class="hub-city-card-title">${sys.titulo}</h3>
-                        </div>
+                        <h3 class="hub-city-card-title">${sys.titulo}</h3>
                         <p class="hub-city-card-desc">${sys.descricao}</p>
                         <div class="hub-city-card-btn">
                             <span>${sys.btnTexto}</span>

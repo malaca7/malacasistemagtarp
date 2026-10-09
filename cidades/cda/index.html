@@ -19,9 +19,10 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script type="module" crossorigin src="/assets/modulepreload-polyfill-Dezn_h7o.js"></script>
-  <script type="module" crossorigin src="/assets/admin-overlay-SAnMp2T9.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/admin-overlay-_OPJLxvA.css">
-  <link rel="stylesheet" crossorigin href="/assets/styles-CJ97Wg_3.css">
+  <script type="module" crossorigin src="/assets/dist-CJgmpDaA.js"></script>
+  <script type="module" crossorigin src="/assets/admin-overlay-36UZl58m.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/admin-overlay-D8iZ3mG5.css">
+  <link rel="stylesheet" crossorigin href="/assets/styles-CYkFRVVU.css">
 </head>
 <body class="hub-body">
 
@@ -79,9 +80,10 @@
             <div class="hub-city-grid" id="city-systems-grid">
                 <!-- Sistema 1: Mapa -->
                 <a href="/cidades/cda/mapa/" class="hub-city-card">
-                    <div class="hub-city-card-img">
-                        <img src="/images/gta_map_bg.webp" alt="MAPA INTERATIVO">
-                        <div class="hub-city-card-img-overlay"></div>
+                    <div class="hub-city-card-header-clean">
+                        <div class="hub-city-card-icon">
+                            <i class="fa-solid fa-compass"></i>
+                        </div>
                         <span class="hub-city-card-tag"><i class="fa-solid fa-compass"></i> REALTIME MAP</span>
                     </div>
                     <div class="hub-city-card-body">
@@ -96,9 +98,10 @@
 
                 <!-- Sistema 2: Lockpick -->
                 <a href="/cidades/cda/lockpick/" class="hub-city-card">
-                    <div class="hub-city-card-img">
-                        <img src="/images/lockpick.jpg" alt="LOCKPICK SIMULATOR">
-                        <div class="hub-city-card-img-overlay"></div>
+                    <div class="hub-city-card-header-clean">
+                        <div class="hub-city-card-icon">
+                            <i class="fa-solid fa-key"></i>
+                        </div>
                         <span class="hub-city-card-tag"><i class="fa-solid fa-key"></i> LOCKPICK KIT</span>
                     </div>
                     <div class="hub-city-card-body">
@@ -113,9 +116,10 @@
 
                 <!-- Sistema 3: Caixinha -->
                 <a href="/cidades/cda/caixinha/" class="hub-city-card">
-                    <div class="hub-city-card-img">
-                        <img src="/images/caixinha.jpg" alt="CAIXINHA ELETRÔNICO">
-                        <div class="hub-city-card-img-overlay"></div>
+                    <div class="hub-city-card-header-clean">
+                        <div class="hub-city-card-icon">
+                            <i class="fa-solid fa-vault"></i>
+                        </div>
                         <span class="hub-city-card-tag"><i class="fa-solid fa-vault"></i> ATM HACK</span>
                     </div>
                     <div class="hub-city-card-body">
@@ -130,9 +134,10 @@
 
                 <!-- Sistema 4: Hacking -->
                 <a href="/cidades/cda/hacking/" class="hub-city-card">
-                    <div class="hub-city-card-img">
-                        <img src="/images/hacking.jpg" alt="HACKING DEVICE">
-                        <div class="hub-city-card-img-overlay"></div>
+                    <div class="hub-city-card-header-clean">
+                        <div class="hub-city-card-icon">
+                            <i class="fa-solid fa-microchip"></i>
+                        </div>
                         <span class="hub-city-card-tag"><i class="fa-solid fa-microchip"></i> CYBER TERMINAL</span>
                     </div>
                     <div class="hub-city-card-body">
@@ -163,5 +168,10 @@
         </footer>
     </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.loadCitySystems) window.loadCitySystems('cda');
+        });
+    </script>
 </body>
 </html>

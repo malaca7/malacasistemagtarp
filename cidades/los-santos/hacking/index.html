@@ -3,52 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hacking Device (Los Santos) | Malaca System GTARP</title>
-    <meta name="description" content="Simulador de Hacking Cyberpunk para Los Santos.">
+    <title>Hacking Device | Malaca System GTARP</title>
+    <meta name="description" content="Simulador de hacking e decodificação de sistema. Encontre a sequência alvo na malha de caracteres.">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    
     <link rel="icon" type="image/png" href="/images/platform_icon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script type="module" crossorigin src="/assets/modulepreload-polyfill-Dezn_h7o.js"></script>
+  <script type="module" crossorigin src="/assets/dist-CJgmpDaA.js"></script>
+  <script type="module" crossorigin src="/assets/admin-overlay-36UZl58m.js"></script>
   <script type="module" crossorigin src="/assets/i18n-A6kVPnnh.js"></script>
-  <script type="module" crossorigin src="/assets/hacking-C-93Tf2I.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/styles-CJ97Wg_3.css">
+  <script type="module" crossorigin src="/assets/hacking-znBffMks.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/admin-overlay-D8iZ3mG5.css">
+  <link rel="stylesheet" crossorigin href="/assets/styles-CYkFRVVU.css">
 </head>
 <body>
     <canvas id="starfield-bg"></canvas>
-    <a href="/cidades/los-santos/" class="home-back-btn" title="Voltar para Los Santos" id="back-btn">
+
+    <a href="/cidades/cda/" class="home-back-btn" title="Voltar" id="back-btn">
         <i class="fa-solid fa-arrow-left"></i>
     </a>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const city = params.get('cidade') || params.get('server');
+        const backBtn = document.getElementById('back-btn');
+        if (backBtn) {
+            const currentPath = window.location.pathname;
+            if (currentPath.includes('/valley/')) backBtn.href = '/cidades/valley/';
+            else if (currentPath.includes('/los-santos/')) backBtn.href = '/cidades/los-santos/';
+            else if (currentPath.includes('/cda/')) backBtn.href = '/cidades/cda/';
+            else if (city) backBtn.href = `/cidades/${encodeURIComponent(city)}/`;
+            else backBtn.href = '/cidades/cda/';
+        }
+    </script>
+
     <div class="app-container">
         <main class="hud-container hacking-hud-container">
             <div class="green-telemetry-banner">
                 <div class="telemetry-row">
-                    <span>ACERTOS: <strong id="val-streak">0</strong></span>
-                    <span>TEMPO: <strong id="val-timer" class="highlight-orange">15s</strong></span>
+                    <span><span data-i18n="telemetry_streak">ACERTOS:</span> <strong id="val-streak">0</strong></span>
+                    <i class="fa-solid fa-user-secret telemetry-icon"></i>
+                    <span><span data-i18n="telemetry_max_streak">RECORDE:</span> <strong id="val-max-streak">0</strong></span>
+                </div>
+                <div class="telemetry-row">
+                    <span><span data-i18n="telemetry_time">TEMPO:</span> <strong id="timer-val">0.000</strong></span>
+                    <i class="fa-solid fa-stopwatch telemetry-icon"></i>
+                    <span><span data-i18n="telemetry_best_time">MELHOR TEMPO:</span> <strong id="val-best-time">0.000</strong></span>
                 </div>
             </div>
-            <div class="top-status-banner" id="hacking-banner">
-                <div class="status-box success-box hidden" id="status-success">
-                    <i class="fa-solid fa-microchip"></i>
-                    <span>SISTEMA HACKEADO COM SUCESSO!</span>
+
+            <div class="on-screen-settings-panel">
+                <div class="setting-row-center">
+                    <span class="setting-label"><i class="fa-solid fa-font"></i> <span data-i18n="type_label">TIPO:</span></span>
+                    <div class="char-set-selector">
+                        <button class="charset-btn active" data-set="all" data-i18n="charset_all">MISTO (TODOS)</button>
+                        <button class="charset-btn" data-set="numeric" data-i18n="charset_numeric">Numérico</button>
+                        <button class="charset-btn" data-set="alphabet" data-i18n="charset_alphabet">Alfabeto</button>
+                        <button class="charset-btn" data-set="alphanumeric" data-i18n="charset_alphanumeric">Alfanumérico</button>
+                        <button class="charset-btn" data-set="greek" data-i18n="charset_greek">Grego</button>
+                        <button class="charset-btn" data-set="braille" data-i18n="charset_braille">Braille</button>
+                        <button class="charset-btn" data-set="runes" data-i18n="charset_runes">Runas</button>
+                        <button class="charset-btn" data-set="symbols" data-i18n="charset_symbols">Símbolos</button>
+                    </div>
                 </div>
-                <div class="status-box error-box hidden" id="status-error">
-                    <i class="fa-solid fa-bug"></i>
-                    <span>INVASÃO FALHOU! FIREWALL DETECTOU SEU IP.</span>
+
+                <div class="setting-row-center inline-settings">
+                    <div class="setting-group">
+                        <span class="setting-label"><i class="fa-solid fa-hashtags"></i> <span data-i18n="size_label">TAMANHO:</span></span>
+                        <div class="drawer-difficulty-selector flex-row-buttons">
+                            <button class="length-btn" data-length="3">3</button>
+                            <button class="length-btn active" data-length="4">4</button>
+                            <button class="length-btn" data-length="5">5</button>
+                            <button class="length-btn" data-length="6">6</button>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <span class="setting-label"><i class="fa-solid fa-stopwatch"></i> <span data-i18n="time_label">TEMPO:</span></span>
+                        <div class="drawer-difficulty-selector flex-row-buttons">
+                            <button class="time-btn" data-time="10">10s</button>
+                            <button class="time-btn" data-time="15">15s</button>
+                            <button class="time-btn active" data-time="20">20s</button>
+                            <button class="time-btn" data-time="30">30s</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="hacking-device-wrapper flex-center flex-col">
-                <div class="target-sequence-bar" id="target-matrix"></div>
-                <div class="hacking-grid-container" id="hacking-grid"></div>
+
+            <div class="top-status-banner" id="status-banner">
+                <div class="success-overlay" id="success-overlay">
+                    <div class="banner-box success-box-top">
+                        <div class="banner-text">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <strong data-i18n="hacking_success_title">ACESSO CONCEDIDO:</strong> <span id="success-message" data-i18n="hacking_success_msg">Sequência encontrada com sucesso!</span>
+                            <span class="banner-stats-inline">(Tempo: <strong id="succ-time">0.000s</strong> | Streak: <strong id="succ-streak">0</strong>)</span>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="btn-next-puzzle" data-i18n="btn_next_hack">PRÓXIMO HACK (ENTER)</button>
+                    </div>
+                </div>
+                
+                <div class="success-overlay" id="fail-overlay">
+                    <div class="banner-box fail-box-top">
+                        <div class="banner-text">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <strong data-i18n="hacking_fail_title">ACESSO NEGADO:</strong> <span id="fail-message" data-i18n="hacking_fail_msg">Sequência incorreta ou tempo esgotado.</span>
+                        </div>
+                        <button class="btn btn-danger btn-sm" id="btn-retry-puzzle" data-i18n="btn_retry">TENTAR NOVAMENTE (ENTER)</button>
+                    </div>
+                </div>
             </div>
-            <div class="hud-bottom-panel">
-                <div class="stat-card">
-                    <span class="stat-label">MODO:</span>
-                    <span class="stat-value font-mono">LOS SANTOS CYBER</span>
+
+            <div class="hacking-device-wrapper">
+                <div class="spy-icon-wrapper">
+                    <i class="fa-solid fa-user-secret spy-icon"></i>
+                </div>
+
+                <div class="host-connecting-title" data-i18n="connecting_host_text">
+                    CONECTANDO AO SERVIDOR
+                </div>
+
+                <div class="hacking-target-panel">
+                    <div class="target-code-display" id="target-code">LOADING...</div>
+                </div>
+
+                <div class="character-soup-grid" id="character-soup-grid">
+                    <!-- Gerado dinamicamente via JS -->
+                </div>
+
+                <div class="hacking-action-bar" style="margin-top: 18px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px;">
+                    <button class="btn btn-primary" id="btn-submit" style="padding: 11px 26px; font-size: 14px; font-weight: 800; border-radius: 10px; cursor: pointer;">
+                        <i class="fa-solid fa-terminal"></i> ENVIAR CÓDIGO (ENTER)
+                    </button>
+
+                    <div class="dpad-controls" style="display: flex; gap: 6px; align-items: center;">
+                        <button class="btn btn-secondary dpad-btn" id="dpad-left" title="Esquerda (A)" style="padding: 8px 14px;">◀</button>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <button class="btn btn-secondary dpad-btn" id="dpad-up" title="Cima (W)" style="padding: 6px 14px;">▲</button>
+                            <button class="btn btn-secondary dpad-btn" id="dpad-down" title="Baixo (S)" style="padding: 6px 14px;">▼</button>
+                        </div>
+                        <button class="btn btn-secondary dpad-btn" id="dpad-right" title="Direita (D)" style="padding: 8px 14px;">▶</button>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
+
 </body>
 </html>
