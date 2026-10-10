@@ -307,11 +307,27 @@ INSERT INTO public.map_locations (server_id, name, category, description, x, y, 
 ('cda-server-uuid', 'Lavanderia Ilegal Paleto', 'lavanderia_ilegal', 'Localização fixa da Lavanderia Ilegal Norte', 451, 841, '#3b82f6'),
 ('cda-server-uuid', 'Desmanche Bennys', 'desmanche', 'Localização fixa do Desmanche', 421, 188, '#10b981'),
 ('cda-server-uuid', 'Desmanche Grapeseed', 'desmanche', 'Localização fixa do Desmanche', 631, 709, '#10b981'),
-('cda-server-uuid', 'Andarilho - Grapeseed', 'local_possivel', 'Possível localização do Andarilho em Grapeseed', 670, 700, '#a78bfa'),
+('cda-server-uuid', 'Andarilho - Grapeseed Norte', 'local_possivel', 'Possível localização do Andarilho em Grapeseed', 670, 700, '#a78bfa'),
+('cda-server-uuid', 'Andarilho - Grapeseed Centro', 'local_possivel', 'Possível localização do Andarilho em Grapeseed', 520, 660, '#a78bfa'),
+('cda-server-uuid', 'Andarilho - Grapeseed Leste', 'local_possivel', 'Possível localização do Andarilho em Grapeseed', 593, 723, '#a78bfa'),
+('cda-server-uuid', 'Andarilho - Grapeseed Sul', 'local_possivel', 'Possível localização do Andarilho em Grapeseed', 570, 680, '#a78bfa'),
+('cda-server-uuid', 'Andarilho - Grapeseed Oeste', 'local_possivel', 'Possível localização do Andarilho em Grapeseed', 568, 679, '#a78bfa'),
 ('cda-server-uuid', 'Andarilho - Bennys', 'local_possivel', 'Possível localização do Andarilho em Bennys', 433, 214, '#a78bfa'),
+('cda-server-uuid', 'Andarilho - Bennys Pátio', 'local_possivel', 'Possível localização do Andarilho em Bennys', 535, 187, '#a78bfa'),
 ('cda-server-uuid', 'Andarilho - Porto Mecânica', 'local_possivel', 'Possível localização do Andarilho no Porto', 483, 64, '#a78bfa'),
-('cda-server-uuid', 'Andarilho - Praia', 'local_possivel', 'Possível localização do Andarilho na Praia', 345, 244, '#a78bfa'),
-('cda-server-uuid', 'Andarilho - Paleto Galinheiro', 'local_possivel', 'Possível localização do Andarilho no Galinheiro de Paleto', 448, 823, '#a78bfa')
+('cda-server-uuid', 'Andarilho - Porto Galpão', 'local_possivel', 'Possível localização do Andarilho no Porto', 456, 109, '#a78bfa'),
+('cda-server-uuid', 'Andarilho - Praia Calçadão', 'local_possivel', 'Possível localização do Andarilho na Praia', 345, 244, '#a78bfa'),
+('cda-server-uuid', 'Andarilho - Praia Construção', 'local_possivel', 'Ao lado da lixeira, dentro da construção cercada de madeira na praia.', 333, 238, '#a78bfa'),
+('cda-server-uuid', 'Andarilho - Praia Pier', 'local_possivel', 'Possível localização do Andarilho na Praia', 413, 188, '#a78bfa'),
+('cda-server-uuid', 'Andarilho - Paleto Galinheiro', 'local_possivel', 'Possível localização do Andarilho no Galinheiro de Paleto', 448, 823, '#a78bfa'),
+('cda-server-uuid', 'Andarilho - Paleto Posto', 'local_possivel', 'Possível localização do Andarilho em Paleto Posto', 578, 836, '#a78bfa'),
+('cda-server-uuid', 'Andarilho - Paleto Leste', 'local_possivel', 'Possível localização do Andarilho em Paleto Leste', 440, 840, '#a78bfa')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public.suggestions (server_id, nickname, type, content, status) VALUES
+('cda-server-uuid', 'Jogador_CDA', 'novo_local', 'Adicionar marcação da oficina secundária perto do aeroporto', 'em_analise'),
+('cda-server-uuid', 'FiveMFan', 'nova_funcionalidade', 'Adicionar rotação em tempo real e atalho de coordenadas', 'aceita'),
+('cda-server-uuid', 'RP_Player', 'novo_npc', 'Andarilho avistado próximo ao posto de Paleto Bay no ciclo da noite', 'implementada')
 ON CONFLICT DO NOTHING;
 
 -- 14. ATIVAÇÃO DO REALTIME

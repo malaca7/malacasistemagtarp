@@ -100,6 +100,7 @@ export interface Suggestion {
   type: SuggestionType;
   content: string;
   status: SuggestionStatus;
+  admin_notes?: string;
   created_at?: string;
   updated_at?: string;
 }

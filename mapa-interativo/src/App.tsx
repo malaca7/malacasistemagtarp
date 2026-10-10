@@ -436,7 +436,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans relative">
+    <div className="flex flex-col h-screen h-[100dvh] w-screen max-h-[100dvh] bg-slate-950 text-slate-100 overflow-hidden font-sans relative">
       {/* Toast Banner de Notificações em Tempo Real / Virada do Ciclo */}
       {toastMessage && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#00d2ff] via-[#38bdf8] to-[#2563eb] text-slate-950 font-black text-xs px-5 py-3 rounded-full shadow-[0_0_25px_rgba(0,210,255,0.6)] border border-white z-50 animate-in fade-in duration-300 flex items-center gap-2">
@@ -468,6 +468,7 @@ export const App: React.FC = () => {
           onToggleCategory={handleToggleCategory}
           onSelectOnlyCategory={handleSelectOnlyCategory}
           onSelectAllCategories={handleSelectAllCategories}
+          suggestions={suggestions}
           onAddSuggestion={handleAddSuggestion}
         />
 

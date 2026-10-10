@@ -24,6 +24,7 @@ interface SidebarProps {
   onSelectOnlyCategory?: (category: LocationCategory) => void;
   onSelectAllCategories?: () => void;
   comments?: Comment[];
+  suggestions?: Suggestion[];
   onAddComment?: (nickname: string, content: string) => Promise<boolean>;
   onAddSuggestion: (nickname: string, type: SuggestionType, content: string) => Promise<boolean>;
 }
@@ -45,9 +46,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggleCategory,
   onSelectOnlyCategory,
   onSelectAllCategories,
+  suggestions = [],
   onAddSuggestion,
 }) => {
-  const [activeTab, setActiveTab] = useState<'filters' | 'suggestions'>('filters');
+  const [activeTab, setActiveTab] = useState<'filters' | 'tickets'>('filters');
+  const [ticketView, setTicketView] = useState<'list' | 'create'>('list');
 
   // Andarilho Cycle calculation (Resets strictly at 06:00 and 18:00)
   const [cycleInfo, setCycleInfo] = useState<WandererCycleInfo>(calculateWandererCycle());
@@ -78,7 +81,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (ok) {
       setSugContent('');
       setSugSuccess(true);
-      setTimeout(() => setSugSuccess(false), 4000);
+      setTicketView('list');
+      setTimeout(() => setSugSuccess(false), 5000);
     }
   };
 
@@ -161,12 +165,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Tabs Navigation */}
-        <div className="flex border-b border-slate-800/80 bg-slate-900/50 p-1 gap-1">
+        <div className="flex border-b border-[#00d2ff]/20 bg-[#030712]/80 p-1.5 gap-1.5">
           <button
             onClick={() => setActiveTab('filters')}
             className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
               activeTab === 'filters'
-                ? 'bg-slate-800 text-[#00d2ff] border border-slate-700 shadow-sm'
+                ? 'bg-[#00d2ff]/15 text-[#38bdf8] border border-[#00d2ff]/40 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -174,15 +178,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Filtros
           </button>
           <button
-            onClick={() => setActiveTab('suggestions')}
+            onClick={() => setActiveTab('tickets')}
             className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === 'suggestions'
-                ? 'bg-slate-800 text-[#00d2ff] border border-slate-700 shadow-sm'
+              activeTab === 'tickets'
+                ? 'bg-[#00d2ff]/15 text-[#38bdf8] border border-[#00d2ff]/40 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Lightbulb className="w-3.5 h-3.5" />
-            Sugestão
+            <MessageSquare className="w-3.5 h-3.5 text-[#00d2ff]" />
+            Atendimento Ticket
+            {suggestions.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] bg-[#00d2ff]/20 text-[#38bdf8] font-mono">
+                {suggestions.length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -273,68 +282,185 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
 
 
-          {/* TAB 3: SUGGESTIONS */}
-          {activeTab === 'suggestions' && (
+          {/* TAB 2: ATENDIMENTO TICKETS */}
+          {activeTab === 'tickets' && (
             <div className="space-y-3">
+              {/* Sub-view toggle */}
+              <div className="flex bg-black/40 p-1 rounded-xl border border-slate-800 gap-1 text-[11px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => setTicketView('list')}
+                  className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    ticketView === 'list'
+                      ? 'bg-[#00d2ff]/20 text-[#38bdf8] border border-[#00d2ff]/40 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  Todos os Tickets ({suggestions.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTicketView('create')}
+                  className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    ticketView === 'create'
+                      ? 'bg-[#00d2ff]/20 text-[#38bdf8] border border-[#00d2ff]/40 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Lightbulb className="w-3.5 h-3.5" />
+                  + Abrir Ticket
+                </button>
+              </div>
+
               {sugSuccess && (
-                <div className="p-3 bg-emerald-950/60 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  Sugestão enviada com sucesso!
+                <div className="p-3 bg-emerald-950/60 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span>Ticket enviado com sucesso! Nossa equipe analisará em breve.</span>
                 </div>
               )}
 
-              <form onSubmit={handleSuggestionSubmit} className="space-y-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
-                <div>
-                  <label className="text-[10px] text-slate-400 font-bold block mb-1">NICKNAME</label>
-                  <input
-                    type="text"
-                    placeholder="Seu nome no jogo"
-                    value={sugNickname}
-                    onChange={(e) => setSugNickname(e.target.value)}
-                    maxLength={30}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500"
-                    required
-                  />
-                </div>
+              {ticketView === 'list' && (
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Tickets Registrados ({suggestions.length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setTicketView('create')}
+                      className="text-[10px] text-[#38bdf8] hover:underline font-bold"
+                    >
+                      + Novo Ticket
+                    </button>
+                  </div>
 
-                <div>
-                  <label className="text-[10px] text-slate-400 font-bold block mb-1">TIPO DE SUGESTÃO</label>
-                  <select
-                    value={sugType}
-                    onChange={(e) => setSugType(e.target.value as SuggestionType)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
-                  >
-                    <option value="novo_npc">Novo NPC / Andarilho</option>
-                    <option value="novo_local">Novo Local</option>
-                    <option value="correcao_localizacao">Correção de Coordenada</option>
-                    <option value="alteracao_informacao">Alterar Informação</option>
-                    <option value="nova_funcionalidade">Nova Funcionalidade</option>
-                    <option value="outro">Outro</option>
-                  </select>
-                </div>
+                  {suggestions.length === 0 ? (
+                    <div className="text-center py-8 px-4 bg-slate-900/40 rounded-xl border border-slate-800">
+                      <MessageSquare className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                      <p className="text-xs font-bold text-slate-300 mb-1">Nenhum ticket aberto no momento</p>
+                      <p className="text-[11px] text-slate-500 mb-3">Seja o primeiro a enviar uma sugestão, dúvida ou reportar um local!</p>
+                      <button
+                        type="button"
+                        onClick={() => setTicketView('create')}
+                        className="px-3 py-1.5 bg-[#00d2ff]/20 border border-[#00d2ff]/40 text-[#38bdf8] text-xs font-bold rounded-lg hover:bg-[#00d2ff]/30 transition-all"
+                      >
+                        Abrir Ticket de Atendimento
+                      </button>
+                    </div>
+                  ) : (
+                    suggestions.map((ticket) => {
+                      const statusMap: Record<string, { label: string; color: string }> = {
+                        nova: { label: 'NOVO', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
+                        em_analise: { label: 'EM ANÁLISE', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
+                        aceita: { label: 'ACEITO', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
+                        implementada: { label: 'RESOLVIDO', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
+                        recusada: { label: 'RECUSADO', color: 'bg-red-500/20 text-red-300 border-red-500/40' },
+                      };
+                      const st = statusMap[ticket.status] || { label: String(ticket.status).toUpperCase(), color: 'bg-slate-800 text-slate-300 border-slate-700' };
 
-                <div>
-                  <label className="text-[10px] text-slate-400 font-bold block mb-1">DESCRIÇÃO DA SUGESTÃO</label>
-                  <textarea
-                    placeholder="Explique detalhadamente sua sugestão..."
-                    value={sugContent}
-                    onChange={(e) => setSugContent(e.target.value)}
-                    maxLength={1000}
-                    rows={4}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500 resize-none"
-                    required
-                  />
-                </div>
+                      return (
+                        <div
+                          key={ticket.id}
+                          className="bg-[#030712]/80 p-3 rounded-xl border border-slate-800 hover:border-[#00d2ff]/30 transition-all space-y-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold text-white text-xs truncate">
+                              {ticket.nickname || 'Anônimo'}
+                            </span>
+                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${st.color}`}>
+                              {st.label}
+                            </span>
+                          </div>
 
-                <button
-                  type="submit"
-                  disabled={sugSubmitting}
-                  className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md shadow-purple-600/20 disabled:opacity-50"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Enviar Sugestão
-                </button>
-              </form>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                            <span className="bg-slate-800 px-1.5 py-0.5 rounded text-[#7dd3fc]">
+                              {ticket.type.replace('_', ' ').toUpperCase()}
+                            </span>
+                            <span>•</span>
+                            <span>{ticket.created_at ? new Date(ticket.created_at).toLocaleDateString('pt-BR') : 'Recente'}</span>
+                          </div>
+
+                          <p className="text-xs text-slate-300 leading-relaxed bg-black/30 p-2 rounded-lg border border-slate-900">
+                            {ticket.content}
+                          </p>
+
+                          {ticket.admin_notes && (
+                            <div className="text-[11px] text-[#38bdf8] bg-[#00d2ff]/10 border border-[#00d2ff]/20 p-2 rounded-lg">
+                              <span className="font-bold block text-[10px] uppercase text-[#00d2ff]">Resposta da Administração:</span>
+                              {ticket.admin_notes}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
+              {ticketView === 'create' && (
+                <form onSubmit={handleSuggestionSubmit} className="space-y-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block mb-1">NICKNAME / SEU NOME</label>
+                    <input
+                      type="text"
+                      placeholder="Seu nome ou apelido no jogo"
+                      value={sugNickname}
+                      onChange={(e) => setSugNickname(e.target.value)}
+                      maxLength={30}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-[#00d2ff]"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block mb-1">TIPO DE ATENDIMENTO</label>
+                    <select
+                      value={sugType}
+                      onChange={(e) => setSugType(e.target.value as SuggestionType)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-[#00d2ff]"
+                    >
+                      <option value="novo_npc">Dúvida / Atendimento Geral</option>
+                      <option value="novo_local">Novo Local / Marcação</option>
+                      <option value="correcao_localizacao">Correção de Coordenada / Bug</option>
+                      <option value="alteracao_informacao">Alterar Informação</option>
+                      <option value="nova_funcionalidade">Sugestão de Funcionalidade</option>
+                      <option value="outro">Outro Motivo</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block mb-1">MENSAGEM / DETALHES</label>
+                    <textarea
+                      placeholder="Explique sua dúvida, problema ou sugestão em detalhes..."
+                      value={sugContent}
+                      onChange={(e) => setSugContent(e.target.value)}
+                      maxLength={1000}
+                      rows={4}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-[#00d2ff] resize-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTicketView('list')}
+                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold transition-all"
+                    >
+                      Voltar à Lista
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={sugSubmitting}
+                      className="flex-1 py-2 bg-gradient-to-r from-[#0284c7] via-[#00d2ff] to-[#38bdf8] hover:brightness-110 text-slate-950 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-md shadow-[#00d2ff]/20 disabled:opacity-50"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                      {sugSubmitting ? 'Enviando...' : 'Enviar Ticket de Atendimento'}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           )}
         </div>

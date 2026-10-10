@@ -66,7 +66,7 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
 
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 md:left-auto md:top-20 md:right-6 md:bottom-auto w-full md:w-96 bg-[#060d1a]/95 backdrop-blur-xl border border-[#00d2ff]/30 rounded-t-3xl md:rounded-2xl shadow-2xl z-40 p-5 space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+    <div className="fixed bottom-0 left-0 right-0 md:left-auto md:top-20 md:right-6 md:bottom-auto w-full md:w-96 bg-[#060d1a]/95 backdrop-blur-xl border border-[#00d2ff]/30 rounded-t-3xl md:rounded-2xl shadow-2xl z-40 p-4 sm:p-5 space-y-3 max-h-[46vh] md:max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
       {/* Mobile Drag Handle */}
       <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto -mt-1 mb-1 md:hidden" />
 

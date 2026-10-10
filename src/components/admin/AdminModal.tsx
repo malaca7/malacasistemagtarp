@@ -916,8 +916,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Sparkles className="w-4 h-4 text-[#38bdf8]" />
-                Sugestões ({suggestions.length})
+                <MessageSquare className="w-4 h-4 text-[#38bdf8]" />
+                Atendimento Tickets ({suggestions.length})
               </button>
             </div>
 
@@ -1738,10 +1738,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 );
               })()}
 
-              {/* TAB 7: SUGESTÕES */}
+              {/* TAB 7: ATENDIMENTO TICKETS */}
               {activeTab === 'suggestions' && (
                 <div className="space-y-4">
-                  <h4 className="font-bold text-white text-sm">Sugestões Enviadas ({suggestions.length})</h4>
+                  <h4 className="font-bold text-white text-sm">Tickets de Atendimento & Suporte ({suggestions.length})</h4>
                   <div className="space-y-2">
                     {suggestions.length === 0 ? (
                       <div className="p-8 text-center text-xs text-slate-500 font-semibold bg-[#060d1a] rounded-xl border border-slate-800">

@@ -127,6 +127,9 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     const map = L.map(containerRef.current, {
       crs: L.CRS.Simple,
       maxZoom: 4,
+      zoomSnap: 0.25,
+      zoomDelta: 0.5,
+      wheelPxPerZoomLevel: 100,
       maxBounds: extendedBounds,
       maxBoundsViscosity: 0.4,
       zoomControl: false,
@@ -148,7 +151,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     const updateZoomLimits = () => {
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
       const fitZoom = map.getBoundsZoom(bounds, false);
-      const minZoom = isMobile ? fitZoom - 0.4 : fitZoom;
+      const minZoom = isMobile ? fitZoom - 0.25 : fitZoom;
       map.setMinZoom(minZoom);
       if (map.getZoom() < minZoom) {
         map.setZoom(minZoom);
@@ -165,20 +168,31 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     map.fitBounds(bounds);
     updateZoomLimits();
 
+    // Guarantee exact size calculation on mobile layout stabilization
+    const sizeTimer = setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+        updateZoomLimits();
+      }
+    }, 150);
+
     map.on('resize', handleResize);
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', handleResize);
       window.addEventListener('orientationchange', handleResize);
     }
 
-    // Track mouse movement for live X/Y GTA coordinates
-    map.on('mousemove', (e: L.LeafletMouseEvent) => {
-      const x = Math.round(e.latlng.lng);
-      const y = Math.round(e.latlng.lat);
+    // Track mouse & touch movements for live X/Y GTA coordinates
+    const updateCoords = (latlng: L.LatLng) => {
+      const x = Math.round(latlng.lng);
+      const y = Math.round(latlng.lat);
       if (x >= 0 && x <= 1000 && y >= 0 && y <= 1000) {
         setHoverCoords({ x, y });
       }
-    });
+    };
+
+    map.on('mousemove', (e: L.LeafletMouseEvent) => updateCoords(e.latlng));
+    map.on('click', (e: L.LeafletMouseEvent) => updateCoords(e.latlng));
 
     const markersGroup = L.layerGroup().addTo(map);
     markersGroupRef.current = markersGroup;
@@ -327,7 +341,16 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         }
         onSelectLocation(loc);
         if (mapRef.current) {
-          mapRef.current.setView([loc.y, loc.x], Math.max(mapRef.current.getZoom(), 2), { animate: true });
+          const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+          const targetZoom = Math.max(mapRef.current.getZoom(), 2);
+          mapRef.current.setView([loc.y, loc.x], targetZoom, { animate: true });
+          if (isMobile) {
+            setTimeout(() => {
+              if (mapRef.current) {
+                mapRef.current.panBy([0, window.innerHeight * 0.16], { animate: true, duration: 0.25 });
+              }
+            }, 100);
+          }
         }
       };
 
@@ -348,7 +371,17 @@ export const MapContainer: React.FC<MapContainerProps> = ({
 
   const handleSelectSearchResult = (loc: MapLocation) => {
     onSelectLocation(loc);
-    mapRef.current?.setView([loc.y, loc.x], 2);
+    if (mapRef.current) {
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      mapRef.current.setView([loc.y, loc.x], 2, { animate: true });
+      if (isMobile) {
+        setTimeout(() => {
+          if (mapRef.current) {
+            mapRef.current.panBy([0, window.innerHeight * 0.16], { animate: true, duration: 0.25 });
+          }
+        }, 100);
+      }
+    }
     setSearchQuery('');
     setSearchOpen(false);
   };
@@ -425,19 +458,19 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       )}
 
       {/* TOP LEFT: Quick Search & Filter Bar */}
-      <div className="absolute top-4 left-4 z-20 w-64 md:w-80">
+      <div className="absolute top-4 left-4 z-20 w-52 sm:w-64 md:w-80 max-w-[calc(100vw-8.5rem)]">
         <div className="relative">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
-            placeholder="Buscar pontos no mapa..."
+            placeholder="Buscar pontos..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               setSearchOpen(true);
             }}
             onFocus={() => setSearchOpen(true)}
-            className="w-full bg-[#030712]/90 backdrop-blur-md border border-[#00d2ff]/25 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00d2ff] shadow-2xl transition-all"
+            className="w-full bg-[#030712]/90 backdrop-blur-md border border-[#00d2ff]/25 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00d2ff] shadow-2xl transition-all"
           />
 
           {/* Search Dropdown Results */}
@@ -467,12 +500,12 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       {hoverCoords && (
         <div
           onClick={handleCopyHoverCoords}
-          className="absolute top-4 right-4 z-20 bg-[#030712]/90 backdrop-blur-md border border-[#00d2ff]/30 px-3.5 py-1.5 rounded-xl shadow-2xl flex items-center gap-2 cursor-pointer hover:border-[#00d2ff] transition-all text-xs font-mono text-slate-300 group"
+          className="absolute top-4 right-4 z-20 bg-[#030712]/90 backdrop-blur-md border border-[#00d2ff]/30 px-2.5 sm:px-3.5 py-1.5 rounded-xl shadow-2xl flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:border-[#00d2ff] transition-all text-[11px] sm:text-xs font-mono text-slate-300 group"
           title="Clique para copiar coordenadas GTA"
         >
           <Crosshair className="w-3.5 h-3.5 text-[#00d2ff] group-hover:animate-spin" />
-          <span>X: <strong className="text-white">{hoverCoords.x}</strong> | Y: <strong className="text-white">{hoverCoords.y}</strong></span>
-          <Copy className="w-3 h-3 text-slate-500 group-hover:text-[#38bdf8] transition-colors ml-1" />
+          <span><strong className="text-white">{hoverCoords.x}</strong>, <strong className="text-white">{hoverCoords.y}</strong></span>
+          <Copy className="w-3 h-3 text-slate-500 group-hover:text-[#38bdf8] transition-colors ml-0.5 hidden sm:inline" />
         </div>
       )}
 
