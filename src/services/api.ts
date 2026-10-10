@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Server, System, MapLocation, Comment, Suggestion, SuggestionType, SuggestionStatus, UserProfile, AccessLog, PlatformSettings, ConfirmedUser } from '../types';
+import type { Server, System, MapLocation, Comment, Suggestion, SuggestionType, SuggestionStatus, UserProfile, PlatformSettings, ConfirmedUser } from '../types';
 import { getAnonymousUserId } from '../utils/anonymousId';
 import {
   calculateWandererCycle,
@@ -981,61 +981,151 @@ export const ApiService = {
   async updateProfile(id: string, updates: Partial<UserProfile>): Promise<boolean> {
     RealtimeSync.broadcastEntityChange('profiles', 'UPDATE', updates, id);
 
+    // 1. Tentar atualizar no Supabase
     try {
-      const { error } = await supabase.from('profiles').update(updates).eq('id', id);
-      if (!error) {
-        try {
-          const cached = localStorage.getItem('malaca_cached_profiles');
-          if (cached) {
-            const list: UserProfile[] = JSON.parse(cached);
-            const updated = list.map(u => u.id === id ? { ...u, ...updates } : u);
-            localStorage.setItem('malaca_cached_profiles', JSON.stringify(updated));
+      await supabase.from('profiles').update(updates).eq('id', id);
+    } catch (e) {
+      console.warn('Supabase updateProfile warn:', e);
+    }
+
+    // 2. Garantir sincronização imediata no cache de perfis
+    try {
+      const cached = localStorage.getItem('malaca_cached_profiles');
+      let targetDiscordId = '';
+      if (cached) {
+        const list: UserProfile[] = JSON.parse(cached);
+        const updated = list.map(u => {
+          if (u.id === id || u.discord_id === id) {
+            targetDiscordId = u.discord_id || targetDiscordId;
+            return { ...u, ...updates };
           }
-          const myProfile = localStorage.getItem('malaca_user_profile');
-          if (myProfile) {
-            const parsed = JSON.parse(myProfile);
-            if (parsed.id === id) {
-              localStorage.setItem('malaca_user_profile', JSON.stringify({ ...parsed, ...updates }));
-            }
-          }
-        } catch {}
-        return true;
+          return u;
+        });
+        localStorage.setItem('malaca_cached_profiles', JSON.stringify(updated));
       }
-    } catch {}
-    return false;
+
+      // Se for a conta da sessão ativa
+      const myProfile = localStorage.getItem('malaca_user_profile');
+      if (myProfile) {
+        const parsed = JSON.parse(myProfile);
+        if (parsed.id === id || parsed.discord_id === id) {
+          targetDiscordId = parsed.discord_id || targetDiscordId;
+          const merged = { ...parsed, ...updates };
+          localStorage.setItem('malaca_user_profile', JSON.stringify(merged));
+        }
+      }
+
+      // Gerenciar listas especiais de Admin e Banidos
+      const targetIdToSync = targetDiscordId || id;
+
+      // Gestão de Cargo Admin
+      if (updates.is_admin === true || (updates.role as string) === 'admin') {
+        const admins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+        if (!admins.includes(targetIdToSync)) {
+          admins.push(targetIdToSync);
+          localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(admins));
+        }
+      } else if (updates.is_admin === false || ((updates.role as string) && (updates.role as string) !== 'admin')) {
+        const admins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+        const filtered = admins.filter((a: string) => a !== targetIdToSync && a !== id);
+        localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(filtered));
+      }
+
+      // Gestão de Banimento
+      if (updates.is_banned === true) {
+        const banned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
+        if (!banned.includes(targetIdToSync)) {
+          banned.push(targetIdToSync);
+          localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(banned));
+        }
+      } else if (updates.is_banned === false) {
+        const banned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
+        const filtered = banned.filter((b: string) => b !== targetIdToSync && b !== id);
+        localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(filtered));
+      }
+    } catch (err) {
+      console.warn('Local updateProfile sync error:', err);
+    }
+
+    return true;
   },
 
   async deleteProfile(id: string): Promise<boolean> {
     RealtimeSync.broadcastEntityChange('profiles', 'DELETE', undefined, id);
-    try {
-      const { error } = await supabase.from('profiles').delete().eq('id', id);
-      return !error;
-    } catch {
-      return false;
-    }
-  },
 
-  // --- Access Logs ---
-  async fetchAccessLogs(limitCount: number = 50): Promise<AccessLog[]> {
+    // 1. Tentar deletar no Supabase
     try {
-      const { data, error } = await supabase
-        .from('access_logs')
-        .select('*')
-        .order('logged_at', { ascending: false })
-        .limit(limitCount);
-      if (!error && Array.isArray(data)) {
-        return data;
-      }
+      await supabase.from('profiles').delete().eq('id', id);
     } catch (e) {
-      console.warn('fetchAccessLogs error:', e);
+      console.warn('Supabase deleteProfile warn:', e);
     }
-    return [];
+
+    // 2. Remover do cache e de todas as listas locais
+    try {
+      const cached = localStorage.getItem('malaca_cached_profiles');
+      if (cached) {
+        const list: UserProfile[] = JSON.parse(cached);
+        const filtered = list.filter(u => u.id !== id && u.discord_id !== id);
+        localStorage.setItem('malaca_cached_profiles', JSON.stringify(filtered));
+      }
+
+      const admins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+      const filteredAdmins = admins.filter((a: string) => a !== id);
+      localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(filteredAdmins));
+
+      const banned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
+      const filteredBanned = banned.filter((b: string) => b !== id);
+      localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(filteredBanned));
+
+      const myProfile = localStorage.getItem('malaca_user_profile');
+      if (myProfile) {
+        const parsed = JSON.parse(myProfile);
+        if (parsed.id === id || parsed.discord_id === id) {
+          localStorage.removeItem('malaca_user_profile');
+        }
+      }
+    } catch {}
+
+    return true;
   },
 
-  async clearAccessLogs(): Promise<boolean> {
+  // --- Wanderer Points Management ---
+  async forceConfirmWandererLocation(locationId: string, serverId: string = 'cda-server-uuid', adminUsername: string = 'Administrador'): Promise<boolean> {
+    const cycleState = getLocalWandererCycleState();
+    const nowIso = new Date().toISOString();
+
+    const updatedCounts = { ...(cycleState.counts || {}), [locationId]: (cycleState.counts?.[locationId] || 0) + 10 };
+    const updatedLatest = {
+      ...(cycleState.latestConfirmations || {}),
+      [locationId]: {
+        username: `@${adminUsername}`,
+        confirmed_at: nowIso,
+      },
+    };
+
+    saveLocalWandererCycleState({
+      ...cycleState,
+      counts: updatedCounts,
+      latestConfirmations: updatedLatest,
+      userConfirmedIds: Array.from(new Set([...cycleState.userConfirmedIds, locationId])),
+    });
+
+    RealtimeSync.broadcastEntityChange('locations', 'UPDATE', {
+      location_id: locationId,
+      server_id: serverId,
+      username: adminUsername,
+      confirmed_at: nowIso,
+    });
+
     try {
-      await supabase.from('access_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('wanderer_confirmations').insert([{
+        location_id: locationId,
+        anonymous_user_id: `@${adminUsername}`,
+        username: adminUsername,
+        created_at: nowIso,
+      }]);
     } catch {}
+
     return true;
   },
 

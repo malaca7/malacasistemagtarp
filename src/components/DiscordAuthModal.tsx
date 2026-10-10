@@ -292,19 +292,6 @@ export const DiscordAuthModal: React.FC<DiscordAuthModalProps> = ({
               </div>
             </div>
 
-            {/* Access Logs Summary */}
-            <div className="p-3 rounded-xl bg-slate-950/80 border border-[#00d2ff]/20 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                <div>
-                  <span className="text-xs font-bold text-white block">Sessões Registradas</span>
-                  <span className="text-[10px] text-slate-400">Total de logins salvos no Supabase</span>
-                </div>
-              </div>
-              <span className="px-3 py-1 bg-[#00d2ff]/20 text-[#38bdf8] font-black text-sm rounded-lg border border-[#00d2ff]/30">
-                {user.access_count || 1} acessos
-              </span>
-            </div>
 
             {/* Logout Button */}
             <button

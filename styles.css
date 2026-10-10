@@ -2579,131 +2579,342 @@ body {
     font-size: clamp(0.62rem, 1vh, 0.72rem) !important;
 }
 
-/* Hacking Device Main Card Container */
-.hacking-device-wrapper {
+/* ==========================================================================
+   AUTHENTIC GTA RP CYBERDECK HACKING DEVICE
+   ========================================================================== */
+.hacking-cyberdeck-container {
+    position: relative !important;
+    width: min(540px, 94vw) !important;
+    aspect-ratio: 646 / 895 !important;
+    background: url('/images/hacking_device.png') center / contain no-repeat !important;
+    margin: 0 auto !important;
+    filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.9)) !important;
+    user-select: none !important;
+}
+
+/* Tela Roxa CRT perfeitamente encaixada na moldura do aparelho físico */
+.cyberdeck-screen {
+    position: absolute !important;
+    top: 17.2% !important;
+    left: 18.2% !important;
+    width: 61.8% !important;
+    height: 56.4% !important;
+    background: #1c102b !important;
+    border-radius: 4px !important;
+    overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    width: 100% !important;
-    max-width: 580px !important;
-    background: #171d26 !important;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
-    border-radius: 12px !important;
-    padding: clamp(6px, 1.2vh, 14px) clamp(8px, 1.2vw, 16px) !important;
-    position: relative !important;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
-    margin: 0 auto !important;
-}
-
-/* Spy Silhouette Icon */
-.spy-icon-wrapper {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    margin-bottom: clamp(1px, 0.3vh, 4px) !important;
-}
-
-.spy-icon {
-    font-size: clamp(1.6rem, 3.4vh, 2.4rem) !important;
-    color: #c5cedb !important;
-    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5)) !important;
-}
-
-/* Host Connecting Title */
-.host-connecting-title {
-    font-family: var(--font-header) !important;
-    font-size: clamp(0.6rem, 1vh, 0.72rem) !important;
-    font-weight: 800 !important;
-    letter-spacing: 1.5px !important;
-    color: #ffffff !important;
-    margin-bottom: clamp(2px, 0.4vh, 5px) !important;
-    text-transform: uppercase !important;
-}
-
-/* Target Code Display */
-.hacking-target-panel {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    margin-bottom: clamp(2px, 0.4vh, 6px) !important;
-    padding: 0 !important;
-    width: 100% !important;
-    display: flex !important;
-    justify-content: center !important;
-}
-
-.target-code-display {
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.85) !important;
+    padding: clamp(6px, 1.1vh, 10px) clamp(8px, 1.2vw, 12px) !important;
+    box-sizing: border-box !important;
     font-family: 'Inter', monospace, sans-serif !important;
-    font-size: clamp(1rem, 2vh, 1.4rem) !important;
-    font-weight: 700 !important;
-    color: #ffffff !important;
-    letter-spacing: clamp(4px, 0.7vw, 8px) !important;
-    text-shadow: 0 0 12px rgba(255, 255, 255, 0.5) !important;
-    text-align: center !important;
 }
 
-/* Character Soup Grid (8x10 Matrix) */
-.character-soup-grid {
+/* Scanlines sutil da tela CRT */
+.cyberdeck-screen::before {
+    content: " ";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    background-size: 100% 3px, 6px 100%;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0.6;
+}
+
+/* Header do Cyberdeck Boosting */
+.cyberdeck-header {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    padding-bottom: clamp(3px, 0.6vh, 6px) !important;
+    border-bottom: 1px solid rgba(168, 85, 247, 0.35) !important;
+    margin-bottom: clamp(3px, 0.6vh, 6px) !important;
+    z-index: 2 !important;
+}
+
+.cyberdeck-header-top {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-size: clamp(9px, 1.3vw, 11px) !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.8px !important;
+    font-family: monospace !important;
+}
+
+.cyberdeck-path {
+    color: #eab308 !important; /* Amarelo dourado */
+}
+
+.cyberdeck-mode {
+    color: #f59e0b !important;
+    font-size: clamp(8px, 1.1vw, 10px) !important;
+}
+
+.cyberdeck-conn {
+    color: #06b6d4 !important; /* Ciano neon */
+    font-size: clamp(8px, 1.1vw, 9.5px) !important;
+    font-weight: 700 !important;
+    font-family: monospace !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* Linha do CODE e Timer */
+.cyberdeck-code-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: clamp(2px, 0.4vh, 4px) !important;
+}
+
+.cyberdeck-code-label {
+    color: #10b981 !important; /* Verde neon */
+    font-weight: 900 !important;
+    font-size: clamp(10px, 1.4vw, 13px) !important;
+    letter-spacing: 1px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.cyberdeck-target-code {
+    color: #67e8f9 !important; /* Ciano claro / Branco */
+    font-family: monospace, sans-serif !important;
+    font-size: clamp(11px, 1.6vw, 15px) !important;
+    font-weight: 900 !important;
+    letter-spacing: clamp(4px, 0.8vw, 8px) !important;
+    text-shadow: 0 0 10px rgba(103, 232, 249, 0.7) !important;
+}
+
+/* Timer digital com caixa vermelha */
+.cyberdeck-timer-box {
+    border: 1px solid #ef4444 !important;
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #ff3344 !important;
+    font-family: monospace, 'Courier New' !important;
+    font-weight: 900 !important;
+    font-size: clamp(11px, 1.5vw, 14px) !important;
+    padding: 2px 7px !important;
+    letter-spacing: 1px !important;
+    text-shadow: 0 0 8px rgba(255, 51, 68, 0.8) !important;
+    border-radius: 2px !important;
+}
+
+/* Grid de Caracteres 8x10 */
+.cyberdeck-matrix-grid {
     display: grid !important;
     grid-template-columns: repeat(10, 1fr) !important;
-    gap: clamp(1px, 0.3vh, 3px) clamp(2px, 0.3vw, 4px) !important;
+    gap: clamp(1px, 0.3vh, 3px) clamp(1px, 0.3vw, 3px) !important;
     width: 100% !important;
-    max-width: 480px !important;
-    margin: 0 auto !important;
-    padding: clamp(2px, 0.3vh, 4px) 0 !important;
-    background: transparent !important;
-    border: none !important;
+    flex: 1 !important;
+    align-content: space-between !important;
     justify-content: center !important;
-    justify-items: center !important;
-    align-items: center !important;
+    z-index: 2 !important;
+    padding: 2px 0 !important;
 }
 
-.char-cell {
-    aspect-ratio: 1 / 1 !important;
-    max-height: clamp(18px, 2.9vh, 26px) !important;
+.cyberdeck-cell {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    background: transparent !important;
-    border: 1px solid transparent !important;
     color: #cbd5e1 !important;
     font-family: monospace, 'Courier New', sans-serif !important;
-    font-size: clamp(0.7rem, 1.3vh, 0.92rem) !important;
-    font-weight: bold !important;
+    font-size: clamp(8.5px, 1.3vw, 12px) !important;
+    font-weight: 800 !important;
     cursor: pointer !important;
+    padding: 1px 0 !important;
+    border-radius: 2px !important;
+    transition: all 0.08s ease !important;
+    text-shadow: 0 0 3px rgba(203, 213, 225, 0.4) !important;
+    letter-spacing: -0.5px !important;
+}
+
+/* Cursor do jogador na matriz */
+.cyberdeck-cell.selected-cursor {
+    background: rgba(6, 182, 212, 0.25) !important;
+    color: #38bdf8 !important;
+    box-shadow: inset 0 0 0 1px #38bdf8, 0 0 8px rgba(56, 189, 248, 0.4) !important;
+    text-shadow: 0 0 8px #38bdf8 !important;
+}
+
+.cyberdeck-cell.selected-cursor-head {
+    background: rgba(6, 182, 212, 0.45) !important;
+    color: #ffffff !important;
+}
+
+/* Acerto / Sucesso na matriz */
+.cyberdeck-cell.success-cell {
+    background: rgba(34, 197, 94, 0.35) !important;
+    color: #22c55e !important;
+    box-shadow: inset 0 0 0 1px #22c55e, 0 0 12px rgba(34, 197, 94, 0.8) !important;
+    text-shadow: 0 0 10px #22c55e !important;
+}
+
+/* Erro / Falha na matriz */
+.cyberdeck-cell.fail-cell {
+    background: rgba(239, 68, 68, 0.35) !important;
+    color: #ef4444 !important;
+    box-shadow: inset 0 0 0 1px #ef4444, 0 0 10px rgba(239, 68, 68, 0.7) !important;
+}
+
+/* Overlays de Status dentro da tela roxa (GTA RP Autêntico) */
+.cyberdeck-status-overlay {
+    position: absolute !important;
+    bottom: 6% !important;
+    left: 4% !important;
+    right: 4% !important;
+    display: none !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+    z-index: 10 !important;
+}
+
+.cyberdeck-status-overlay.show {
+    display: flex !important;
+    animation: cyberFadeIn 0.2s ease-out !important;
+}
+
+@keyframes cyberFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.cyberdeck-status-banner {
+    width: 100% !important;
+    padding: 6px 10px !important;
+    text-align: center !important;
+    font-family: monospace !important;
+    font-weight: 900 !important;
+    font-size: clamp(9px, 1.3vw, 11px) !important;
+    letter-spacing: 2px !important;
+    box-sizing: border-box !important;
+}
+
+.cyberdeck-status-banner.fail {
+    background: #e2e8f0 !important;
+    color: #b91c1c !important;
+    border-top: 1.5px solid #ef4444 !important;
+    border-bottom: 1.5px solid #ef4444 !important;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.5) !important;
+}
+
+.cyberdeck-status-banner.success {
+    background: #f0fdf4 !important;
+    color: #15803d !important;
+    border-top: 1.5px solid #22c55e !important;
+    border-bottom: 1.5px solid #22c55e !important;
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.5) !important;
+}
+
+.cyberdeck-action-btn {
+    background: #000000 !important;
+    border: 1.5px solid #00d2ff !important;
+    color: #00d2ff !important;
+    font-family: monospace !important;
+    font-weight: 900 !important;
+    font-size: clamp(10px, 1.4vw, 12px) !important;
+    padding: 5px 18px !important;
+    letter-spacing: 2px !important;
+    cursor: pointer !important;
+    box-shadow: 0 0 12px rgba(0, 210, 255, 0.4) !important;
+    transition: all 0.15s ease !important;
+    border-radius: 2px !important;
+}
+
+.cyberdeck-action-btn:hover {
+    background: #00d2ff !important;
+    color: #000000 !important;
+    box-shadow: 0 0 20px rgba(0, 210, 255, 0.8) !important;
+}
+
+/* D-Pad Hitboxes sobre a imagem física */
+.cyberdeck-dpad-hitbox {
+    position: absolute !important;
+    cursor: pointer !important;
+    background: rgba(255, 255, 255, 0.001) !important;
+    border-radius: 50% !important;
+    transition: background 0.1s, transform 0.1s !important;
+    z-index: 10 !important;
+}
+
+.cyberdeck-dpad-hitbox:hover {
+    background: rgba(0, 210, 255, 0.25) !important;
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.6) !important;
+}
+
+.cyberdeck-dpad-hitbox:active {
+    background: rgba(0, 210, 255, 0.5) !important;
+    transform: scale(0.9) !important;
+}
+
+.dpad-hit-up {
+    top: 79.5% !important;
+    left: 20.2% !important;
+    width: 6% !important;
+    height: 4.8% !important;
+}
+
+.dpad-hit-down {
+    top: 88.5% !important;
+    left: 20.2% !important;
+    width: 6% !important;
+    height: 4.8% !important;
+}
+
+.dpad-hit-left {
+    top: 84.0% !important;
+    left: 13.5% !important;
+    width: 6% !important;
+    height: 4.8% !important;
+}
+
+.dpad-hit-right {
+    top: 84.0% !important;
+    left: 26.8% !important;
+    width: 6% !important;
+    height: 4.8% !important;
+}
+
+/* Botão Enter / Submeter na placa metálica inferior direita */
+.cyberdeck-plate-hitbox {
+    position: absolute !important;
+    top: 76.5% !important;
+    left: 53.5% !important;
+    width: 27% !important;
+    height: 11.5% !important;
+    cursor: pointer !important;
+    background: rgba(255, 255, 255, 0.001) !important;
     border-radius: 4px !important;
-    transition: all 0.1s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 10 !important;
+    transition: background 0.15s, box-shadow 0.15s !important;
 }
 
-.char-cell.selected-cursor {
-    background: rgba(0, 229, 255, 0.25) !important;
-    border-color: #00e5ff !important;
-    color: #ffffff !important;
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.4) !important;
+.cyberdeck-plate-hitbox:hover {
+    background: rgba(0, 210, 255, 0.15) !important;
+    box-shadow: 0 0 15px rgba(0, 210, 255, 0.4) !important;
 }
 
-.char-cell.selected-cursor-head {
-    background: rgba(0, 229, 255, 0.45) !important;
-    border-color: #00e5ff !important;
-    color: #ffffff !important;
+.cyberdeck-plate-hitbox:active {
+    background: rgba(0, 210, 255, 0.3) !important;
 }
 
-/* Action Bar */
-.hacking-action-bar {
-    margin-top: clamp(4px, 0.8vh, 8px) !important;
-    gap: clamp(4px, 0.7vw, 8px) !important;
+.cyberdeck-plate-hint {
+    color: rgba(255, 255, 255, 0.4) !important;
+    font-family: monospace !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    letter-spacing: 1px !important;
+    pointer-events: none !important;
+    transition: color 0.15s !important;
 }
 
-.hacking-action-bar .btn-primary {
-    padding: clamp(4px, 0.8vh, 8px) clamp(10px, 1.5vw, 18px) !important;
-    font-size: clamp(0.68rem, 1.1vh, 0.8rem) !important;
-}
-
-.dpad-btn {
-    padding: clamp(3px, 0.5vh, 5px) clamp(6px, 0.9vw, 9px) !important;
-    font-size: clamp(0.65rem, 1vh, 0.75rem) !important;
+.cyberdeck-plate-hitbox:hover .cyberdeck-plate-hint {
+    color: #00d2ff !important;
 }
 
 /* ==========================================================================

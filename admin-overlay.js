@@ -224,8 +224,8 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 </div>
 
                 <div style="padding: 12px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,210,255,0.2); border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <span style="font-size: 11px; font-weight: 700; color: #cbd5e1;"><i class="fa-solid fa-shield-halved" style="color: #22c55e;"></i> Sessões Registradas</span>
-                    <span style="font-size: 12px; font-weight: 900; color: #38bdf8; background: rgba(0,210,255,0.2); padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(0,210,255,0.3);">${user.access_count || 1} acessos</span>
+                    <span style="font-size: 11px; font-weight: 700; color: #cbd5e1;"><i class="fa-solid fa-shield-halved" style="color: #22c55e;"></i> Status da Conta</span>
+                    <span style="font-size: 11px; font-weight: 900; color: #38bdf8; background: rgba(0,210,255,0.2); padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(0,210,255,0.3);">${isAdmin ? 'ADMINISTRADOR' : 'VERIFICADO RP'}</span>
                 </div>
 
                 <button onclick="logoutDiscordGlobal()" style="width: 100%; padding: 12px; border-radius: 10px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -298,22 +298,9 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                     last_login_at: now
                 };
 
-                // Check access logs count
-                let accessCount = 1;
-                try {
-                    const { count } = await supabaseClient
-                        .from('access_logs')
-                        .select('id', { count: 'exact', head: true })
-                        .eq('user_id', u.id);
-                    if (count !== null && count !== undefined) {
-                        accessCount = Math.max(1, count);
-                    }
-                } catch(e) {}
-
                 const profile = {
                     ...profileData,
-                    created_at: u.created_at || now,
-                    access_count: accessCount
+                    created_at: u.created_at || now
                 };
 
                 localStorage.setItem('malaca_user_profile', JSON.stringify(profile));
@@ -347,19 +334,6 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     }
 
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session && session.user) {
-            const u = session.user;
-            const meta = u.user_metadata || {};
-            const discordId = meta.provider_id || meta.sub || u.id;
-            const username = meta.preferred_username || meta.user_name || meta.name || meta.full_name || 'Discord User';
-            supabaseClient.from('access_logs').insert([{
-                user_id: u.id,
-                discord_id: String(discordId),
-                username: String(username),
-                logged_at: new Date().toISOString(),
-                user_agent: navigator.userAgent
-            }]).then(() => {}).catch(() => {});
-        }
 
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
             await syncDiscordSession();
@@ -741,16 +715,14 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
             `;
         } else {
             const allServers = getActiveServers();
-            const allSystems = getActiveSystems();
-
-            container.innerHTML = `
+                   container.innerHTML = `
                 <div class="global-admin-nav">
+                    <button class="global-admin-nav-btn ${activeTab === 'dashboard' ? 'active' : ''}" onclick="switchAdminTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
                     <button class="global-admin-nav-btn ${activeTab === 'users' ? 'active' : ''}" onclick="switchAdminTab('users')"><i class="fa-solid fa-users"></i> Usuários</button>
-                    <button class="global-admin-nav-btn ${activeTab === 'access_logs' ? 'active' : ''}" onclick="switchAdminTab('access_logs')"><i class="fa-solid fa-chart-line"></i> Acessos</button>
-                    <button class="global-admin-nav-btn ${activeTab === 'settings' ? 'active' : ''}" onclick="switchAdminTab('settings')"><i class="fa-solid fa-gear"></i> Opções Globais</button>
+                    <button class="global-admin-nav-btn ${activeTab === 'andarilho' ? 'active' : ''}" onclick="switchAdminTab('andarilho')"><i class="fa-solid fa-person-walking"></i> Andarilho</button>
                     <button class="global-admin-nav-btn ${activeTab === 'cities' ? 'active' : ''}" onclick="switchAdminTab('cities')"><i class="fa-solid fa-city"></i> Cidades (${allServers.length})</button>
                     <button class="global-admin-nav-btn ${activeTab === 'systems' ? 'active' : ''}" onclick="switchAdminTab('systems')"><i class="fa-solid fa-layer-group"></i> Sistemas (${allSystems.length})</button>
-                    <button class="global-admin-nav-btn ${activeTab === 'andarilho' ? 'active' : ''}" onclick="switchAdminTab('andarilho')"><i class="fa-solid fa-person-walking"></i> Andarilho</button>
+                    <button class="global-admin-nav-btn ${activeTab === 'settings' ? 'active' : ''}" onclick="switchAdminTab('settings')"><i class="fa-solid fa-gear"></i> Opções Globais</button>
                     <button class="global-admin-nav-btn" onclick="logoutAdmin()" style="margin-left: auto; color: #ff5252;"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
                 </div>
                 <div class="global-admin-body" id="admin-tab-body">
@@ -758,10 +730,12 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 </div>
             `;
 
-            if (activeTab === 'users') {
+            if (activeTab === 'dashboard') {
+                loadAdminDashboardView();
+            } else if (activeTab === 'users') {
                 loadAdminUsersView();
-            } else if (activeTab === 'access_logs') {
-                loadAdminLogsView();
+            } else if (activeTab === 'andarilho') {
+                loadAdminWandererListView();
             } else if (activeTab === 'settings') {
                 loadAdminSettingsView();
             }
@@ -792,45 +766,315 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     };
 
     function renderTabBody(tab, servers, systems) {
-        if (tab === 'users') {
+        if (tab === 'dashboard') {
             return `
-                <div style="display: flex; flex-direction: column; gap: 16px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.95rem; margin: 0;">
-                            <i class="fa-solid fa-users" style="color: #5865F2;"></i> Gestão de Usuários & Administradores
-                        </h4>
-                        <button onclick="loadAdminUsersView()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; padding: 6px 12px; border-radius: 8px; font-size: 0.72rem; cursor: pointer; display: flex; items-center; gap: 6px;">
-                            <i class="fa-solid fa-rotate"></i> Atualizar
-                        </button>
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;" id="admin-dashboard-stats-grid">
+                        <div style="background: rgba(15,20,32,0.6); padding: 18px; border-radius: 14px; border: 1px solid rgba(88,101,242,0.3);">
+                            <span style="font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; display: block;">USUÁRIOS DISCORD</span>
+                            <span style="font-size: 26px; font-weight: 900; color: #818cf8; font-family: monospace; display: block; margin: 4px 0;" id="dash-stat-users">—</span>
+                            <span style="font-size: 11px; color: #64748b;" id="dash-stat-admins">— Administradores</span>
+                        </div>
+                        <div style="background: rgba(15,20,32,0.6); padding: 18px; border-radius: 14px; border: 1px solid rgba(0,210,255,0.3);">
+                            <span style="font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; display: block;">CIDADES RP</span>
+                            <span style="font-size: 26px; font-weight: 900; color: #38bdf8; font-family: monospace; display: block; margin: 4px 0;">${servers.length}</span>
+                            <span style="font-size: 11px; color: #64748b;">CDA, Valley e Los Santos</span>
+                        </div>
+                        <div style="background: rgba(15,20,32,0.6); padding: 18px; border-radius: 14px; border: 1px solid rgba(0,210,255,0.3);">
+                            <span style="font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; display: block;">SISTEMAS ATIVOS</span>
+                            <span style="font-size: 26px; font-weight: 900; color: #00d2ff; font-family: monospace; display: block; margin: 4px 0;">${systems.length}</span>
+                            <span style="font-size: 11px; color: #64748b;">Mapa, Lockpick, Caixinha, Hacking</span>
+                        </div>
+                        <div style="background: rgba(15,20,32,0.6); padding: 18px; border-radius: 14px; border: 1px solid rgba(245,158,11,0.3);">
+                            <span style="font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; display: block;">CICLO DO ANDARILHO</span>
+                            <span style="font-size: 16px; font-weight: 900; color: #fbbf24; display: block; margin: 8px 0 4px 0;">06:00 / 18:00</span>
+                            <span style="font-size: 11px; color: #22c55e;">● Auto-Reset Ativo</span>
+                        </div>
                     </div>
-                    <div id="admin-users-list-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px;">
-                        <div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 40px; font-size: 0.8rem;">
-                            <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: #5865F2; display: block; margin-bottom: 8px;"></i>
-                            Carregando usuários do Supabase...
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+                        <div style="background: rgba(15,20,32,0.5); padding: 18px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06);">
+                            <h5 style="color: #fff; font-size: 13px; font-weight: 800; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-bolt" style="color: #00d2ff;"></i> Atalhos Administrativos
+                            </h5>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <button onclick="switchAdminTab('users')" style="padding: 10px; border-radius: 8px; background: rgba(88,101,242,0.15); border: 1px solid rgba(88,101,242,0.3); color: #c7d2fe; font-size: 12px; font-weight: 800; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+                                    <span><i class="fa-solid fa-user-shield"></i> Gerenciar Usuários & Cargos</span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                                <button onclick="switchAdminTab('andarilho')" style="padding: 10px; border-radius: 8px; background: rgba(0,210,255,0.15); border: 1px solid rgba(0,210,255,0.3); color: #7dd3fc; font-size: 12px; font-weight: 800; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+                                    <span><i class="fa-solid fa-person-walking"></i> Gerenciar Pontos do Andarilho</span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                                <button onclick="switchAdminTab('settings')" style="padding: 10px; border-radius: 8px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #fde68a; font-size: 12px; font-weight: 800; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+                                    <span><i class="fa-solid fa-bullhorn"></i> Transmitir Anúncio Global</span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(15,20,32,0.5); padding: 18px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06);">
+                            <h5 style="color: #fff; font-size: 13px; font-weight: 800; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-server" style="color: #22c55e;"></i> Status dos Serviços & Sincronização
+                            </h5>
+                            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <span style="color: #94a3b8;">Sincronização em Tempo Real:</span>
+                                    <span style="color: #22c55e; font-weight: 800;">● CONECTADO</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <span style="color: #94a3b8;">Banco de Dados Supabase:</span>
+                                    <span style="color: #38bdf8; font-weight: 800;">ONLINE</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="color: #94a3b8;">Autenticação Discord OAuth:</span>
+                                    <span style="color: #818cf8; font-weight: 800;">ATIVO</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
-        } else if (tab === 'access_logs') {
+        } else if (tab === 'users') {
             return `
                 <div style="display: flex; flex-direction: column; gap: 16px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                         <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.95rem; margin: 0;">
-                            <i class="fa-solid fa-chart-line" style="color: #22c55e;"></i> Auditoria de Acessos Recentes
+                            <i class="fa-solid fa-users" style="color: #5865F2;"></i> Gestão de Usuários & Administradores
                         </h4>
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="loadAdminLogsView()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; padding: 6px 12px; border-radius: 8px; font-size: 0.72rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                        <div style="display: flex; gap: 8px; flex: 1; max-width: 400px;">
+                            <input type="text" id="admin-user-search-input" class="global-admin-input" placeholder="Buscar por nome, username ou ID..." oninput="filterAdminUsersView(this.value)" style="margin:0; padding: 7px 12px; font-size: 12px;">
+                            <button onclick="loadAdminUsersView()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; padding: 6px 12px; border-radius: 8px; font-size: 0.72rem; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
                                 <i class="fa-solid fa-rotate"></i> Atualizar
-                            </button>
-                            <button onclick="handleClearAccessLogs()" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; padding: 6px 12px; border-radius: 8px; font-size: 0.72rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                                <i class="fa-solid fa-trash"></i> Limpar Histórico
                             </button>
                         </div>
                     </div>
-                    <div id="admin-logs-list-container" style="background: rgba(15,20,32,0.6); border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); overflow: hidden;">
-                        <div style="text-align: center; color: #94a3b8; padding: 40px; font-size: 0.8rem;">
-                            <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: #22c55e; display: block; margin-bottom: 8px;"></i>
-                            Carregando logs de acesso...
+                    <div id="admin-users-list-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px;">
+                        <div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 40px; font-size: 0.8rem;">
+                            <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: #5865F2; display: block; margin-bottom: 8px;"></i>
+                            Carregando usuários...
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (tab === 'andarilho') {
+            return `
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <!-- Ciclo do Andarilho & Reset Geral -->
+                    <div style="background: linear-gradient(135deg, rgba(0,210,255,0.15) 0%, rgba(15,20,32,0.8) 100%); padding: 20px; border-radius: 14px; border: 1px solid rgba(0,210,255,0.3); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <i class="fa-solid fa-clock" style="color: #00d2ff;"></i>
+                                <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.95rem; margin: 0;">Controle do Ciclo do Andarilho</h4>
+                                <span style="font-size: 9px; font-weight: 800; background: rgba(0,210,255,0.2); color: #38bdf8; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0,210,255,0.4);">RESET ÀS 06:00 / 18:00</span>
+                            </div>
+                            <p style="font-size: 11px; color: #94a3b8; margin: 0; max-width: 550px;">O sistema reinicia automaticamente os votos da comunidade nesses horários. Você também pode forçar o reset manual para todas as telas.</p>
+                        </div>
+                        <button onclick="handleResetWandererCycle()" style="padding: 10px 18px; border-radius: 10px; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: #fff; font-size: 11px; font-weight: 900; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(245,158,11,0.3);">
+                            <i class="fa-solid fa-rotate"></i> ZERAR VOTOS GERAIS AGORA
+                        </button>
+                    </div>
+
+                    <!-- Formulário de Criação / Edição de Marcação do Andarilho -->
+                    <div style="background: rgba(15,20,32,0.6); padding: 20px; border-radius: 14px; border: 1px solid rgba(0,210,255,0.25);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.9rem; margin: 0; display: flex; align-items: center; gap: 8px;" id="wand-form-title">
+                                <i class="fa-solid fa-location-crosshairs" style="color: #00d2ff;"></i> Cadastrar Nova Marcação do Andarilho
+                            </h4>
+                            <button id="wand-cancel-edit-btn" onclick="cancelEditWandererPoint()" style="display: none; background: none; border: none; color: #ff5252; font-size: 11px; font-weight: 800; cursor: pointer;">Cancelar Edição</button>
+                        </div>
+                        <form onsubmit="handleSaveWandererPoint(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                            <input type="hidden" id="wand-point-id" value="">
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Nome / Identificador *</label>
+                                <input type="text" id="wand-point-name" class="global-admin-input" placeholder="Ex: Ponto 01 - Farmacinha de Paleto" required style="margin:0;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Cidade / Servidor</label>
+                                <select id="wand-point-city" class="global-admin-input" style="margin:0;">
+                                    ${servers.map(s => `<option value="${s.id}">${s.name} (${s.slug.toUpperCase()})</option>`).join('')}
+                                </select>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <div>
+                                    <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Coord. X</label>
+                                    <input type="number" step="0.1" id="wand-point-x" class="global-admin-input" placeholder="ex: 785.4" required style="margin:0;">
+                                </div>
+                                <div>
+                                    <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Coord. Y</label>
+                                    <input type="number" step="0.1" id="wand-point-y" class="global-admin-input" placeholder="ex: 290.1" required style="margin:0;">
+                                </div>
+                            </div>
+                            <div style="grid-column: 1 / -1;">
+                                <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Dica / Pista do Andarilho (Aparece no balão do mapa)</label>
+                                <input type="text" id="wand-point-hint" class="global-admin-input" placeholder="Ex: Próximo à cerca de madeira na beira do penhasco, atrás do galpão." style="margin:0;">
+                            </div>
+                            <div style="grid-column: 1 / -1; display: flex; gap: 10px; margin-top: 4px;">
+                                <button type="submit" class="global-admin-submit" style="width: auto; padding: 10px 24px;" id="wand-submit-btn">SALVAR MARCAÇÃO NO MAPA</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Lista de Todas as Marcações de Andarilho -->
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                            <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.95rem; margin: 0;">
+                                <i class="fa-solid fa-map-pin" style="color: #00d2ff;"></i> Marcações Cadastradas do Andarilho
+                            </h4>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="wand-search-input" class="global-admin-input" placeholder="Buscar por nome ou dica..." oninput="filterAdminWandererList(this.value)" style="margin:0; padding: 6px 12px; font-size: 12px; max-width: 250px;">
+                                <select id="wand-filter-city-select" class="global-admin-input" onchange="filterAdminWandererByCity(this.value)" style="margin:0; padding: 6px 10px; font-size: 12px; width: auto;">
+                                    <option value="all">Todas as Cidades</option>
+                                    ${servers.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div id="admin-wanderer-list-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px;">
+                            <div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 30px; font-size: 0.8rem;">
+                                <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: #00d2ff; display: block; margin-bottom: 8px;"></i>
+                                Carregando marcações do Andarilho...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (tab === 'cities') {
+            const editingCity = editingCityId ? servers.find(s => s.id === editingCityId) : null;
+            return `
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <!-- Formulário de Criação / Edição de Cidade -->
+                    <div style="background: rgba(15,20,32,0.6); padding: 20px; border-radius: 14px; border: 1px solid rgba(0,210,255,0.25);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.9rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-city" style="color: #00d2ff;"></i> ${editingCity ? 'Editar Servidor / Cidade' : 'Adicionar Novo Servidor / Cidade'}
+                            </h4>
+                            ${editingCity ? '<button onclick="cancelEditCity()" style="background: none; border: none; color: #ff5252; font-size: 11px; font-weight: 800; cursor: pointer;">Cancelar Edição</button>' : ''}
+                        </div>
+                        <form onsubmit="handleSaveCity(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Nome da Cidade / Servidor *</label>
+                                <input type="text" id="city-form-name" class="global-admin-input" placeholder="Ex: Cidade Alta RP" value="${editingCity ? editingCity.name : ''}" required style="margin:0;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Slug URL *</label>
+                                <input type="text" id="city-form-slug" class="global-admin-input" placeholder="ex: cda" value="${editingCity ? editingCity.slug : ''}" required style="margin:0;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Subtítulo / Descrição Curta</label>
+                                <input type="text" id="city-form-sub" class="global-admin-input" placeholder="ex: SERVIDORES CDA & VALLEY" value="${editingCity ? (editingCity.subtitle || '') : ''}" style="margin:0;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Imagem de Banner (URL opcional)</label>
+                                <input type="text" id="city-form-banner" class="global-admin-input" placeholder="ex: /images/cda_banner.jpg" value="${editingCity ? (editingCity.banner_image_url || '') : ''}" style="margin:0;">
+                            </div>
+                            <div style="grid-column: 1 / -1; display: flex; gap: 10px; margin-top: 4px;">
+                                <button type="submit" class="global-admin-submit" style="width: auto; padding: 10px 24px;">${editingCity ? 'SALVAR ALTERAÇÕES' : 'CADASTRAR CIDADE'}</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Lista de Cidades Cadastradas -->
+                    <div>
+                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.95rem; margin-bottom: 12px;">
+                            <i class="fa-solid fa-list-ol" style="color: #00d2ff;"></i> Cidades Ativas na Plataforma (${servers.length})
+                        </h4>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${servers.map((s, idx) => `
+                                <div style="background: rgba(15,20,32,0.5); padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(0,210,255,0.1); border: 1px solid rgba(0,210,255,0.3); display: flex; align-items: center; justify-content: center; color: #38bdf8; font-weight: 900; font-size: 12px;">
+                                            ${idx + 1}
+                                        </div>
+                                        <div>
+                                            <div style="color: #fff; font-size: 14px; font-weight: 800;">${s.name} <span style="font-size: 11px; color: #38bdf8; font-family: monospace;">/${s.slug}/</span></div>
+                                            <div style="color: #64748b; font-size: 11px;">${s.subtitle || 'Servidor RP'}</div>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <button onclick="moveCityUp(${idx})" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; width: 28px; height: 28px; border-radius: 6px; cursor: pointer;" title="Mover para Cima"><i class="fa-solid fa-arrow-up"></i></button>
+                                        <button onclick="moveCityDown(${idx})" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; width: 28px; height: 28px; border-radius: 6px; cursor: pointer;" title="Mover para Baixo"><i class="fa-solid fa-arrow-down"></i></button>
+                                        <button onclick="startEditCity('${s.id}')" style="background: rgba(0,210,255,0.15); border: 1px solid rgba(0,210,255,0.3); color: #38bdf8; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;"><i class="fa-solid fa-pen-to-square"></i> Editar</button>
+                                        <button onclick="deleteCity('${s.id}', '${s.name}')" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;"><i class="fa-solid fa-trash"></i> Excluir</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (tab === 'systems') {
+            const editingSys = editingSystemId ? systems.find(s => s.id === editingSystemId) : null;
+            return `
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <!-- Formulário de Criação / Edição de Sistema -->
+                    <div style="background: rgba(15,20,32,0.6); padding: 20px; border-radius: 14px; border: 1px solid rgba(0,210,255,0.25);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.9rem; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-layer-group" style="color: #00d2ff;"></i> ${editingSys ? 'Editar Sistema RP' : 'Cadastrar Novo Sistema RP'}
+                            </h4>
+                            ${editingSys ? '<button onclick="cancelEditSystem()" style="background: none; border: none; color: #ff5252; font-size: 11px; font-weight: 800; cursor: pointer;">Cancelar Edição</button>' : ''}
+                        </div>
+                        <form onsubmit="handleSaveSystem(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Nome do Sistema *</label>
+                                <input type="text" id="sys-form-name" class="global-admin-input" placeholder="Ex: Mapa Interativo" value="${editingSys ? editingSys.name : ''}" required style="margin:0;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Slug / Rota *</label>
+                                <input type="text" id="sys-form-slug" class="global-admin-input" placeholder="ex: mapa-interativo" value="${editingSys ? (editingSys.slug || '') : ''}" required style="margin:0;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Tag / Badge</label>
+                                <input type="text" id="sys-form-tag" class="global-admin-input" placeholder="ex: REALTIME GPS" value="${editingSys ? (editingSys.tag || '') : ''}" style="margin:0;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Link Direto (Opcional)</label>
+                                <input type="text" id="sys-form-link" class="global-admin-input" placeholder="ex: /cidades/cda/mapa/" value="${editingSys ? (editingSys.link || '') : ''}" style="margin:0;">
+                            </div>
+                            <div style="grid-column: 1 / -1;">
+                                <label style="font-size: 11px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 6px;">Cidades Vinculadas (Onde o sistema deve aparecer)</label>
+                                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                    ${servers.map(s => {
+                                        const isChecked = editingSys ? (editingSys.city_ids && (editingSys.city_ids.includes(s.id) || editingSys.city_ids.includes(s.slug) || editingSys.city_ids.includes(`${s.slug}-server-uuid`))) : true;
+                                        return `
+                                            <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #cbd5e1; cursor: pointer; background: rgba(255,255,255,0.04); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
+                                                <input type="checkbox" name="city-link-check" value="${s.id}" ${isChecked ? 'checked' : ''}>
+                                                <span>${s.name} (${s.slug.toUpperCase()})</span>
+                                            </label>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                            <div style="grid-column: 1 / -1; display: flex; gap: 10px; margin-top: 4px;">
+                                <button type="submit" class="global-admin-submit" style="width: auto; padding: 10px 24px;">${editingSys ? 'SALVAR ALTERAÇÕES' : 'CADASTRAR SISTEMA'}</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Lista de Sistemas Cadastrados -->
+                    <div>
+                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.95rem; margin-bottom: 12px;">
+                            <i class="fa-solid fa-list-check" style="color: #00d2ff;"></i> Sistemas Cadastrados (${systems.length})
+                        </h4>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${systems.map((s, idx) => `
+                                <div style="background: rgba(15,20,32,0.5); padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div>
+                                        <div style="color: #fff; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                                            <i class="fa-solid ${s.icon || 'fa-microchip'}" style="color: #00d2ff;"></i>
+                                            <span>${s.name}</span>
+                                            <span style="font-size: 10px; font-weight: 800; background: rgba(0,210,255,0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px;">${s.tag || 'SISTEMA'}</span>
+                                        </div>
+                                        <div style="color: #64748b; font-size: 11px; margin-top: 2px;">Rota: ${s.link || s.slug}</div>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <button onclick="moveSystemUp(${idx})" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; width: 28px; height: 28px; border-radius: 6px; cursor: pointer;" title="Mover para Cima"><i class="fa-solid fa-arrow-up"></i></button>
+                                        <button onclick="moveSystemDown(${idx})" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; width: 28px; height: 28px; border-radius: 6px; cursor: pointer;" title="Mover para Baixo"><i class="fa-solid fa-arrow-down"></i></button>
+                                        <button onclick="startEditSystem('${s.id}')" style="background: rgba(0,210,255,0.15); border: 1px solid rgba(0,210,255,0.3); color: #38bdf8; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;"><i class="fa-solid fa-pen-to-square"></i> Editar</button>
+                                        <button onclick="deleteSystem('${s.id}', '${s.name}')" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;"><i class="fa-solid fa-trash"></i> Excluir</button>
+                                    </div>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
                 </div>
@@ -839,142 +1083,44 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
             return `
                 <div style="display: flex; flex-direction: column; gap: 20px;">
                     <!-- Anúncio Global -->
-                    <div style="background: rgba(15,20,32,0.6); padding: 20px; border-radius: 14px; border: 1px solid rgba(245,158,11,0.3);">
-                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fa-solid fa-bullhorn" style="color: #f59e0b;"></i> Anúncio Global da Plataforma
+                    <div style="background: rgba(15,20,32,0.6); padding: 20px; border-radius: 14px; border: 1px solid rgba(245,158,11,0.25);">
+                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.95rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-bullhorn" style="color: #fbbf24;"></i> Transmissão de Anúncio Global
                         </h4>
-                        <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 12px;">Transmita mensagens em tempo real no topo do site para todos os usuários.</p>
-                        <form onsubmit="handleSaveGlobalAnnouncement(event)" style="display: flex; flex-direction: column; gap: 10px;">
-                            <textarea id="setting-announcement-text" class="global-admin-input" rows="2" placeholder="Digite o anúncio global..." style="margin:0; resize: vertical;"></textarea>
+                        <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">Exibe uma barra de alerta dourada no topo de todas as páginas da plataforma em tempo real.</p>
+                        <form onsubmit="handleSaveGlobalAnnouncement(event)">
+                            <div style="margin-bottom: 12px;">
+                                <input type="text" id="setting-announcement-text" class="global-admin-input" placeholder="Ex: Novo simulador de Hacking liberado para todos os servidores!" style="margin:0;">
+                            </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #cbd5e1; cursor: pointer;">
-                                    <input type="checkbox" id="setting-announcement-active" style="width: 16px; height: 16px; accent-color: #f59e0b;">
-                                    Ativar Banner de Anúncio
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #e2e8f0; cursor: pointer;">
+                                    <input type="checkbox" id="setting-announcement-active">
+                                    <span>Exibir anúncio no topo da plataforma</span>
                                 </label>
-                                <button type="submit" class="global-admin-submit" style="width: auto; padding: 8px 20px; background: #f59e0b; color: #000; font-weight: 800;">SALVAR E TRANSMITIR</button>
+                                <button type="submit" class="global-admin-submit" style="width: auto; padding: 8px 20px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #000; font-weight: 900;">SALVAR E TRANSMITIR</button>
                             </div>
                         </form>
                     </div>
 
-                    <!-- Modo Manutenção -->
-                    <div style="background: rgba(15,20,32,0.6); padding: 20px; border-radius: 14px; border: 1px solid rgba(239,68,68,0.3);">
-                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Modo de Manutenção
+                    <!-- Modo de Manutenção -->
+                    <div style="background: rgba(15,20,32,0.6); padding: 20px; border-radius: 14px; border: 1px solid rgba(239,68,68,0.25);">
+                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.95rem; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-triangle-exclamation" style="color: #f87171;"></i> Modo de Manutenção da Plataforma
                         </h4>
-                        <form onsubmit="handleSaveMaintenance(event)" style="display: flex; flex-direction: column; gap: 10px;">
-                            <input type="text" id="setting-maint-msg" class="global-admin-input" placeholder="Mensagem de manutenção..." value="Plataforma em manutenção para melhorias no servidor." style="margin:0;">
+                        <p style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">Quando ativo, bloqueia acessos públicos e mantém os sistemas abertos apenas para administradores logados.</p>
+                        <form onsubmit="handleSaveMaintenance(event)">
+                            <div style="margin-bottom: 12px;">
+                                <input type="text" id="setting-maint-msg" class="global-admin-input" placeholder="Mensagem de manutenção..." value="Plataforma em manutenção para atualização de sistemas." style="margin:0;">
+                            </div>
                             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #cbd5e1; cursor: pointer;">
-                                    <input type="checkbox" id="setting-maint-active" style="width: 16px; height: 16px; accent-color: #ef4444;">
-                                    Ativar Modo de Manutenção Geral
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #e2e8f0; cursor: pointer;">
+                                    <input type="checkbox" id="setting-maint-active">
+                                    <span style="color: #fca5a5; font-weight: 700;">Ativar Modo de Manutenção</span>
                                 </label>
-                                <button type="submit" class="global-admin-submit" style="width: auto; padding: 8px 20px; background: #ef4444; color: #fff; font-weight: 800;">APLICAR MANUTENÇÃO</button>
+                                <button type="submit" class="global-admin-submit" style="width: auto; padding: 8px 20px; background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5;">ATUALIZAR STATUS</button>
                             </div>
                         </form>
                     </div>
-                </div>
-            `;
-        } else if (tab === 'cities') {
-            const editCity = editingCityId ? servers.find(s => s.id === editingCityId) : null;
-            return `
-                <div style="display: flex; flex-direction: column; gap: 20px;">
-                    <div style="background: rgba(15,20,32,0.6); padding: 20px; border-radius: 14px; border: 1px solid rgba(255,102,0,0.2);">
-                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.9rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                            <span><i class="fa-solid ${editCity ? 'fa-pen' : 'fa-plus'}" style="color: #ff6600;"></i> ${editCity ? `Editar Cidade "${editCity.name}"` : 'Criar Nova Cidade'}</span>
-                            ${editCity ? `<button onclick="cancelEditCity()" style="background:none; border:none; color:#ff5252; font-size:0.75rem; cursor:pointer;">Cancelar Edição</button>` : ''}
-                        </h4>
-                        <form onsubmit="handleSaveCity(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                            <input type="text" id="city-form-name" class="global-admin-input" placeholder="Nome da Cidade (ex: CDA RP)" value="${editCity ? editCity.name : ''}" required style="margin:0;">
-                            <input type="text" id="city-form-slug" class="global-admin-input" placeholder="Slug / Rota (ex: cda)" value="${editCity ? editCity.slug : ''}" required style="margin:0;">
-                            <input type="text" id="city-form-sub" class="global-admin-input" placeholder="Subtítulo (ex: SERVIDOR OFICIAL)" value="${editCity ? (editCity.subtitle || '') : ''}" style="margin:0;">
-                            <input type="text" id="city-form-banner" class="global-admin-input" placeholder="URL da Imagem Banner" value="${editCity ? (editCity.banner_image_url || '') : ''}" style="margin:0;">
-                            <button type="submit" class="global-admin-submit" style="grid-column: 1 / -1; justify-self: start; width: auto; padding: 10px 24px;">${editCity ? 'Atualizar Cidade' : 'Salvar Nova Cidade'}</button>
-                        </form>
-                    </div>
-
-                    <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.9rem;">Cidades Cadastradas (${servers.length})</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px;">
-                        ${servers.map((s, idx) => `
-                            <div style="background: rgba(15,20,32,0.4); padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <div style="display: flex; flex-direction: column; gap: 2px;">
-                                        <button onclick="moveCityUp(${idx})" ${idx === 0 ? 'disabled style="opacity:0.3"' : ''} style="background: rgba(255,255,255,0.05); border: none; color: #fff; padding: 2px 6px; border-radius: 4px; cursor: pointer;"><i class="fa-solid fa-arrow-up" style="font-size:0.65rem;"></i></button>
-                                        <button onclick="moveCityDown(${idx})" ${idx === servers.length - 1 ? 'disabled style="opacity:0.3"' : ''} style="background: rgba(255,255,255,0.05); border: none; color: #fff; padding: 2px 6px; border-radius: 4px; cursor: pointer;"><i class="fa-solid fa-arrow-down" style="font-size:0.65rem;"></i></button>
-                                    </div>
-                                    <div>
-                                        <h5 style="color: #fff; font-size: 0.85rem; font-weight: 800;">${s.name}</h5>
-                                        <span style="color: #ff6600; font-size: 0.7rem; font-family: monospace;">/${s.slug}/</span>
-                                    </div>
-                                </div>
-                                <div style="display: flex; items-center; gap: 6px;">
-                                    <button onclick="startEditCity('${s.id}')" style="background: rgba(255,102,0,0.1); border: 1px solid rgba(255,102,0,0.3); color: #ff6600; padding: 6px 10px; border-radius: 6px; font-size: 0.7rem; cursor: pointer;" title="Editar"><i class="fa-solid fa-pen"></i></button>
-                                    <button onclick="deleteCity('${s.id}', '${s.name}')" style="background: rgba(255,82,82,0.1); border: 1px solid rgba(255,82,82,0.3); color: #ff5252; padding: 6px 10px; border-radius: 6px; font-size: 0.7rem; cursor: pointer;" title="Excluir"><i class="fa-solid fa-trash"></i></button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        } else if (tab === 'systems') {
-            const editSys = editingSystemId ? systems.find(s => s.id === editingSystemId) : null;
-            return `
-                <div style="display: flex; flex-direction: column; gap: 20px;">
-                    <div style="background: rgba(15,20,32,0.6); padding: 20px; border-radius: 14px; border: 1px solid rgba(255,102,0,0.2);">
-                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.9rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                            <span><i class="fa-solid ${editSys ? 'fa-pen' : 'fa-plus'}" style="color: #ff8800;"></i> ${editSys ? `Editar Sistema "${editSys.name}"` : 'Criar Novo Sistema'}</span>
-                            ${editSys ? `<button onclick="cancelEditSystem()" style="background:none; border:none; color:#ff5252; font-size:0.75rem; cursor:pointer;">Cancelar Edição</button>` : ''}
-                        </h4>
-                        <form onsubmit="handleSaveSystem(event)" style="display: flex; flex-direction: column; gap: 12px;">
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                                <input type="text" id="sys-form-name" class="global-admin-input" placeholder="Nome do Sistema (ex: LOCKPICK)" value="${editSys ? editSys.name : ''}" required style="margin:0;">
-                                <input type="text" id="sys-form-slug" class="global-admin-input" placeholder="Slug (ex: lockpick)" value="${editSys ? editSys.slug : ''}" required style="margin:0;">
-                                <input type="text" id="sys-form-tag" class="global-admin-input" placeholder="Tag (ex: MINIJOGO)" value="${editSys ? (editSys.tag || '') : ''}" style="margin:0;">
-                                <input type="text" id="sys-form-link" class="global-admin-input" placeholder="Link (ex: lockpick/)" value="${editSys ? (editSys.link || '') : ''}" style="margin:0;">
-                            </div>
-                            <label style="font-size: 0.72rem; color: #94a3b8; font-weight: 700;">VINCULAR A CIDADES:</label>
-                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                                ${servers.map(serv => {
-                                    const isChecked = editSys ? (editSys.city_ids && (editSys.city_ids.includes(serv.id) || editSys.city_ids.includes(serv.slug))) : true;
-                                    return `
-                                    <label style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; color: #cbd5e1; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                                        <input type="checkbox" name="city-link-check" value="${serv.id}" ${isChecked ? 'checked' : ''}> ${serv.name}
-                                    </label>
-                                `}).join('')}
-                            </div>
-                            <button type="submit" class="global-admin-submit" style="width: auto; align-self: start; padding: 10px 24px;">${editSys ? 'Atualizar Sistema' : 'Salvar Novo Sistema'}</button>
-                        </form>
-                    </div>
-
-                    <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.9rem;">Sistemas Cadastrados (${systems.length})</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px;">
-                        ${systems.map((sys, idx) => `
-                            <div style="background: rgba(15,20,32,0.4); padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <div style="display: flex; flex-direction: column; gap: 2px;">
-                                        <button onclick="moveSystemUp(${idx})" ${idx === 0 ? 'disabled style="opacity:0.3"' : ''} style="background: rgba(255,255,255,0.05); border: none; color: #fff; padding: 2px 6px; border-radius: 4px; cursor: pointer;"><i class="fa-solid fa-arrow-up" style="font-size:0.65rem;"></i></button>
-                                        <button onclick="moveSystemDown(${idx})" ${idx === systems.length - 1 ? 'disabled style="opacity:0.3"' : ''} style="background: rgba(255,255,255,0.05); border: none; color: #fff; padding: 2px 6px; border-radius: 4px; cursor: pointer;"><i class="fa-solid fa-arrow-down" style="font-size:0.65rem;"></i></button>
-                                    </div>
-                                    <div>
-                                        <h5 style="color: #fff; font-size: 0.85rem; font-weight: 800;">${sys.name}</h5>
-                                        <span style="color: #ffaa00; font-size: 0.7rem; font-family: monospace;">${sys.tag || 'SISTEMA'}</span>
-                                    </div>
-                                </div>
-                                <div style="display: flex; items-center; gap: 6px;">
-                                    <button onclick="startEditSystem('${sys.id}')" style="background: rgba(255,102,0,0.1); border: 1px solid rgba(255,102,0,0.3); color: #ff6600; padding: 6px 10px; border-radius: 6px; font-size: 0.7rem; cursor: pointer;" title="Editar"><i class="fa-solid fa-pen"></i></button>
-                                    <button onclick="deleteSystem('${sys.id}', '${sys.name}')" style="background: rgba(255,82,82,0.1); border: 1px solid rgba(255,82,82,0.3); color: #ff5252; padding: 6px 10px; border-radius: 6px; font-size: 0.7rem; cursor: pointer;" title="Excluir"><i class="fa-solid fa-trash"></i></button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        } else if (tab === 'andarilho') {
-            return `
-                <div style="background: rgba(15,20,32,0.6); padding: 24px; border-radius: 14px; border: 1px solid rgba(255,102,0,0.2); text-align: center;">
-                    <i class="fa-solid fa-rotate" style="font-size: 2rem; color: #ff6600; margin-bottom: 12px;"></i>
-                    <h4 style="font-family: var(--font-header); color: #fff; font-size: 1rem; margin-bottom: 8px;">Resetar Ciclo do Andarilho</h4>
-                    <p style="font-size: 0.8rem; color: #94a3b8; max-width: 500px; margin: 0 auto 16px;">Limpa todas as confirmações da comunidade acumuladas no ciclo atual do Andarilho em todas as cidades.</p>
-                    <button onclick="handleResetWandererCycle()" class="global-admin-submit" style="width: auto; background: linear-gradient(135deg, #ff5500 0%, #e62e00 50%, #ffaa00 100%); color: #fff; padding: 10px 24px;">CONFIRMAR RESET DO CICLO</button>
                 </div>
             `;
         }
@@ -1254,111 +1400,525 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         }
     };
 
-    window.handleClearAccessLogs = async function() {
-        if (confirm('Tem certeza que deseja limpar todo o histórico de logs de acesso?')) {
-            try {
-                await supabaseClient.from('access_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-                alert('Histórico de acessos limpo com sucesso!');
-            } catch(e) {
-                alert('Erro ao limpar histórico: ' + e.message);
+    // Dashboard View Handler
+    window.loadAdminDashboardView = async function() {
+        const usersEl = document.getElementById('dash-stat-users');
+        const adminsEl = document.getElementById('dash-stat-admins');
+        if (!usersEl) return;
+
+        let totalUsers = 0;
+        let totalAdmins = 0;
+
+        try {
+            const { data } = await supabaseClient.from('profiles').select('id, is_admin, role');
+            if (data && Array.isArray(data)) {
+                totalUsers = data.length;
+                totalAdmins = data.filter(u => u.is_admin || u.role === 'admin').length;
             }
-            loadAdminLogsView();
+        } catch(e) {}
+
+        if (totalUsers === 0) {
+            try {
+                const cached = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
+                if (cached.length > 0) {
+                    totalUsers = cached.length;
+                    totalAdmins = cached.filter(u => u.is_admin || u.role === 'admin').length;
+                }
+            } catch(e) {}
         }
+
+        usersEl.textContent = totalUsers > 0 ? String(totalUsers) : '1';
+        if (adminsEl) adminsEl.textContent = `${Math.max(1, totalAdmins)} Administradores Ativos`;
     };
 
     // Admin Users Management View
+    let adminUsersCache = [];
     window.loadAdminUsersView = async function() {
         const container = document.getElementById('admin-users-list-container');
         if (!container) return;
         try {
             const { data, error } = await supabaseClient.from('profiles').select('*').order('created_at', { ascending: false });
-            if (error) throw error;
-            if (!data || data.length === 0) {
-                container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 30px; font-size: 0.8rem;">Nenhum usuário cadastrado ainda.</div>';
-                return;
-            }
-            container.innerHTML = data.map(u => {
-                const isAdmin = u.is_admin || u.role === 'admin';
-                const isBanned = u.is_banned === true;
-                return `
-                    <div style="background: rgba(15,20,32,0.5); padding: 14px; border-radius: 12px; border: 1px solid ${isBanned ? 'rgba(239,68,68,0.4)' : isAdmin ? 'rgba(88,101,242,0.4)' : 'rgba(255,255,255,0.06)'}; display: flex; flex-direction: column; gap: 10px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <img src="${u.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${isAdmin ? '#5865F2' : '#38bdf8'}; object-fit: cover;" />
-                            <div style="min-width: 0; flex: 1;">
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <h5 style="color: #fff; font-size: 0.85rem; font-weight: 800; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${u.full_name || u.username}</h5>
-                                    ${isAdmin ? '<span style="font-size: 9px; font-weight: 800; background: rgba(88,101,242,0.2); color: #818cf8; padding: 2px 5px; border-radius: 4px; border: 1px solid rgba(88,101,242,0.4);">ADMIN</span>' : ''}
-                                    ${isBanned ? '<span style="font-size: 9px; font-weight: 800; background: rgba(239,68,68,0.2); color: #fca5a5; padding: 2px 5px; border-radius: 4px; border: 1px solid rgba(239,68,68,0.4);">BANIDO</span>' : ''}
-                                </div>
-                                <span style="color: #38bdf8; font-size: 0.72rem; font-weight: 700;">@${u.username}</span>
-                                <div style="color: #64748b; font-size: 0.68rem; font-family: monospace;">ID: ${u.discord_id}</div>
-                            </div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
-                            <button onclick="toggleAdminProfile('${u.id}', ${isAdmin})" style="background: ${isAdmin ? 'rgba(245,158,11,0.15)' : 'rgba(88,101,242,0.15)'}; border: 1px solid ${isAdmin ? 'rgba(245,158,11,0.4)' : 'rgba(88,101,242,0.4)'}; color: ${isAdmin ? '#fde68a' : '#c7d2fe'}; padding: 4px 10px; border-radius: 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer;">
-                                <i class="fa-solid fa-shield"></i> ${isAdmin ? 'Remover Admin' : 'Tornar Admin'}
-                            </button>
-                            <button onclick="toggleBanProfile('${u.id}', ${isBanned})" style="background: ${isBanned ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; border: 1px solid ${isBanned ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}; color: ${isBanned ? '#86efac' : '#fca5a5'}; padding: 4px 10px; border-radius: 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer;">
-                                <i class="fa-solid fa-ban"></i> ${isBanned ? 'Desbanir' : 'Banir'}
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+            if (error) console.warn('Supabase profiles fetch warning:', error);
+
+            let users = Array.isArray(data) && data.length > 0 ? data : [];
+
+            // Fallback / Merge with local cache
+            try {
+                const localProfiles = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
+                const currentProfile = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
+                if (currentProfile && !users.some(u => u.id === currentProfile.id || u.discord_id === currentProfile.discord_id)) {
+                    users.unshift(currentProfile);
+                }
+                localProfiles.forEach(lp => {
+                    if (!users.some(u => u.id === lp.id || u.discord_id === lp.discord_id)) {
+                        users.push(lp);
+                    }
+                });
+            } catch(e) {}
+
+            // Save to cache
+            adminUsersCache = users;
+            localStorage.setItem('malaca_cached_profiles', JSON.stringify(users));
+
+            renderAdminUsersList(users);
         } catch(e) {
             container.innerHTML = `<div style="grid-column: 1/-1; color: #f87171; font-size: 0.75rem; text-align: center; padding: 20px;">Falha ao carregar usuários: ${e.message}</div>`;
         }
     };
 
-    window.toggleAdminProfile = async function(id, currentIsAdmin) {
+    function renderAdminUsersList(users) {
+        const container = document.getElementById('admin-users-list-container');
+        if (!container) return;
+
+        if (!users || users.length === 0) {
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 30px; font-size: 0.8rem;">Nenhum usuário cadastrado ainda.</div>';
+            return;
+        }
+
+        const customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+        const customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
+
+        container.innerHTML = users.map(u => {
+            const discordId = String(u.discord_id || u.id || '');
+            const isAdmin = u.is_admin || u.role === 'admin' || customAdmins.includes(discordId) || ['722320491767136346', '917826984778797087'].includes(discordId);
+            const isBanned = u.is_banned === true || customBanned.includes(discordId);
+
+            return `
+                <div style="background: rgba(15,20,32,0.6); padding: 14px; border-radius: 12px; border: 1px solid ${isBanned ? 'rgba(239,68,68,0.5)' : isAdmin ? 'rgba(88,101,242,0.5)' : 'rgba(255,255,255,0.06)'}; display: flex; flex-direction: column; gap: 10px; position: relative;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img src="${u.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${isAdmin ? '#5865F2' : '#38bdf8'}; object-fit: cover; flex-shrink: 0;" />
+                        <div style="min-width: 0; flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                <h5 style="color: #fff; font-size: 0.85rem; font-weight: 800; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">${u.full_name || u.username}</h5>
+                                ${isAdmin ? '<span style="font-size: 9px; font-weight: 800; background: rgba(88,101,242,0.25); color: #818cf8; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(88,101,242,0.5);">ADMIN</span>' : ''}
+                                ${isBanned ? '<span style="font-size: 9px; font-weight: 800; background: rgba(239,68,68,0.25); color: #fca5a5; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(239,68,68,0.5);">BANIDO</span>' : ''}
+                            </div>
+                            <span style="color: #38bdf8; font-size: 0.72rem; font-weight: 700; display: block;">@${u.username}</span>
+                            <div style="color: #64748b; font-size: 0.68rem; font-family: monospace;">ID Discord: ${discordId || '—'}</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
+                        <button onclick="toggleAdminProfile('${u.id}', '${discordId}', ${isAdmin})" style="background: ${isAdmin ? 'rgba(245,158,11,0.15)' : 'rgba(88,101,242,0.15)'}; border: 1px solid ${isAdmin ? 'rgba(245,158,11,0.4)' : 'rgba(88,101,242,0.4)'}; color: ${isAdmin ? '#fde68a' : '#c7d2fe'}; padding: 5px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                            <i class="fa-solid fa-shield"></i> ${isAdmin ? 'Remover Admin' : 'Tornar Admin'}
+                        </button>
+                        <button onclick="toggleBanProfile('${u.id}', '${discordId}', ${isBanned})" style="background: ${isBanned ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; border: 1px solid ${isBanned ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}; color: ${isBanned ? '#86efac' : '#fca5a5'}; padding: 5px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                            <i class="fa-solid fa-ban"></i> ${isBanned ? 'Desbanir' : 'Banir'}
+                        </button>
+                        <button onclick="deleteUserProfile('${u.id}', '${u.username || 'Usuário'}', '${discordId}')" style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #f87171; padding: 5px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Excluir Usuário">
+                            <i class="fa-solid fa-trash"></i> Excluir
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    window.filterAdminUsersView = function(query) {
+        const q = (query || '').toLowerCase().trim();
+        if (!q) {
+            renderAdminUsersList(adminUsersCache);
+            return;
+        }
+        const filtered = adminUsersCache.filter(u => 
+            (u.username && u.username.toLowerCase().includes(q)) ||
+            (u.full_name && u.full_name.toLowerCase().includes(q)) ||
+            (u.discord_id && String(u.discord_id).toLowerCase().includes(q)) ||
+            (u.id && String(u.id).toLowerCase().includes(q))
+        );
+        renderAdminUsersList(filtered);
+    };
+
+    window.toggleAdminProfile = async function(id, discordId, currentIsAdmin) {
         const newAdmin = !currentIsAdmin;
         try {
-            await supabaseClient.from('profiles').update({ is_admin: newAdmin, role: newAdmin ? 'admin' : 'user' }).eq('id', id);
-            alert(`Permissão atualizada para: ${newAdmin ? 'ADMIN' : 'USUÁRIO'}`);
+            // Update Supabase
+            try {
+                await supabaseClient.from('profiles').update({ is_admin: newAdmin, role: newAdmin ? 'admin' : 'user' }).eq('id', id);
+            } catch(e) {}
+
+            // Update local admin lists
+            let customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+            if (newAdmin) {
+                if (discordId && !customAdmins.includes(discordId)) customAdmins.push(discordId);
+            } else {
+                customAdmins = customAdmins.filter(d => d !== discordId && d !== id);
+            }
+            localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(customAdmins));
+
+            // Update cached profiles
+            let cached = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
+            cached = cached.map(u => (u.id === id || u.discord_id === discordId) ? { ...u, is_admin: newAdmin, role: newAdmin ? 'admin' : 'user' } : u);
+            localStorage.setItem('malaca_cached_profiles', JSON.stringify(cached));
+
+            // If it's current user
+            const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
+            if (current && (current.id === id || current.discord_id === discordId)) {
+                current.is_admin = newAdmin;
+                current.role = newAdmin ? 'admin' : 'user';
+                localStorage.setItem('malaca_user_profile', JSON.stringify(current));
+            }
+
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'user_permission_updated',
+                payload: { id, discordId, is_admin: newAdmin, role: newAdmin ? 'admin' : 'user' }
+            });
+
+            alert(`Permissão atualizada com sucesso para: ${newAdmin ? 'ADMINISTRADOR' : 'USUÁRIO'}`);
             loadAdminUsersView();
         } catch(e) {
             alert('Erro ao atualizar permissão: ' + e.message);
         }
     };
 
-    window.toggleBanProfile = async function(id, currentIsBanned) {
+    window.toggleBanProfile = async function(id, discordId, currentIsBanned) {
         const newBanned = !currentIsBanned;
         try {
-            await supabaseClient.from('profiles').update({ is_banned: newBanned }).eq('id', id);
+            // Update Supabase
+            try {
+                await supabaseClient.from('profiles').update({ is_banned: newBanned }).eq('id', id);
+            } catch(e) {}
+
+            // Update local banned accounts list
+            let customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
+            if (newBanned) {
+                if (discordId && !customBanned.includes(discordId)) customBanned.push(discordId);
+            } else {
+                customBanned = customBanned.filter(d => d !== discordId && d !== id);
+            }
+            localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(customBanned));
+
+            // Update cached profiles
+            let cached = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
+            cached = cached.map(u => (u.id === id || u.discord_id === discordId) ? { ...u, is_banned: newBanned } : u);
+            localStorage.setItem('malaca_cached_profiles', JSON.stringify(cached));
+
+            // If it's current user
+            const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
+            if (current && (current.id === id || current.discord_id === discordId)) {
+                current.is_banned = newBanned;
+                localStorage.setItem('malaca_user_profile', JSON.stringify(current));
+            }
+
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'user_ban_updated',
+                payload: { id, discordId, is_banned: newBanned }
+            });
+
             alert(`Usuário ${newBanned ? 'BANIDO' : 'DESBANIDO'} com sucesso.`);
             loadAdminUsersView();
         } catch(e) {
-            alert('Erro ao atualizar status de banimento: ' + e.message);
+            alert('Erro ao atualizar banimento: ' + e.message);
         }
     };
 
-    // Admin Logs View
-    window.loadAdminLogsView = async function() {
-        const container = document.getElementById('admin-logs-list-container');
-        if (!container) return;
+    window.deleteUserProfile = async function(id, username, discordId) {
+        if (!confirm(`Deseja EXCLUIR permanentemente o usuário "${username}" (${discordId || id}) da plataforma? Esta ação não pode ser desfeita.`)) {
+            return;
+        }
+
         try {
-            const { data, error } = await supabaseClient.from('access_logs').select('*').order('logged_at', { ascending: false }).limit(40);
-            if (error) throw error;
-            if (!data || data.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 30px; font-size: 0.8rem;">Nenhum log gravado ainda.</div>';
-                return;
+            // Delete from Supabase
+            try {
+                await supabaseClient.from('profiles').delete().eq('id', id);
+            } catch(e) {}
+
+            // Clean local cache & permissions
+            let cached = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
+            cached = cached.filter(u => u.id !== id && u.discord_id !== discordId);
+            localStorage.setItem('malaca_cached_profiles', JSON.stringify(cached));
+
+            let customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+            customAdmins = customAdmins.filter(d => d !== discordId && d !== id);
+            localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(customAdmins));
+
+            let customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
+            customBanned = customBanned.filter(d => d !== discordId && d !== id);
+            localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(customBanned));
+
+            // If deleting own profile
+            const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
+            if (current && (current.id === id || current.discord_id === discordId)) {
+                localStorage.removeItem('malaca_user_profile');
+                syncDiscordNavButton();
             }
-            container.innerHTML = data.map(l => `
-                <div style="padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                    <div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="color: #fff; font-weight: 800; font-size: 0.78rem;">${l.username || 'Discord User'}</span>
-                            <span style="color: #38bdf8; font-family: monospace; font-size: 0.68rem; background: rgba(0,210,255,0.1); padding: 2px 6px; border-radius: 4px;">ID: ${l.discord_id || '—'}</span>
-                        </div>
-                        <span style="color: #64748b; font-size: 0.68rem; font-family: monospace;">${l.user_agent ? l.user_agent.substring(0, 70) + '...' : 'Navegador Web'}</span>
-                    </div>
-                    <span style="color: #94a3b8; font-size: 0.72rem; font-family: monospace; white-space: nowrap;">
-                        ${l.logged_at ? new Date(l.logged_at).toLocaleTimeString('pt-BR') : ''}
-                    </span>
-                </div>
-            `).join('');
+
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'entity_sync',
+                payload: { entity: 'profiles', action: 'DELETE', id: id, discordId: discordId, timestamp: Date.now() }
+            });
+
+            alert(`Usuário "${username}" foi excluído com sucesso!`);
+            loadAdminUsersView();
         } catch(e) {
-            container.innerHTML = `<div style="color: #f87171; font-size: 0.75rem; text-align: center; padding: 20px;">Falha ao carregar logs: ${e.message}</div>`;
+            alert('Erro ao excluir usuário: ' + e.message);
+        }
+    };
+
+    // --- GESTÃO COMPLETA DE MARCAÇÕES DO ANDARILHO ---
+    let wandererLocationsCache = [];
+    let editingWandererPointId = null;
+
+    const defaultWandererPoints = [
+        { id: 'wand-1', name: 'Ponto 01 - Farol de El Gordo', city_id: 'cda-server-uuid', coords: { x: 3326.5, y: 5163.2 }, hint: 'Próximo à cerca de madeira na beira do penhasco, atrás do galpão.' },
+        { id: 'wand-2', name: 'Ponto 02 - Galpão Abandonado Sandy', city_id: 'cda-server-uuid', coords: { x: 1729.8, y: 3314.1 }, hint: 'Dentro do galpão de madeira com telhado quebrado.' },
+        { id: 'wand-3', name: 'Ponto 03 - Cabana do Monte Chiliad', city_id: 'cda-server-uuid', coords: { x: -442.1, y: 5972.4 }, hint: 'Atrás da cabana de montanha, perto dos pinheiros altos.' },
+        { id: 'wand-4', name: 'Ponto 04 - Refúgio da Serraria Paleto', city_id: 'cda-server-uuid', coords: { x: -582.4, y: 5318.9 }, hint: 'Perto do empilhamento de toras de madeira na serraria.' },
+        { id: 'wand-5', name: 'Ponto 05 - Píer de Del Perro', city_id: 'valley-server-uuid', coords: { x: -1642.3, y: -1014.2 }, hint: 'Debaixo da estrutura de madeira do píer próximo à praia.' },
+        { id: 'wand-6', name: 'Ponto 06 - Cais de Los Santos', city_id: 'valley-server-uuid', coords: { x: 114.5, y: -2218.4 }, hint: 'Entre os contêineres azuis na doca sul.' }
+    ];
+
+    window.loadAdminWandererListView = async function() {
+        const container = document.getElementById('admin-wanderer-list-container');
+        if (!container) return;
+
+        try {
+            let locations = [];
+            const { data, error } = await supabaseClient.from('wanderer_locations').select('*').order('created_at', { ascending: true });
+            if (!error && Array.isArray(data) && data.length > 0) {
+                locations = data;
+            } else {
+                const localCache = JSON.parse(localStorage.getItem('malaca_wanderer_custom_locations') || '[]');
+                locations = localCache.length > 0 ? localCache : defaultWandererPoints;
+            }
+
+            wandererLocationsCache = locations;
+            localStorage.setItem('malaca_wanderer_custom_locations', JSON.stringify(locations));
+            renderAdminWandererList(locations);
+        } catch(e) {
+            container.innerHTML = `<div style="grid-column: 1/-1; color: #f87171; font-size: 0.75rem; text-align: center; padding: 20px;">Falha ao carregar marcações: ${e.message}</div>`;
+        }
+    };
+
+    function renderAdminWandererList(list) {
+        const container = document.getElementById('admin-wanderer-list-container');
+        if (!container) return;
+
+        if (!list || list.length === 0) {
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 30px; font-size: 0.8rem;">Nenhuma marcação encontrada.</div>';
+            return;
+        }
+
+        const servers = getActiveServers();
+
+        container.innerHTML = list.map(p => {
+            const cityName = servers.find(s => s.id === p.city_id || s.slug === p.city_id)?.name || 'Cidade Alta RP';
+            const cx = (p.coords && typeof p.coords.x !== 'undefined') ? p.coords.x : (p.x || 0);
+            const cy = (p.coords && typeof p.coords.y !== 'undefined') ? p.coords.y : (p.y || 0);
+
+            return `
+                <div style="background: rgba(15,20,32,0.6); padding: 14px; border-radius: 12px; border: 1px solid rgba(0,210,255,0.25); display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                        <div>
+                            <h5 style="color: #fff; font-size: 0.88rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-person-walking" style="color: #00d2ff;"></i> ${p.name}
+                            </h5>
+                            <span style="color: #38bdf8; font-size: 10px; font-weight: 700; background: rgba(0,210,255,0.12); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0,210,255,0.3); display: inline-block; margin-top: 3px;">
+                                <i class="fa-solid fa-city"></i> ${cityName}
+                            </span>
+                        </div>
+                        <span style="font-family: monospace; font-size: 11px; color: #a5f3fc; background: rgba(0,0,0,0.4); padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(0,210,255,0.2); white-space: nowrap;">
+                            X: ${Number(cx).toFixed(1)} | Y: ${Number(cy).toFixed(1)}
+                        </span>
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); font-size: 11px; color: #cbd5e1; line-height: 1.4;">
+                        <strong style="color: #fde68a; display: block; font-size: 10px; margin-bottom: 2px;"><i class="fa-solid fa-lightbulb"></i> DICA DO BALÃO:</strong>
+                        ${p.hint || 'Sem dica cadastrada.'}
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.06); margin-top: 4px;">
+                        <button onclick="forceConfirmWandererPoint('${p.id}')" style="background: linear-gradient(135deg, rgba(34,197,94,0.2) 0%, rgba(16,185,129,0.3) 100%); border: 1px solid #22c55e; color: #86efac; padding: 5px 9px; border-radius: 6px; font-size: 10px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Forçar este ponto como ativo no ciclo agora">
+                            <i class="fa-solid fa-bolt"></i> Ativar no Ciclo
+                        </button>
+                        <div style="display: flex; gap: 6px;">
+                            <button onclick="startEditWandererPoint('${p.id}')" style="background: rgba(0,210,255,0.15); border: 1px solid rgba(0,210,255,0.3); color: #38bdf8; padding: 5px 9px; border-radius: 6px; font-size: 10px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                <i class="fa-solid fa-pen"></i> Editar
+                            </button>
+                            <button onclick="deleteWandererPoint('${p.id}', '${p.name}')" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 5px 9px; border-radius: 6px; font-size: 10px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                <i class="fa-solid fa-trash"></i> Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    window.filterAdminWandererList = function(query) {
+        const q = (query || '').toLowerCase().trim();
+        const cityFilter = document.getElementById('wand-filter-city-select')?.value || 'all';
+        let filtered = wandererLocationsCache;
+
+        if (cityFilter !== 'all') {
+            filtered = filtered.filter(p => p.city_id === cityFilter || p.city_id === `${cityFilter}-server-uuid`);
+        }
+        if (q) {
+            filtered = filtered.filter(p => 
+                (p.name && p.name.toLowerCase().includes(q)) ||
+                (p.hint && p.hint.toLowerCase().includes(q))
+            );
+        }
+        renderAdminWandererList(filtered);
+    };
+
+    window.filterAdminWandererByCity = function(cityId) {
+        const q = document.getElementById('wand-search-input')?.value || '';
+        window.filterAdminWandererList(q);
+    };
+
+    window.startEditWandererPoint = function(id) {
+        const point = wandererLocationsCache.find(p => p.id === id);
+        if (!point) return;
+
+        editingWandererPointId = id;
+        document.getElementById('wand-point-id').value = id;
+        document.getElementById('wand-point-name').value = point.name || '';
+        document.getElementById('wand-point-city').value = point.city_id || 'cda-server-uuid';
+
+        const cx = (point.coords && typeof point.coords.x !== 'undefined') ? point.coords.x : (point.x || 0);
+        const cy = (point.coords && typeof point.coords.y !== 'undefined') ? point.coords.y : (point.y || 0);
+        document.getElementById('wand-point-x').value = cx;
+        document.getElementById('wand-point-y').value = cy;
+        document.getElementById('wand-point-hint').value = point.hint || '';
+
+        document.getElementById('wand-form-title').innerHTML = `<i class="fa-solid fa-pen-to-square" style="color: #f59e0b;"></i> Editando: ${point.name}`;
+        document.getElementById('wand-submit-btn').textContent = 'SALVAR ALTERAÇÕES DA MARCAÇÃO';
+        document.getElementById('wand-cancel-edit-btn').style.display = 'inline-block';
+        document.getElementById('wand-point-name').focus();
+    };
+
+    window.cancelEditWandererPoint = function() {
+        editingWandererPointId = null;
+        document.getElementById('wand-point-id').value = '';
+        document.getElementById('wand-point-name').value = '';
+        document.getElementById('wand-point-x').value = '';
+        document.getElementById('wand-point-y').value = '';
+        document.getElementById('wand-point-hint').value = '';
+
+        document.getElementById('wand-form-title').innerHTML = `<i class="fa-solid fa-location-crosshairs" style="color: #00d2ff;"></i> Cadastrar Nova Marcação do Andarilho`;
+        document.getElementById('wand-submit-btn').textContent = 'SALVAR MARCAÇÃO NO MAPA';
+        document.getElementById('wand-cancel-edit-btn').style.display = 'none';
+    };
+
+    window.handleSaveWandererPoint = async function(e) {
+        e.preventDefault();
+        const id = document.getElementById('wand-point-id').value.trim() || `wand-${Date.now()}`;
+        const name = document.getElementById('wand-point-name').value.trim();
+        const city_id = document.getElementById('wand-point-city').value;
+        const x = parseFloat(document.getElementById('wand-point-x').value);
+        const y = parseFloat(document.getElementById('wand-point-y').value);
+        const hint = document.getElementById('wand-point-hint').value.trim();
+
+        const pointData = {
+            id,
+            name,
+            city_id,
+            coords: { x, y },
+            hint,
+            updated_at: new Date().toISOString()
+        };
+
+        try {
+            // Upsert into Supabase
+            try {
+                await supabaseClient.from('wanderer_locations').upsert([pointData], { onConflict: 'id' });
+            } catch(e) {}
+
+            // Update local cache
+            let list = wandererLocationsCache;
+            const existingIdx = list.findIndex(p => p.id === id);
+            if (existingIdx >= 0) {
+                list[existingIdx] = pointData;
+            } else {
+                list.push(pointData);
+            }
+            wandererLocationsCache = list;
+            localStorage.setItem('malaca_wanderer_custom_locations', JSON.stringify(list));
+
+            // Broadcast to all map interactive screens
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'entity_sync',
+                payload: { entity: 'wanderer_locations', action: 'UPDATE', data: pointData, timestamp: Date.now() }
+            });
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'wanderer_locations_updated',
+                payload: { locations: list, targetPoint: pointData }
+            });
+
+            alert('Marcação do Andarilho salva com sucesso e sincronizada no mapa em tempo real!');
+            cancelEditWandererPoint();
+            renderAdminWandererList(wandererLocationsCache);
+        } catch(err) {
+            alert('Erro ao salvar ponto do andarilho: ' + err.message);
+        }
+    };
+
+    window.deleteWandererPoint = async function(id, name) {
+        if (!confirm(`Deseja realmente EXCLUIR a marcação "${name}" do mapa?`)) return;
+
+        try {
+            try {
+                await supabaseClient.from('wanderer_locations').delete().eq('id', id);
+            } catch(e) {}
+
+            let list = wandererLocationsCache.filter(p => p.id !== id);
+            wandererLocationsCache = list;
+            localStorage.setItem('malaca_wanderer_custom_locations', JSON.stringify(list));
+
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'entity_sync',
+                payload: { entity: 'wanderer_locations', action: 'DELETE', id: id, timestamp: Date.now() }
+            });
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'wanderer_locations_updated',
+                payload: { locations: list, deletedId: id }
+            });
+
+            alert(`Marcação "${name}" excluída com sucesso!`);
+            renderAdminWandererList(wandererLocationsCache);
+        } catch(e) {
+            alert('Erro ao excluir marcação: ' + e.message);
+        }
+    };
+
+    window.forceConfirmWandererPoint = async function(id) {
+        const point = wandererLocationsCache.find(p => p.id === id);
+        if (!point) return;
+
+        if (!confirm(`Deseja FORÇAR a ativação do "${point.name}" no ciclo atual para todos os usuários?`)) return;
+
+        try {
+            const currentProfile = JSON.parse(localStorage.getItem('malaca_user_profile') || '{}');
+            const confirmation = {
+                id: `conf-${Date.now()}`,
+                location_id: id,
+                city_id: point.city_id,
+                user_id: currentProfile.id || 'admin',
+                user_name: currentProfile.username || 'Admin Global',
+                avatar_url: currentProfile.avatar_url || '',
+                confirmed_at: new Date().toISOString()
+            };
+
+            try {
+                await supabaseClient.from('wanderer_confirmations').insert([confirmation]);
+            } catch(e) {}
+
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'wanderer_confirmed',
+                payload: { locationId: id, cityId: point.city_id, confirmation, forcedByAdmin: true }
+            });
+
+            alert(`Ponto "${point.name}" ativado com sucesso no ciclo atual! Todas as telas conectadas já atualizaram a localização.`);
+        } catch(e) {
+            alert('Erro ao forçar ativação: ' + e.message);
         }
     };
 

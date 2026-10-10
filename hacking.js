@@ -7,7 +7,7 @@ const state = {
     scrambleInterval: null,
     startTime: 0,
 
-    charSet: 'all',
+    charSet: 'futhark', // Padrão: Elder Futhark / Boosting GTA RP
     targetLength: 4,
     gridRows: 8,
     gridCols: 10,
@@ -25,13 +25,18 @@ const state = {
 };
 
 const CHARACTER_SETS = {
-    numeric: '0123456789',
-    alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-    alphanumeric: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-    greek: 'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ',
-    braille: '⡀⡁⡂⡃⡄⡅⡆⡇⡈⡉⡊⡋⡌⡍⡎⡏⡐⡑⡒⡓⡔⡕⡖⡗⡘⡙⡚⡛⡜⡝⡞⡟⡠⡡⡢⡣⡤⡥⡦⡧⡨⡩⡪⡫⡬⡭⡮⡯⡰⡱⡲⡳⡴⡵⡶⡷⡸⡹⡺⡻⡼⡽⡾⡿',
-    runes: 'ᚠᚥᚧᚨᚩᚬᚭᚻᛐᛑᛒᛓᛔᛕᛖᛗᛘᛙᛚᛛᛜᛝᛞᛟᛤ',
-    symbols: '☎☚☛☜☞☟☠☢☣☮☯♨♩♪♫♬Ψ♆✂✄෧✆✉✦✧✿❀',
+    futhark: [
+        '‘S', 'KY', 'Y£', 'R<', 'ND', 'SK', 'ºM', 'I‘', 'MT', 'PI', 'MM', 'XP', 'DF', 'BM',
+        'ᛝ', 'ᛉ', 'Гº', '<N', 'N†', 'TB', 'FX', '+I', 'ᛘ', 'ᛋ', 'ᛖ', 'ᚦ', 'ᚹ', 'ᚷ', 'ᚲ',
+        'ᚺ', 'ᛃ', 'ᛇ', 'ᛈ', 'ᛟ'
+    ],
+    numeric: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+    alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
+    alphanumeric: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split(''),
+    greek: 'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ'.split(''),
+    braille: '⡀⡁⡂⡃⡄⡅⡆⡇⡈⡉⡊⡋⡌⡍⡎⡏⡐⡑⡒⡓⡔⡕⡖⡗⡘⡙⡚⡛⡜⡝⡞⡟⡠⡡⡢⡣⡤⡥⡦⡧⡨⡩⡪⡫⡬⡭⡮⡯⡰⡱⡲⡳⡴⡵⡶⡷⡸⡹⡺⡻⡼⡽⡾⡿'.split(''),
+    runes: 'ᚠᚥᚧᚨᚩᚬᚭᚻᛐᛑᛒᛓᛔᛕᛖᛗᛘᛙᛚᛛᛜᛝᛞᛟᛤ'.split(''),
+    symbols: '☎☚☛☜☞☟☠☢☣☮☯♨♩♪♫♬Ψ♆✂✄෧✆✉✦✧✿❀'.split(''),
 };
 
 // Web Audio API Sound Generator Seguro
@@ -60,23 +65,23 @@ function playSound(type) {
 
         if (type === 'move') {
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.setValueAtTime(650, now);
             gainNode.gain.setValueAtTime(0.04, now);
             gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
             osc.start(now);
             osc.stop(now + 0.05);
         } else if (type === 'error') {
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(140, now);
-            gainNode.gain.setValueAtTime(0.18, now);
+            osc.frequency.setValueAtTime(130, now);
+            gainNode.gain.setValueAtTime(0.2, now);
             gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
             osc.start(now);
             osc.stop(now + 0.3);
         } else if (type === 'success') {
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(520, now);
+            osc.frequency.setValueAtTime(540, now);
             osc.frequency.setValueAtTime(880, now + 0.08);
-            gainNode.gain.setValueAtTime(0.12, now);
+            gainNode.gain.setValueAtTime(0.14, now);
             gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
             osc.start(now);
             osc.stop(now + 0.35);
@@ -84,10 +89,10 @@ function playSound(type) {
     } catch {}
 }
 
-let activeSetChars = '';
+let activeSetChars = CHARACTER_SETS.futhark;
 
 function getRandomChar() {
-    return activeSetChars.charAt(Math.floor(Math.random() * activeSetChars.length));
+    return activeSetChars[Math.floor(Math.random() * activeSetChars.length)];
 }
 
 // Gera uma posição inicial válida para que a sequência não quebre entre linhas
@@ -115,7 +120,7 @@ function initGame() {
         const randomKey = keys[Math.floor(Math.random() * keys.length)];
         activeSetChars = CHARACTER_SETS[randomKey];
     } else {
-        activeSetChars = CHARACTER_SETS[state.charSet] || CHARACTER_SETS.numeric;
+        activeSetChars = CHARACTER_SETS[state.charSet] || CHARACTER_SETS.futhark;
     }
 
     // Gera sequência alvo
@@ -156,7 +161,7 @@ function renderGrid() {
 
     for (let i = 0; i < state.gridSize; i++) {
         const cell = document.createElement('div');
-        cell.className = 'char-cell';
+        cell.className = 'cyberdeck-cell char-cell';
         cell.textContent = state.gridChars[i];
         cell.dataset.index = i;
 
@@ -223,7 +228,7 @@ function startScrambler() {
         }
 
         // 4. Atualiza células no DOM
-        const cells = document.querySelectorAll('.char-cell');
+        const cells = document.querySelectorAll('.cyberdeck-cell, .char-cell');
         for (let i = 0; i < state.gridSize; i++) {
             if (cells[i]) {
                 cells[i].textContent = state.gridChars[i];
@@ -240,7 +245,7 @@ function stopScrambler() {
 }
 
 function updateCursorHighlight() {
-    const cells = document.querySelectorAll('.char-cell');
+    const cells = document.querySelectorAll('.cyberdeck-cell, .char-cell');
     cells.forEach((cell, idx) => {
         cell.classList.remove('selected-cursor', 'selected-cursor-head');
         if (idx >= state.cursorPos && idx < state.cursorPos + state.targetLength) {
@@ -303,7 +308,7 @@ function submitSelection() {
         updateHUD();
 
         // Destaque visual verde
-        const cells = document.querySelectorAll('.char-cell');
+        const cells = document.querySelectorAll('.cyberdeck-cell, .char-cell');
         for (let i = 0; i < state.targetLength; i++) {
             if (cells[state.cursorPos + i]) {
                 cells[state.cursorPos + i].classList.add('success-cell');
@@ -323,7 +328,7 @@ function submitSelection() {
         stopScrambler();
 
         // Destaca seleção errada em vermelho
-        const cells = document.querySelectorAll('.char-cell');
+        const cells = document.querySelectorAll('.cyberdeck-cell, .char-cell');
         for (let i = 0; i < state.targetLength; i++) {
             if (cells[state.cursorPos + i]) {
                 cells[state.cursorPos + i].classList.add('fail-cell');
@@ -351,7 +356,7 @@ function failGame(msg = 'Acesso Negado: tempo esgotado ou código incorreto.') {
     updateHUD();
 
     // Revela a posição correta em verde
-    const cells = document.querySelectorAll('.char-cell');
+    const cells = document.querySelectorAll('.cyberdeck-cell, .char-cell');
     for (let i = 0; i < state.targetLength; i++) {
         if (cells[state.correctPos + i]) {
             cells[state.correctPos + i].classList.add('success-cell');
@@ -387,9 +392,12 @@ function stopTimer() {
 }
 
 function updateTimerDisplay() {
-    const t = Math.max(0, state.timer).toFixed(1);
+    const t = Math.max(0, state.timer);
+    const secs = Math.floor(t);
+    const millis = Math.floor((t - secs) * 100);
+    const formatted = `${String(secs).padStart(2, '0')}.${String(millis).padStart(2, '0')}`;
     const timerVal = document.getElementById('timer-val');
-    if (timerVal) timerVal.textContent = `${t}s`;
+    if (timerVal) timerVal.textContent = formatted;
 }
 
 function updateHUD() {
@@ -439,10 +447,11 @@ document.getElementById('btn-submit')?.addEventListener('click', submitSelection
 document.getElementById('btn-next-puzzle')?.addEventListener('click', initGame);
 document.getElementById('btn-retry-puzzle')?.addEventListener('click', initGame);
 
-// D-Pad Virtual para Celular e Mouse
+// D-Pad Virtual e Hitboxes Físicas da carcaça do Cyberdeck
 document.getElementById('dpad-up')?.addEventListener('click', () => moveCursor(-10));
 document.getElementById('dpad-down')?.addEventListener('click', () => moveCursor(10));
 document.getElementById('dpad-left')?.addEventListener('click', () => moveCursor(-1));
+document.getElementById('dpad-right')?.addEventListener('click', () => moveCursor(1));
 document.getElementById('dpad-right')?.addEventListener('click', () => moveCursor(1));
 
 // Seletores de Configuração

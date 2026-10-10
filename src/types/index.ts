@@ -139,23 +139,12 @@ export interface UserProfile {
   is_banned?: boolean;
   created_at?: string;
   last_login_at?: string;
-  access_count?: number;
   character_name?: string;
   instagram?: string;
   twitch?: string;
   youtube?: string;
   twitter_x?: string;
   custom_bio?: string;
-}
-
-export interface AccessLog {
-  id: string;
-  user_id?: string;
-  discord_id?: string;
-  username?: string;
-  logged_at: string;
-  user_agent?: string;
-  page_path?: string;
 }
 
 export interface PlatformSettings {

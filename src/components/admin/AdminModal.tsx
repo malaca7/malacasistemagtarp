@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Server, System, MapLocation, Suggestion, LocationCategory, SuggestionStatus, UserProfile, AccessLog, PlatformSettings } from '../../types';
+import type { Server, System, MapLocation, Suggestion, LocationCategory, SuggestionStatus, UserProfile, PlatformSettings } from '../../types';
 import { ApiService } from '../../services/api';
 import { AuthService, checkAdminPermission, extractDiscordId, DEFAULT_ADMIN_DISCORD_IDS } from '../../services/auth';
 import { calculateWandererCycle } from '../../utils/wandererCycle';
@@ -40,6 +40,8 @@ import {
   ToggleRight,
   Radio,
   Bell,
+  Compass,
+  Navigation,
 } from 'lucide-react';
 
 interface AdminModalProps {
@@ -85,7 +87,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'cities' | 'systems' | 'locations' | 'wanderer' | 'suggestions' | 'users' | 'access_logs' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'cities' | 'systems' | 'locations' | 'wanderer' | 'suggestions' | 'users' | 'settings'>('dashboard');
 
   // Safe Array Guarantees
   const rawServers = servers || initialServers || [];
@@ -97,7 +99,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [serversList, setServersList] = useState<Server[]>(safeInitialServers);
   const [systemsList, setSystemsList] = useState<System[]>([]);
   const [profilesList, setProfilesList] = useState<UserProfile[]>([]);
-  const [accessLogsList, setAccessLogsList] = useState<AccessLog[]>([]);
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings>({
     maintenance_mode: false,
     maintenance_message: 'Plataforma em manutenção para melhorias no servidor.',
@@ -108,6 +109,17 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     require_auth_for_interactive_map: false,
   });
   const [userSearchQuery, setUserSearchQuery] = useState('');
+
+  // Wanderer Management Form & List State
+  const [editingWandererLoc, setEditingWandererLoc] = useState<MapLocation | null>(null);
+  const [wandName, setWandName] = useState('');
+  const [wandServerId, setWandServerId] = useState(safeInitialServers[0]?.id || 'cda-server-uuid');
+  const [wandX, setWandX] = useState<number | ''>('');
+  const [wandY, setWandY] = useState<number | ''>('');
+  const [wandHint, setWandHint] = useState('');
+  const [wandDescription, setWandDescription] = useState('');
+  const [wandFilterCity, setWandFilterCity] = useState('all');
+  const [wandSearchText, setWandSearchText] = useState('');
 
   // City Creation Form State
   const [cityName, setCityName] = useState('');
@@ -217,17 +229,15 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
   const loadAdminData = async () => {
     try {
-      const [s, sys, profs, logs, sets] = await Promise.all([
+      const [s, sys, profs, sets] = await Promise.all([
         ApiService.fetchServers(),
         ApiService.fetchSystems(),
         ApiService.fetchProfiles(),
-        ApiService.fetchAccessLogs(),
         ApiService.fetchPlatformSettings(),
       ]);
       setServersList(Array.isArray(s) ? s : []);
       setSystemsList(Array.isArray(sys) ? sys : []);
       setProfilesList(Array.isArray(profs) ? profs : []);
-      setAccessLogsList(Array.isArray(logs) ? logs : []);
       if (sets) setPlatformSettings(sets);
     } catch (e) {
       console.error('Error loading admin data:', e);
@@ -582,16 +592,99 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
-  // Clear Access Logs Handler
-  const handleClearAccessLogs = async () => {
-    if (confirm('Tem certeza que deseja limpar todo o histórico de logs de acesso?')) {
-      const ok = await ApiService.clearAccessLogs();
+  // Handlers de Gestão de Marcações do Andarilho (Criar, Editar, Excluir, Forçar Confirmação)
+  const handleStartEditWanderer = (loc: MapLocation) => {
+    setEditingWandererLoc(loc);
+    setWandName(loc.name);
+    setWandServerId(loc.server_id || serversList[0]?.id || 'cda-server-uuid');
+    setWandX(loc.x);
+    setWandY(loc.y);
+    setWandHint(loc.description || '');
+    setWandDescription(loc.description || '');
+  };
+
+  const handleCancelEditWanderer = () => {
+    setEditingWandererLoc(null);
+    setWandName('');
+    setWandX('');
+    setWandY('');
+    setWandHint('');
+    setWandDescription('');
+  };
+
+  const handleSaveWandererPoint = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!wandName.trim()) {
+      showToast('Digite um nome ou identificador para o ponto do Andarilho.');
+      return;
+    }
+
+    const finalX = typeof wandX === 'number' ? wandX : (pendingPinCoords ? pendingPinCoords.x : 500);
+    const finalY = typeof wandY === 'number' ? wandY : (pendingPinCoords ? pendingPinCoords.y : 500);
+
+    if (editingWandererLoc) {
+      const updates: Partial<MapLocation> = {
+        name: wandName.trim(),
+        server_id: wandServerId,
+        x: finalX,
+        y: finalY,
+        description: wandHint.trim() || wandDescription.trim(),
+        category: 'local_possivel',
+      };
+
+      const ok = onUpdateLocation
+        ? await onUpdateLocation(editingWandererLoc.id, updates)
+        : await ApiService.updateLocation(editingWandererLoc.id, updates);
+
       if (ok) {
-        setAccessLogsList([]);
-        showToast('Histórico de acessos limpo com sucesso!');
+        showToast(`Marcação do Andarilho "${wandName}" atualizada com sucesso!`);
+        handleCancelEditWanderer();
       } else {
-        showToast('Erro ao limpar histórico de acessos.');
+        showToast('Erro ao atualizar marcação do Andarilho.');
       }
+    } else {
+      const newPoint: Omit<MapLocation, 'id'> = {
+        name: wandName.trim(),
+        server_id: wandServerId || serversList[0]?.id || 'cda-server-uuid',
+        category: 'local_possivel',
+        x: finalX,
+        y: finalY,
+        description: wandHint.trim() || wandDescription.trim(),
+        is_active: true,
+      };
+
+      const ok = onSaveLocation
+        ? await onSaveLocation(newPoint)
+        : await ApiService.createLocation(newPoint);
+
+      if (ok) {
+        showToast(`Novo ponto do Andarilho "${wandName}" cadastrado no mapa!`);
+        handleCancelEditWanderer();
+      } else {
+        showToast('Erro ao criar ponto do Andarilho.');
+      }
+    }
+  };
+
+  const handleDeleteWandererPoint = async (id: string, name: string) => {
+    if (confirm(`Tem certeza que deseja excluir a marcação "${name}" do Andarilho?`)) {
+      const ok = onDeleteLocation ? await onDeleteLocation(id) : await ApiService.deleteLocation(id);
+      if (ok) {
+        showToast(`Marcação "${name}" excluída com sucesso!`);
+        if (editingWandererLoc?.id === id) handleCancelEditWanderer();
+      } else {
+        showToast('Erro ao excluir marcação.');
+      }
+    }
+  };
+
+  const handleForceConfirmPoint = async (loc: MapLocation) => {
+    const adminName = user?.username || 'Administrador';
+    const ok = await ApiService.forceConfirmWandererLocation(loc.id, loc.server_id, adminName);
+    if (ok) {
+      showToast(`Ponto "${loc.name}" confirmado no ciclo ativo e transmitido para todos os mapas!`);
+    } else {
+      showToast('Erro ao confirmar ponto.');
     }
   };
 
@@ -854,18 +947,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               </button>
 
               <button
-                onClick={() => setActiveTab('access_logs')}
-                className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-                  activeTab === 'access_logs'
-                    ? 'border-emerald-500 text-emerald-400 bg-emerald-500/15'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Activity className="w-4 h-4 text-emerald-400" />
-                Auditoria de Acessos ({accessLogsList.length})
-              </button>
-
-              <button
                 onClick={() => setActiveTab('settings')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'settings'
@@ -947,11 +1028,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
                     <div className="bg-[#060d1a] p-4 rounded-xl border border-emerald-500/30 space-y-1 relative overflow-hidden">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">ACESSOS REGISTRADOS</span>
-                        <Activity className="w-4 h-4 text-emerald-400" />
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">PONTOS DO ANDARILHO</span>
+                        <MapPin className="w-4 h-4 text-emerald-400" />
                       </div>
-                      <span className="text-2xl font-black text-emerald-400 font-mono">{accessLogsList.length}</span>
-                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Sessões gravadas no Supabase</p>
+                      <span className="text-2xl font-black text-emerald-400 font-mono">
+                        {safeLocations.filter((l) => l.category === 'andarilho').length}
+                      </span>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Marcações cadastradas no mapa</p>
                     </div>
 
                     <div className="bg-[#060d1a] p-4 rounded-xl border border-[#00d2ff]/20 space-y-1">
@@ -1651,17 +1734,27 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 );
               })()}
 
-              {/* TAB 5: CICLO DO ANDARILHO */}
+              {/* TAB 5: CICLO E GESTÃO DO ANDARILHO */}
               {activeTab === 'wanderer' && (() => {
                 const cycle = calculateWandererCycle();
-                const totalCycleVotes = locations
-                  .filter((l) => l.category === 'andarilho' || l.category === 'local_possivel')
-                  .reduce((sum, l) => sum + (l.confirmations_count || 0), 0);
+                const wandererPoints = locations.filter(
+                  (l) => l.category === 'andarilho' || l.category === 'local_possivel'
+                );
+                const totalCycleVotes = wandererPoints.reduce((sum, l) => sum + (l.confirmations_count || 0), 0);
+
+                const filteredWandererList = wandererPoints.filter((l) => {
+                  const matchCity = wandFilterCity === 'all' || l.server_id === wandFilterCity;
+                  const matchText = !wandSearchText ||
+                    l.name.toLowerCase().includes(wandSearchText.toLowerCase()) ||
+                    (l.description && l.description.toLowerCase().includes(wandSearchText.toLowerCase()));
+                  return matchCity && matchText;
+                });
 
                 return (
                   <div className="space-y-6">
+                    {/* Status & Ciclo Automático */}
                     <div className="bg-gradient-to-br from-[#00d2ff]/15 via-slate-900/80 to-black p-5 rounded-xl border border-[#00d2ff]/30 space-y-4">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
                         <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
                           <Clock className="w-4 h-4 text-[#00d2ff]" />
                           Controle e Automação do Ciclo do Andarilho
@@ -1673,7 +1766,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
                       <p className="text-xs text-slate-300 leading-relaxed">
                         O Andarilho troca de posição a cada 12 horas (exatamente às <strong>06:00</strong> da manhã e <strong>18:00</strong> da noite).
-                        O sistema apaga e reinicia automaticamente os votos da comunidade nesses horários e sincroniza em tempo real com todos os jogadores ativos.
+                        O sistema reinicia os votos da comunidade nesses horários e sincroniza instantaneamente com todas as telas abertas via Realtime.
                       </p>
 
                       {/* Status Cards */}
@@ -1702,7 +1795,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       {/* Manual Reset Action */}
                       <div className="pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="text-xs text-slate-400">
-                          Precisa forçar um reset fora do horário programado? Clique abaixo para zerar os votos em todas as telas conectadas.
+                          Deseja forçar um reset manual e zerar votos de todas as telas agora?
                         </div>
 
                         <button
@@ -1710,34 +1803,236 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           className="px-4 py-2.5 bg-gradient-to-r from-amber-500/25 to-rose-500/25 hover:from-amber-500/35 hover:to-rose-500/35 text-amber-200 border border-amber-500/40 font-bold text-xs rounded-xl flex items-center gap-2 transition-all whitespace-nowrap shadow-lg shadow-amber-500/10"
                         >
                           <RefreshCw className="w-4 h-4 text-amber-400" />
-                          Zerar Votos Agora (Sincronizar Todas as Telas)
+                          Zerar Votos Gerais Agora
                         </button>
                       </div>
-                      {/* Wanderer Candidate Locations & Votes */}
-                      <div className="pt-3 border-t border-slate-800/80 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h5 className="font-bold text-white text-xs">Locais Candidatos do Andarilho & Votações em Tempo Real</h5>
-                          <span className="text-[10px] text-slate-400">Total: {locations.filter(l => l.category === 'andarilho' || l.category === 'local_possivel').length} pontos</span>
+                    </div>
+
+                    {/* Formulário de Criação / Edição de Ponto do Andarilho */}
+                    <form onSubmit={handleSaveWandererPoint} className="bg-[#060d1a] p-5 rounded-xl border border-[#00d2ff]/30 space-y-4 shadow-xl">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                          <Compass className="w-4 h-4 text-[#00d2ff]" />
+                          <span>{editingWandererLoc ? `Editar Marcação: "${editingWandererLoc.name}"` : 'Cadastrar Nova Marcação do Andarilho'}</span>
+                        </h4>
+                        {editingWandererLoc && (
+                          <button
+                            type="button"
+                            onClick={handleCancelEditWanderer}
+                            className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded bg-slate-800"
+                          >
+                            Cancelar Edição
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                        <div>
+                          <label className="block text-slate-400 font-semibold mb-1">Nome / Título da Marcação *</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: Ponto 01 - Farmacinha de Paleto"
+                            value={wandName}
+                            onChange={(e) => setWandName(e.target.value)}
+                            className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
+                            required
+                          />
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                          {locations
-                            .filter((l) => l.category === 'andarilho' || l.category === 'local_possivel')
-                            .map((l) => (
-                              <div key={l.id} className="bg-black/40 p-2.5 rounded-lg border border-slate-800 flex items-center justify-between">
-                                <div className="min-w-0 pr-2">
-                                  <div className="text-xs font-bold text-white truncate">{l.name}</div>
-                                  <div className="text-[10px] text-slate-500 font-mono">X: {l.x} | Y: {l.y}</div>
-                                </div>
-                                <span className={`px-2 py-0.5 rounded text-xs font-mono font-black ${
-                                  (l.confirmations_count || 0) > 0 
-                                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' 
-                                    : 'bg-slate-800 text-slate-500'
-                                }`}>
-                                  {l.confirmations_count || 0}
-                                </span>
-                              </div>
+
+                        <div>
+                          <label className="block text-slate-400 font-semibold mb-1">Cidade / Servidor</label>
+                          <select
+                            value={wandServerId}
+                            onChange={(e) => setWandServerId(e.target.value)}
+                            className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
+                          >
+                            {serversList.map((s) => (
+                              <option key={s.id} value={s.id}>{s.name} ({s.slug.toUpperCase()})</option>
                             ))}
+                          </select>
                         </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-slate-400 font-semibold mb-1">Coord. X</label>
+                            <input
+                              type="number"
+                              step="0.1"
+                              placeholder="ex: 785.4"
+                              value={wandX}
+                              onChange={(e) => setWandX(e.target.value === '' ? '' : Number(e.target.value))}
+                              className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-slate-400 font-semibold mb-1">Coord. Y</label>
+                            <input
+                              type="number"
+                              step="0.1"
+                              placeholder="ex: 290.1"
+                              value={wandY}
+                              onChange={(e) => setWandY(e.target.value === '' ? '' : Number(e.target.value))}
+                              className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="md:col-span-2 lg:col-span-3">
+                          <label className="block text-slate-400 font-semibold mb-1">Dica / Pista do Andarilho (Aparece no balão do mapa)</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: Próximo à cerca de madeira na beira do penhasco, atrás do celeiro abandonado."
+                            value={wandHint}
+                            onChange={(e) => setWandHint(e.target.value)}
+                            className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="submit"
+                          className="px-5 py-2.5 bg-gradient-to-r from-[#00d2ff] via-[#2563eb] to-[#38bdf8] text-white font-bold text-xs rounded-xl shadow-lg hover:from-[#00d2ff] hover:to-[#38bdf8] transition-all flex items-center gap-2"
+                        >
+                          {editingWandererLoc ? <CheckCircle2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                          {editingWandererLoc ? 'Salvar Alterações da Marcação' : 'Cadastrar Marcação no Mapa'}
+                        </button>
+                        {editingWandererLoc && (
+                          <button
+                            type="button"
+                            onClick={handleCancelEditWanderer}
+                            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all"
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                      </div>
+                    </form>
+
+                    {/* Gestão e Lista de Todas as Marcações do Andarilho */}
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#060d1a] p-4 rounded-xl border border-slate-800">
+                        <div className="relative flex-1">
+                          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            placeholder="Buscar marcação do Andarilho por nome ou dica..."
+                            value={wandSearchText}
+                            onChange={(e) => setWandSearchText(e.target.value)}
+                            className="w-full bg-[#000000] border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00d2ff]"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={wandFilterCity}
+                            onChange={(e) => setWandFilterCity(e.target.value)}
+                            className="bg-[#000000] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none"
+                          >
+                            <option value="all">Todas as Cidades ({wandererPoints.length})</option>
+                            {serversList.map((s) => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+                        <span>Exibindo <strong>{filteredWandererList.length}</strong> de <strong>{wandererPoints.length}</strong> marcações cadastradas</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {filteredWandererList.length === 0 ? (
+                          <div className="col-span-full py-10 text-center text-slate-500 text-xs font-semibold">
+                            Nenhuma marcação do Andarilho encontrada com os filtros atuais.
+                          </div>
+                        ) : (
+                          filteredWandererList.map((loc) => {
+                            const isConfirmedActive = (loc.confirmations_count || 0) >= 1;
+                            const cityName = serversList.find(s => s.id === loc.server_id)?.name || 'Cidade RP';
+
+                            return (
+                              <div
+                                key={loc.id}
+                                className={`bg-[#060d1a] p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 ${
+                                  editingWandererLoc?.id === loc.id
+                                    ? 'border-[#00d2ff] bg-[#00d2ff]/10 shadow-lg shadow-[#00d2ff]/20'
+                                    : isConfirmedActive
+                                    ? 'border-emerald-500/50 bg-emerald-950/20'
+                                    : 'border-slate-800 hover:border-slate-700'
+                                }`}
+                              >
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#00d2ff]/15 text-[#38bdf8] border border-[#00d2ff]/30 uppercase">
+                                      {cityName}
+                                    </span>
+                                    <span className="text-[10px] font-mono text-slate-400 bg-black/60 px-2 py-0.5 rounded border border-slate-800">
+                                      X: {loc.x} | Y: {loc.y}
+                                    </span>
+                                  </div>
+
+                                  <h5 className="font-extrabold text-white text-xs">{loc.name}</h5>
+
+                                  {loc.description && (
+                                    <p className="text-[11px] text-slate-400 leading-snug line-clamp-2">
+                                      💡 <strong className="text-slate-300">Dica:</strong> {loc.description}
+                                    </p>
+                                  )}
+
+                                  <div className="flex items-center justify-between pt-1 text-[10px]">
+                                    <span className={`font-mono font-bold px-2 py-0.5 rounded border ${
+                                      isConfirmedActive
+                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                        : 'bg-slate-800/80 text-slate-400 border-slate-700'
+                                    }`}>
+                                      Votos no Ciclo: {loc.confirmations_count || 0}
+                                    </span>
+
+                                    {isConfirmedActive && (
+                                      <span className="text-emerald-400 font-bold flex items-center gap-1">
+                                        <CheckCircle2 className="w-3 h-3" /> Ativo Hoje
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleForceConfirmPoint(loc)}
+                                    className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold flex items-center gap-1 transition-all"
+                                    title="Marcar como localização confirmada do Andarilho neste ciclo"
+                                  >
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    <span>Ativar Ponto</span>
+                                  </button>
+
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartEditWanderer(loc)}
+                                      className="p-1.5 rounded-lg bg-[#00d2ff]/15 border border-[#00d2ff]/30 text-[#38bdf8] hover:bg-[#00d2ff]/25 transition-colors"
+                                      title="Editar Marcação"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteWandererPoint(loc.id, loc.name)}
+                                      className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors"
+                                      title="Excluir Marcação"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1875,8 +2170,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-slate-500 font-bold block">SESSÕES</span>
-                                  <span className="text-[#38bdf8] font-bold">{u.access_count || 1} acessos</span>
+                                  <span className="text-slate-500 font-bold block">CARGO</span>
+                                  <span className="text-[#38bdf8] font-bold">{isAdmin ? 'ADMINISTRADOR' : 'USUÁRIO RP'}</span>
                                 </div>
                               </div>
 
@@ -1926,90 +2221,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   </div>
                 );
               })()}
-
-              {/* TAB 9: AUDITORIA DE ACESSOS */}
-              {activeTab === 'access_logs' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between bg-[#060d1a] p-4 rounded-xl border border-slate-800">
-                    <div>
-                      <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-emerald-400" />
-                        Histórico de Logins & Auditoria ({accessLogsList.length} registros)
-                      </h4>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Registros em tempo real das conexões e logins efetuados via Discord OAuth2.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          showToast('Atualizando logs de acesso...');
-                          ApiService.fetchAccessLogs().then((logs) => {
-                            setAccessLogsList(logs);
-                            showToast('Logs de acesso atualizados!');
-                          });
-                        }}
-                        className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-colors"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Atualizar</span>
-                      </button>
-
-                      <button
-                        onClick={handleClearAccessLogs}
-                        className="px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 text-xs font-bold text-rose-300 flex items-center gap-1.5 transition-colors"
-                        title="Limpar todos os registros de acessos"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Limpar Histórico</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Logs Table */}
-                  <div className="bg-[#060d1a] rounded-xl border border-slate-800 overflow-hidden">
-                    <div className="divide-y divide-slate-800/80 max-h-[550px] overflow-y-auto">
-                      {accessLogsList.length === 0 ? (
-                        <div className="p-8 text-center text-xs text-slate-500 font-semibold">
-                          Nenhum registro de acesso gravado ainda.
-                        </div>
-                      ) : (
-                        accessLogsList.map((log) => (
-                          <div key={log.id} className="p-3.5 flex items-center justify-between gap-4 hover:bg-slate-900/30 transition-colors">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-[#5865F2]/20 border border-[#5865F2]/40 flex items-center justify-center text-[#5865F2] font-black text-xs shrink-0">
-                                <i className="fa-brands fa-discord"></i>
-                              </div>
-
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-extrabold text-white text-xs">{log.username || 'Discord User'}</span>
-                                  <span className="text-[10px] font-mono text-[#38bdf8] bg-[#00d2ff]/10 px-1.5 py-0.5 rounded border border-[#00d2ff]/20">
-                                    ID: {log.discord_id || '—'}
-                                  </span>
-                                </div>
-                                <span className="text-[10px] text-slate-500 block truncate max-w-md mt-0.5 font-mono">
-                                  {log.user_agent || 'Navegador Web Padrão'}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="text-right shrink-0">
-                              <span className="text-xs font-bold text-slate-300 block font-mono">
-                                {log.logged_at ? new Date(log.logged_at).toLocaleTimeString('pt-BR') : 'Agora'}
-                              </span>
-                              <span className="text-[10px] text-slate-500 block">
-                                {log.logged_at ? new Date(log.logged_at).toLocaleDateString('pt-BR') : ''}
-                              </span>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* TAB 10: OPÇÕES GLOBAIS DA PLATAFORMA */}
               {activeTab === 'settings' && (() => {
