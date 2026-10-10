@@ -167,6 +167,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         localStorage.removeItem('malaca_user_profile');
         renderDiscordModalContent();
         syncDiscordNavButton();
+        if (typeof checkSystemAuthProtection === 'function') checkSystemAuthProtection();
     };
 
     function renderDiscordModalContent() {
@@ -363,10 +364,12 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
             await syncDiscordSession();
             renderDiscordModalContent();
+            if (typeof checkSystemAuthProtection === 'function') checkSystemAuthProtection();
         } else if (event === 'SIGNED_OUT') {
             localStorage.removeItem('malaca_user_profile');
             syncDiscordNavButton();
             renderDiscordModalContent();
+            if (typeof checkSystemAuthProtection === 'function') checkSystemAuthProtection();
         }
     });
 
@@ -1532,39 +1535,127 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         }
     };
 
-    // Authentication Guard for Simulator / Minigame Pages
+    // Helper: Check if user is authenticated with a valid profile
+    function isUserLoggedIn() {
+        const stored = localStorage.getItem('malaca_user_profile');
+        if (!stored) return false;
+        try {
+            const user = JSON.parse(stored);
+            if (!user || !user.id || String(user.id).startsWith('mock-')) return false;
+            return true;
+        } catch(e) {
+            return false;
+        }
+    }
+    window.isUserLoggedIn = isUserLoggedIn;
+
+    // Toast: Visual feedback when access is blocked
+    function showAccessRestrictedToast(message) {
+        let toast = document.getElementById('global-access-restricted-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'global-access-restricted-toast';
+            toast.style.cssText = `
+                position: fixed; bottom: 24px; right: 24px; z-index: 999999;
+                background: linear-gradient(135deg, #090e17 0%, #030712 100%);
+                border: 1px solid rgba(88, 101, 242, 0.6); border-radius: 14px;
+                padding: 14px 20px; color: #fff; display: flex; align-items: center; gap: 14px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(88, 101, 242, 0.35);
+                font-family: var(--font-header, sans-serif); font-size: 13px; font-weight: 700;
+                transform: translateY(100px); opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                pointer-events: auto;
+            `;
+            document.body.appendChild(toast);
+        }
+        toast.innerHTML = `
+            <div style="width: 34px; height: 34px; border-radius: 50%; background: rgba(88, 101, 242, 0.2); border: 1px solid #5865F2; display: flex; align-items: center; justify-content: center; color: #5865F2; font-size: 16px; flex-shrink: 0;">
+                <i class="fa-brands fa-discord"></i>
+            </div>
+            <div>
+                <div style="color: #fff; font-size: 12px; font-weight: 800; letter-spacing: 0.5px;">ACESSO RESTRITO A MEMBROS</div>
+                <div style="color: #94a3b8; font-size: 11px; font-weight: 500; margin-top: 2px;">${message || 'Faça login com o Discord para acessar os sistemas.'}</div>
+            </div>
+        `;
+        toast.style.transform = 'translateY(0)';
+        toast.style.opacity = '1';
+
+        clearTimeout(toast._timeout);
+        toast._timeout = setTimeout(() => {
+            toast.style.transform = 'translateY(100px)';
+            toast.style.opacity = '0';
+        }, 4000);
+    }
+    window.showAccessRestrictedToast = showAccessRestrictedToast;
+
+    // Global Interceptor: Block unauthenticated users from clicking into systems
+    document.addEventListener('click', (e) => {
+        const target = e.target.closest('a') || e.target.closest('button.system-access-btn') || e.target.closest('.hub-city-card');
+        if (!target) return;
+
+        const href = (target.getAttribute('href') || target.dataset.link || '').toLowerCase();
+        const isSystemCard = target.classList.contains('hub-city-card') || 
+                             target.classList.contains('system-access-btn') ||
+                             target.classList.contains('hub-city-card-btn');
+
+        const isSystemTarget = href.includes('/mapa') ||
+                               href.includes('/lockpick') ||
+                               href.includes('/caixinha') ||
+                               href.includes('/hacking') ||
+                               href.includes('mapa-interativo');
+
+        // Only intercept if target is a system and user is not logged in
+        if ((isSystemCard || isSystemTarget) && !isUserLoggedIn()) {
+            e.preventDefault();
+            e.stopPropagation();
+            showAccessRestrictedToast('Faça login com o Discord para acessar este sistema.');
+            window.openDiscordModal();
+        }
+    }, true);
+
+    // Authentication Guard for Simulator / Minigame Pages (Direct URL access)
     function checkSystemAuthProtection() {
         const isSystemPage = window.location.pathname.includes('/lockpick') ||
                              window.location.pathname.includes('/caixinha') ||
-                             window.location.pathname.includes('/hacking');
+                             window.location.pathname.includes('/hacking') ||
+                             window.location.pathname.includes('/mapa-interativo');
         if (!isSystemPage) return;
 
-        const stored = localStorage.getItem('malaca_user_profile');
-        const user = stored ? JSON.parse(stored) : null;
-
-        if (!user) {
+        if (!isUserLoggedIn()) {
             let lockOverlay = document.getElementById('system-auth-guard-overlay');
             if (!lockOverlay) {
                 lockOverlay = document.createElement('div');
                 lockOverlay.id = 'system-auth-guard-overlay';
                 lockOverlay.style.cssText = `
-                    position: fixed; inset: 0; background: rgba(3, 7, 18, 0.94); backdrop-filter: blur(12px);
+                    position: fixed; inset: 0; background: rgba(3, 7, 18, 0.95); backdrop-filter: blur(16px);
                     z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 20px;
                 `;
+
+                // Detect city context from URL or fallback
+                let backUrl = '/cidades/';
+                const matchCity = window.location.pathname.match(/\/cidades\/([^\/]+)\//);
+                if (matchCity && matchCity[1]) {
+                    backUrl = `/cidades/${matchCity[1]}/`;
+                }
+
                 lockOverlay.innerHTML = `
-                    <div style="background: linear-gradient(135deg, #090e17 0%, #000000 100%); border: 1px solid rgba(88,101,242,0.4); border-radius: 20px; padding: 36px; max-width: 440px; width: 100%; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8);">
-                        <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(88,101,242,0.15); border: 2px solid #5865F2; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #5865F2; font-size: 30px;">
+                    <div style="background: linear-gradient(135deg, #090e17 0%, #000000 100%); border: 1px solid rgba(88,101,242,0.4); border-radius: 20px; padding: 36px; max-width: 440px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.9);">
+                        <div style="width: 68px; height: 68px; border-radius: 50%; background: rgba(88,101,242,0.15); border: 2px solid #5865F2; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; color: #5865F2; font-size: 32px; box-shadow: 0 0 25px rgba(88,101,242,0.3);">
                             <i class="fa-brands fa-discord"></i>
                         </div>
-                        <h3 style="font-family: var(--font-header, sans-serif); font-size: 1.15rem; font-weight: 900; color: #fff; margin-bottom: 8px;">ACESSO RESTRITO POR DISCORD</h3>
-                        <p style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6; margin-bottom: 24px;">
-                            Para utilizar este simulador e participar das ferramentas do Malaca System GTARP, é necessário estar conectado com sua conta do Discord.
+                        <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; background: rgba(88,101,242,0.15); border: 1px solid rgba(88,101,242,0.3); color: #818cf8; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
+                            SISTEMA RESTRITO • MALACA GTARP
+                        </span>
+                        <h3 style="font-family: var(--font-header, sans-serif); font-size: 1.25rem; font-weight: 900; color: #fff; margin-bottom: 10px; letter-spacing: 0.5px;">
+                            AUTENTICAÇÃO NECESSÁRIA
+                        </h3>
+                        <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.6; margin-bottom: 24px;">
+                            Para utilizar este sistema/simulador e salvar seu histórico, faça login com sua conta do Discord.
                         </p>
-                        <button onclick="loginWithDiscordGlobal()" style="width: 100%; padding: 14px; border-radius: 12px; background: #5865F2; color: #fff; font-size: 0.85rem; font-weight: 800; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 25px rgba(88,101,242,0.35); transition: all 0.2s ease;">
+                        <button onclick="loginWithDiscordGlobal()" style="width: 100%; padding: 14px; border-radius: 12px; background: #5865F2; color: #fff; font-size: 0.85rem; font-weight: 800; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 25px rgba(88,101,242,0.4); transition: all 0.2s ease;">
                             <i class="fa-brands fa-discord" style="font-size: 1.2rem;"></i> ENTRAR COM O DISCORD
                         </button>
-                        <a href="/cidades/cda/" style="display: block; margin-top: 16px; font-size: 0.75rem; color: #64748b; text-decoration: none; font-weight: 600;">
-                            <i class="fa-solid fa-arrow-left"></i> Voltar para a Central
+                        <a href="${backUrl}" style="display: inline-flex; align-items: center; gap: 6px; margin-top: 18px; font-size: 0.8rem; color: #64748b; text-decoration: none; font-weight: 700; transition: color 0.2s;">
+                            <i class="fa-solid fa-arrow-left"></i> Voltar para a Cidade
                         </a>
                     </div>
                 `;

@@ -109,6 +109,9 @@ export const AuthService = {
               localStorage.removeItem('malaca_user_profile');
               return null;
             }
+            if (parsed.id && parsed.discord_id) {
+              return parsed;
+            }
           } catch (e) {}
         }
         return null;
