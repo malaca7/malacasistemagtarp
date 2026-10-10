@@ -1,46 +1,66 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap');
 
-/* VARIABLES AND THEME CONFIGURATION (MALACA SISTEMAS - TEMA CIBERNÉTICO AZUL & CIANO ELÉTRICO) */
+/* VARIABLES AND THEME CONFIGURATION (FÃ-SITE OFICIAL CIDADE ALTA & VALLEY GG) */
 :root {
-    --bg-primary: #030712;
-    --bg-secondary: #060d1a;
-    --bg-panel: rgba(6, 13, 26, 0.85);
-    --bg-panel-hover: rgba(11, 21, 40, 0.95);
+    --bg-primary: #0c0e17;
+    --bg-secondary: #131622;
+    --bg-panel: rgba(19, 22, 34, 0.92);
+    --bg-panel-hover: rgba(26, 31, 48, 0.98);
     
-    --border-color: rgba(0, 210, 255, 0.28);
-    --border-color-active: rgba(0, 210, 255, 0.85);
+    --border-color: rgba(255, 192, 70, 0.22);
+    --border-color-active: rgba(255, 192, 70, 0.85);
+    --border-color-cyan: rgba(82, 182, 255, 0.35);
     --border-color-success: rgba(0, 230, 118, 0.6);
     
-    --color-orange: #00d2ff;
-    --color-red: #2563eb;
-    --color-gold: #38bdf8;
-    --color-cyan: #00d2ff;
-    --color-blue: #0284c7;
+    --color-orange: #ffc046;
+    --color-gold: #ffc046;
+    --color-gold-hover: #ffd070;
+    --color-red: #ef4444;
+    --color-cyan: #52B6FF;
+    --color-blue: #3b82f6;
+    --color-lime: #ddff82;
     --color-inactive: #475569;
     --color-success: #00e676;
     --color-error: #ef4444;
-    --color-warning: #38bdf8;
+    --color-warning: #ffc046;
     
     --text-primary: #ffffff;
-    --text-secondary: #7dd3fc;
-    --text-muted: #94a3b8;
+    --text-secondary: #c5cbd8;
+    --text-muted: #828a9c;
     
-    --glow-orange: 0 0 22px rgba(0, 210, 255, 0.65);
-    --glow-gold: 0 0 20px rgba(56, 189, 248, 0.6);
-    --glow-red: 0 0 18px rgba(37, 99, 235, 0.65);
-    --glow-cyan: 0 0 22px rgba(0, 210, 255, 0.7);
+    --glow-orange: 0 0 22px rgba(255, 192, 70, 0.5);
+    --glow-gold: 0 0 22px rgba(255, 192, 70, 0.6);
+    --glow-cyan: 0 0 22px rgba(82, 182, 255, 0.6);
+    --glow-red: 0 0 18px rgba(239, 68, 68, 0.65);
     
-    --gradient-brand: linear-gradient(135deg, #00d2ff 0%, #2563eb 50%, #38bdf8 100%);
+    --gradient-brand: linear-gradient(135deg, #ffc046 0%, #ff9e00 50%, #52b6ff 100%);
+    --gradient-gold: linear-gradient(135deg, #ffc046 0%, #ff9e00 100%);
+    --gradient-cda: linear-gradient(135deg, #131622 0%, #1a1e2e 100%);
     
     --transition-speed: 0.25s;
     --font-header: 'Bebas Neue', sans-serif;
-    --font-secondary: 'Bebas Neue', sans-serif;
-    --font-body: 'Bebas Neue', 'Inter', sans-serif;
+    --font-secondary: 'Rajdhani', 'Bebas Neue', sans-serif;
+    --font-body: 'Inter', sans-serif;
 }
 
 h1, h2, h3, h4, h5, h6, .hub-nav-link, .hub-hero-title, .hub-card-title, .hub-section-title, button {
     font-family: 'Bebas Neue', sans-serif !important;
     letter-spacing: 0.05em;
+}
+
+.cda-fan-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    background: rgba(255, 192, 70, 0.12);
+    border: 1px solid rgba(255, 192, 70, 0.35);
+    color: #ffc046;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 /* ==========================================================================

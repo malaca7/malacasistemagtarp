@@ -48,6 +48,20 @@ export interface System {
   created_at?: string;
 }
 
+export interface ConfirmedUser {
+  user_id?: string;
+  discord_id?: string;
+  username: string;
+  full_name?: string;
+  avatar_url?: string;
+  character_name?: string;
+  instagram?: string;
+  twitch?: string;
+  youtube?: string;
+  twitter_x?: string;
+  confirmed_at: string;
+}
+
 export interface MapLocation {
   id: string;
   server_id: string;
@@ -66,7 +80,7 @@ export interface MapLocation {
   user_confirmed?: boolean;
   last_confirmed_by?: string;
   last_confirmed_at?: string;
-  confirmed_users?: { username: string; confirmed_at: string }[];
+  confirmed_users?: ConfirmedUser[];
 }
 
 export interface WandererConfirmation {
@@ -74,6 +88,11 @@ export interface WandererConfirmation {
   location_id: string;
   anonymous_user_id: string;
   created_at?: string;
+  user_id?: string;
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+  character_name?: string;
 }
 
 export interface WandererCycle {
@@ -121,6 +140,12 @@ export interface UserProfile {
   created_at?: string;
   last_login_at?: string;
   access_count?: number;
+  character_name?: string;
+  instagram?: string;
+  twitch?: string;
+  youtube?: string;
+  twitter_x?: string;
+  custom_bio?: string;
 }
 
 export interface AccessLog {

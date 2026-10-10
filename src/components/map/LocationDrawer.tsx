@@ -187,33 +187,124 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
             <span>{reliabilityText}</span>
           </div>
 
-          {/* Quem marcou e horário */}
+          {/* Lista Completa de Usuários que Marcaram */}
           {confirmations > 0 ? (
-            <div className="bg-[#030712]/90 border border-[#00d2ff]/30 rounded-xl p-3 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-bold flex items-center gap-1.5">
-                  <span className="text-[#00d2ff]">👤</span> Marcado por:
+            <div className="bg-[#030712]/90 border border-[#00d2ff]/30 rounded-xl p-3 space-y-2.5">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
+                <span className="text-[11px] font-extrabold text-[#38bdf8] flex items-center gap-1.5 uppercase tracking-wider">
+                  <span>👥</span> Jogadores que Marcaram ({location.confirmed_users?.length || confirmations})
                 </span>
-                <span className="font-extrabold text-[#38bdf8] font-mono text-xs">
-                  {location.last_confirmed_by
-                    ? location.last_confirmed_by.startsWith('@')
-                      ? location.last_confirmed_by
-                      : `@${location.last_confirmed_by}`
-                    : '@Comunidade'}
-                </span>
+                {location.last_confirmed_at && (
+                  <span className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
+                    <Clock className="w-3 h-3 text-amber-400" />
+                    Último: {new Date(location.last_confirmed_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
               </div>
-              {location.last_confirmed_at && (
-                <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-800/80">
-                  <span className="text-slate-400 font-bold flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-amber-400" /> Horário da Marcação:
-                  </span>
-                  <span className="font-mono text-slate-200 font-semibold text-xs">
-                    {new Date(location.last_confirmed_at).toLocaleTimeString('pt-BR', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                    })}
-                  </span>
+
+              {location.confirmed_users && location.confirmed_users.length > 0 ? (
+                <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  {location.confirmed_users.map((cUser, idx) => (
+                    <div
+                      key={`${cUser.username}-${idx}`}
+                      className="p-2 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-[#00d2ff]/40 flex items-center justify-between gap-2.5 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <img
+                          src={cUser.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}
+                          alt={cUser.username}
+                          className="w-8 h-8 rounded-full border border-[#00d2ff]/50 object-cover flex-shrink-0 shadow-[0_0_8px_rgba(0,210,255,0.3)]"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-bold text-white truncate">
+                              {cUser.full_name || cUser.username}
+                            </span>
+                            {cUser.character_name && (
+                              <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded font-semibold truncate max-w-[120px]">
+                                RP: {cUser.character_name}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                            <span className="text-[#38bdf8] font-mono">{cUser.username}</span>
+                            {cUser.confirmed_at && (
+                              <span className="flex items-center gap-0.5 text-slate-500">
+                                <Clock className="w-2.5 h-2.5" />
+                                {new Date(cUser.confirmed_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Redes Sociais */}
+                      {(cUser.instagram || cUser.twitch || cUser.youtube || cUser.twitter_x) && (
+                        <div className="flex items-center gap-1 flex-shrink-0 text-slate-400">
+                          {cUser.instagram && (
+                            <a
+                              href={cUser.instagram.startsWith('http') ? cUser.instagram : `https://instagram.com/${cUser.instagram.replace('@', '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-6 h-6 rounded-md bg-white/5 hover:bg-pink-500/20 text-pink-400 hover:text-pink-300 flex items-center justify-center transition-colors"
+                              title={`Instagram: ${cUser.instagram}`}
+                            >
+                              <i className="fa-brands fa-instagram text-xs"></i>
+                            </a>
+                          )}
+                          {cUser.twitch && (
+                            <a
+                              href={cUser.twitch.startsWith('http') ? cUser.twitch : `https://twitch.tv/${cUser.twitch.replace('@', '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-6 h-6 rounded-md bg-white/5 hover:bg-purple-500/20 text-purple-400 hover:text-purple-300 flex items-center justify-center transition-colors"
+                              title={`Twitch: ${cUser.twitch}`}
+                            >
+                              <i className="fa-brands fa-twitch text-xs"></i>
+                            </a>
+                          )}
+                          {cUser.youtube && (
+                            <a
+                              href={cUser.youtube.startsWith('http') ? cUser.youtube : `https://youtube.com/@${cUser.youtube.replace('@', '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-6 h-6 rounded-md bg-white/5 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 flex items-center justify-center transition-colors"
+                              title={`YouTube: ${cUser.youtube}`}
+                            >
+                              <i className="fa-brands fa-youtube text-xs"></i>
+                            </a>
+                          )}
+                          {cUser.twitter_x && (
+                            <a
+                              href={cUser.twitter_x.startsWith('http') ? cUser.twitter_x : `https://x.com/${cUser.twitter_x.replace('@', '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-6 h-6 rounded-md bg-white/5 hover:bg-sky-500/20 text-slate-200 hover:text-white flex items-center justify-center transition-colors"
+                              title={`X: ${cUser.twitter_x}`}
+                            >
+                              <i className="fa-brands fa-x-twitter text-xs"></i>
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2.5 p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+                  <div className="w-8 h-8 rounded-full bg-[#00d2ff]/20 border border-[#00d2ff]/50 flex items-center justify-center text-xs text-[#00d2ff] font-bold">
+                    👤
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block">
+                      {location.last_confirmed_by
+                        ? location.last_confirmed_by.startsWith('@')
+                          ? location.last_confirmed_by
+                          : `@${location.last_confirmed_by}`
+                        : '@Comunidade RP'}
+                    </span>
+                    <span className="text-[10px] text-slate-400">Confirmado pela comunidade no ciclo ativo</span>
+                  </div>
                 </div>
               )}
             </div>

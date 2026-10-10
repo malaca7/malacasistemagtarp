@@ -15,6 +15,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { calculateWandererCycle, WandererCycleInfo } from '../utils/wandererCycle';
+import { WandererTutorialCard } from './wanderer/WandererTutorialCard';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -270,6 +271,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 );
               })}
+
+              {/* Dica / Tutorial do Andarilho */}
+              <div className="pt-2 border-t border-slate-800">
+                <WandererTutorialCard defaultExpanded={false} />
+              </div>
             </div>
           )}
 
@@ -297,31 +303,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 />
               </div>
 
-              {/* Tutorial Como Marcar o Andarilho */}
-              <div className="p-3 bg-gradient-to-br from-[#00d2ff]/10 to-transparent border border-[#00d2ff]/25 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setHowToOpen((prev) => !prev)}
-                  className="w-full flex items-center justify-between text-left text-xs font-bold text-[#38bdf8] cursor-pointer"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <span>🎯</span> Como Marcar o Andarilho
-                  </span>
-                  <span className="text-xs">{howToOpen ? '▲' : '▼'}</span>
-                </button>
-                {howToOpen && (
-                  <div className="mt-2 text-[11px] text-slate-300 space-y-1.5 border-t border-slate-800 pt-2 leading-relaxed">
-                    <p>
-                      O Andarilho muda de local a cada <strong>12 horas</strong> (às 06:00 e 18:00).
-                    </p>
-                    <div className="space-y-1 text-slate-400">
-                      <div><strong className="text-white">1.</strong> Encontre os círculos azuis ⭕ no mapa.</div>
-                      <div><strong className="text-white">2.</strong> Clique no círculo correspondente onde o Andarilho foi avistado.</div>
-                      <div><strong className="text-white">3.</strong> Clique em <strong>"Marcar Andarilho Aqui"</strong> para confirmar para toda a comunidade!</div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Balão / Card Explicativo: Como Marcar o Andarilho */}
+              <WandererTutorialCard defaultExpanded={false} />
 
               {/* Lista dos Locais */}
               <div className="space-y-2">

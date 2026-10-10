@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { MapLocation, LocationCategory } from '../../types';
-import { ZoomIn, ZoomOut, Maximize2, LocateFixed, Compass, Search, Copy, Check, Crosshair, Sun, Moon } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, LocateFixed, Compass, Search, Copy, Check, Crosshair, Sun, Moon, HelpCircle } from 'lucide-react';
+import { WandererTutorialCard } from '../wanderer/WandererTutorialCard';
 
 interface MapContainerProps {
   mapImageUrl: string;
@@ -54,6 +55,9 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   // Quick Search Bar
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+
+  // Floating Wanderer Tutorial Tip Balloon
+  const [showWandererTutorial, setShowWandererTutorial] = useState(false);
 
   // Map Theme: default is Dark ('dark')
   const [mapTheme, setMapTheme] = useState<'dark' | 'light'>(() => {
@@ -531,9 +535,9 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         </div>
       )}
 
-      {/* TOP LEFT: Quick Search & Filter Bar */}
-      <div className="absolute top-4 left-4 z-20 w-52 sm:w-64 md:w-80 max-w-[calc(100vw-8.5rem)]">
-        <div className="relative">
+      {/* TOP LEFT: Quick Search & Floating Tip Balloon Trigger */}
+      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 max-w-[calc(100vw-8.5rem)]">
+        <div className="relative w-44 sm:w-56 md:w-72">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
@@ -568,7 +572,33 @@ export const MapContainer: React.FC<MapContainerProps> = ({
             </div>
           )}
         </div>
+
+        {/* Botão de Dica do Andarilho */}
+        <button
+          onClick={() => setShowWandererTutorial((prev) => !prev)}
+          className={`px-3 py-2 rounded-xl backdrop-blur-md border text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-2xl transition-all cursor-pointer whitespace-nowrap ${
+            showWandererTutorial
+              ? 'bg-[#00d2ff] text-slate-950 border-white shadow-[0_0_15px_#00d2ff]'
+              : 'bg-[#030712]/90 text-[#00d2ff] border-[#00d2ff]/40 hover:bg-[#00d2ff]/20 hover:border-[#00d2ff]'
+          }`}
+          title="Ver como marcar o Andarilho"
+        >
+          <span>🎯</span>
+          <span className="hidden sm:inline">Como Marcar</span>
+          <span className="sm:hidden">Dica</span>
+        </button>
       </div>
+
+      {/* Floating Tutorial Balloon */}
+      {showWandererTutorial && (
+        <div className="absolute top-16 left-4 z-30 w-80 sm:w-96 max-w-[calc(100vw-2rem)] animate-fadeIn">
+          <WandererTutorialCard
+            defaultExpanded={true}
+            onClose={() => setShowWandererTutorial(false)}
+            isFloating={true}
+          />
+        </div>
+      )}
 
       {/* TOP RIGHT: Live Coordinates HUD & Copy Action */}
       {hoverCoords && (

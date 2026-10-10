@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Server, System, MapLocation, Comment, Suggestion, SuggestionType, SuggestionStatus, UserProfile, AccessLog, PlatformSettings } from '../types';
+import type { Server, System, MapLocation, Comment, Suggestion, SuggestionType, SuggestionStatus, UserProfile, AccessLog, PlatformSettings, ConfirmedUser } from '../types';
 import { getAnonymousUserId } from '../utils/anonymousId';
 import {
   calculateWandererCycle,
@@ -418,18 +418,33 @@ export const ApiService = {
         baseLocations = Array.from(idMap.values());
       }
 
-      // Busca apenas confirmações registradas a partir do início do ciclo atual (06:00 ou 18:00)
-      const { data: confirmations } = await supabase
-        .from('wanderer_confirmations')
-        .select('location_id, anonymous_user_id, created_at')
-        .gte('created_at', currentCycle.startTime.toISOString())
-        .order('created_at', { ascending: false });
+      // Busca confirmações registradas a partir do início do ciclo atual (06:00 ou 18:00)
+      let confirmations: any[] | null = null;
+      try {
+        const { data, error } = await supabase
+          .from('wanderer_confirmations')
+          .select('location_id, anonymous_user_id, created_at, user_id, username, full_name, avatar_url, character_name, instagram, twitch, youtube, twitter_x')
+          .gte('created_at', currentCycle.startTime.toISOString())
+          .order('created_at', { ascending: false });
+        if (error) {
+          const fallbackRes = await supabase
+            .from('wanderer_confirmations')
+            .select('location_id, anonymous_user_id, created_at')
+            .gte('created_at', currentCycle.startTime.toISOString())
+            .order('created_at', { ascending: false });
+          confirmations = fallbackRes.data;
+        } else {
+          confirmations = data;
+        }
+      } catch {
+        confirmations = null;
+      }
 
       const remoteCounts: Record<string, number> = {};
       const latestConfirmationsMap: Record<string, { username: string; confirmed_at: string }> = {
         ...(cycleState.latestConfirmations || {}),
       };
-      const confirmedUsersMap: Record<string, { username: string; confirmed_at: string }[]> = {};
+      const confirmedUsersMap: Record<string, ConfirmedUser[]> = {};
       const userConfirmedSet = new Set<string>(cycleState.userConfirmedIds);
 
       if (confirmations) {
@@ -438,16 +453,19 @@ export const ApiService = {
           const rawId = c.anonymous_user_id || '';
           const isUserMatch =
             rawId === anonId ||
-            (rawId.startsWith('@') && cycleState.userConfirmedIds.includes(c.location_id));
+            (rawId.startsWith('@') && cycleState.userConfirmedIds.includes(c.location_id)) ||
+            (c.user_id && cycleState.userConfirmedIds.includes(c.location_id));
           if (isUserMatch) {
             userConfirmedSet.add(c.location_id);
           }
 
-          const parsedName = rawId.startsWith('@')
-            ? rawId
-            : rawId.startsWith('anon_')
-            ? 'Comunidade RP'
-            : `@${rawId}`;
+          const parsedName = c.username
+            ? (c.username.startsWith('@') ? c.username : `@${c.username}`)
+            : (rawId.startsWith('@')
+              ? rawId
+              : rawId.startsWith('anon_')
+              ? 'Comunidade RP'
+              : `@${rawId}`);
 
           if (!latestConfirmationsMap[c.location_id]) {
             latestConfirmationsMap[c.location_id] = {
@@ -459,9 +477,17 @@ export const ApiService = {
           if (!confirmedUsersMap[c.location_id]) {
             confirmedUsersMap[c.location_id] = [];
           }
-          if (!confirmedUsersMap[c.location_id].some((u) => u.username === parsedName)) {
+          if (!confirmedUsersMap[c.location_id].some((u) => u.username === parsedName || (c.user_id && u.user_id === c.user_id))) {
             confirmedUsersMap[c.location_id].push({
+              user_id: c.user_id,
               username: parsedName,
+              full_name: c.full_name || parsedName,
+              avatar_url: c.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png',
+              character_name: c.character_name || '',
+              instagram: c.instagram || '',
+              twitch: c.twitch || '',
+              youtube: c.youtube || '',
+              twitter_x: c.twitter_x || '',
               confirmed_at: c.created_at,
             });
           }
@@ -481,7 +507,19 @@ export const ApiService = {
           : (loc.confirmations_count || 0);
 
         const latestConf = isWanderer ? latestConfirmationsMap[loc.id] : undefined;
-        const confUsers = isWanderer ? confirmedUsersMap[loc.id] : undefined;
+        
+        // Mescla usuários confirmados remotos com os locais da sessão ativa
+        let mergedUsers: ConfirmedUser[] | undefined = undefined;
+        if (isWanderer) {
+          const list = [...(confirmedUsersMap[loc.id] || [])];
+          const localList = (cycleState.confirmedUsersByLocation && cycleState.confirmedUsersByLocation[loc.id]) || [];
+          localList.forEach((lu: ConfirmedUser) => {
+            if (!list.some((u) => u.username === lu.username || (lu.user_id && u.user_id === lu.user_id))) {
+              list.push(lu);
+            }
+          });
+          mergedUsers = list.length > 0 ? list : undefined;
+        }
 
         return {
           ...loc,
@@ -489,7 +527,7 @@ export const ApiService = {
           user_confirmed: isLocallyConfirmed,
           last_confirmed_by: latestConf?.username,
           last_confirmed_at: latestConf?.confirmed_at,
-          confirmed_users: confUsers,
+          confirmed_users: mergedUsers,
         };
       });
     } catch {
@@ -515,6 +553,7 @@ export const ApiService = {
           : (loc.confirmations_count || 0);
 
         const latestConf = isWanderer && cycleState.latestConfirmations ? cycleState.latestConfirmations[loc.id] : undefined;
+        const localUsers = isWanderer && cycleState.confirmedUsersByLocation ? cycleState.confirmedUsersByLocation[loc.id] : undefined;
 
         return {
           ...loc,
@@ -522,6 +561,7 @@ export const ApiService = {
           user_confirmed: isLocallyConfirmed,
           last_confirmed_by: latestConf?.username,
           last_confirmed_at: latestConf?.confirmed_at,
+          confirmed_users: localUsers,
         };
       });
     }
@@ -531,7 +571,7 @@ export const ApiService = {
   async addWandererConfirmation(
     locationId: string,
     serverId?: string,
-    user?: { username?: string; full_name?: string } | null
+    user?: UserProfile | any | null
   ): Promise<boolean> {
     const rawUsername = user?.username || user?.full_name;
     const authorTag = rawUsername ? `@${rawUsername.replace(/^@/, '')}` : getAnonymousUserId();
@@ -547,6 +587,33 @@ export const ApiService = {
       username: authorTag,
       confirmed_at: nowIso,
     };
+
+    if (!cycleState.confirmedUsersByLocation) {
+      cycleState.confirmedUsersByLocation = {};
+    }
+    if (!cycleState.confirmedUsersByLocation[locationId]) {
+      cycleState.confirmedUsersByLocation[locationId] = [];
+    }
+
+    const confirmedUserEntry: ConfirmedUser = {
+      user_id: user?.id,
+      discord_id: user?.discord_id,
+      username: authorTag,
+      full_name: user?.full_name || authorTag,
+      avatar_url: user?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png',
+      character_name: user?.character_name || '',
+      instagram: user?.instagram || '',
+      twitch: user?.twitch || '',
+      youtube: user?.youtube || '',
+      twitter_x: user?.twitter_x || '',
+      confirmed_at: nowIso,
+    };
+
+    cycleState.confirmedUsersByLocation[locationId] = cycleState.confirmedUsersByLocation[locationId].filter(
+      (u: ConfirmedUser) => u.username !== authorTag && (user?.id ? u.user_id !== user.id : true)
+    );
+    cycleState.confirmedUsersByLocation[locationId].unshift(confirmedUserEntry);
+
     saveLocalWandererCycleState(cycleState);
 
     // Atualiza Presença Realtime no Supabase para sincronizar com todos os usuários ativos
@@ -556,12 +623,21 @@ export const ApiService = {
     RealtimeSync.broadcastVoteChange('vote_added', locationId, serverId, cycleState.counts[locationId], {
       username: authorTag,
       confirmed_at: nowIso,
-    });
+    }, confirmedUserEntry);
 
     try {
       await supabase.from('wanderer_confirmations').insert({
         location_id: locationId,
         anonymous_user_id: authorTag,
+        user_id: user?.id || null,
+        username: authorTag,
+        full_name: user?.full_name || authorTag,
+        avatar_url: user?.avatar_url || null,
+        character_name: user?.character_name || null,
+        instagram: user?.instagram || null,
+        twitch: user?.twitch || null,
+        youtube: user?.youtube || null,
+        twitter_x: user?.twitter_x || null,
       });
     } catch {}
     return true;
@@ -571,7 +647,7 @@ export const ApiService = {
   async removeWandererConfirmation(
     locationId: string,
     serverId?: string,
-    user?: { username?: string; full_name?: string } | null
+    user?: UserProfile | any | null
   ): Promise<boolean> {
     const rawUsername = user?.username || user?.full_name;
     const authorTag = rawUsername ? `@${rawUsername.replace(/^@/, '')}` : getAnonymousUserId();
@@ -582,20 +658,28 @@ export const ApiService = {
     if (cycleState.latestConfirmations && cycleState.latestConfirmations[locationId]?.username === authorTag) {
       delete cycleState.latestConfirmations[locationId];
     }
+    if (cycleState.confirmedUsersByLocation && cycleState.confirmedUsersByLocation[locationId]) {
+      cycleState.confirmedUsersByLocation[locationId] = cycleState.confirmedUsersByLocation[locationId].filter(
+        (u: ConfirmedUser) => u.username !== authorTag && (user?.id ? u.user_id !== user.id : true)
+      );
+    }
     saveLocalWandererCycleState(cycleState);
 
     // Atualiza Presença Realtime no Supabase
     RealtimeSync.syncPresence(cycleState.userConfirmedIds);
 
     // Broadcast em tempo real para todas as telas/abas
-    RealtimeSync.broadcastVoteChange('vote_removed', locationId, serverId, cycleState.counts[locationId]);
+    RealtimeSync.broadcastVoteChange('vote_removed', locationId, serverId, cycleState.counts[locationId], undefined, {
+      username: authorTag,
+      user_id: user?.id,
+    });
 
     try {
       await supabase
         .from('wanderer_confirmations')
         .delete()
         .eq('location_id', locationId)
-        .or(`anonymous_user_id.eq.${authorTag},anonymous_user_id.eq.${getAnonymousUserId()}`);
+        .or(`anonymous_user_id.eq.${authorTag},anonymous_user_id.eq.${getAnonymousUserId()}${user?.id ? `,user_id.eq.${user.id}` : ''}`);
     } catch {}
     return true;
   },

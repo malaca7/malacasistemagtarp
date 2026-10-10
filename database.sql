@@ -97,9 +97,31 @@ CREATE TABLE IF NOT EXISTS public.wanderer_confirmations (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
     location_id TEXT REFERENCES public.map_locations(id) ON DELETE CASCADE,
     anonymous_user_id VARCHAR(255) NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    username TEXT,
+    full_name TEXT,
+    avatar_url TEXT,
+    character_name TEXT,
+    instagram TEXT,
+    twitch TEXT,
+    youtube TEXT,
+    twitter_x TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(location_id, anonymous_user_id)
 );
+
+-- Garantir colunas caso a tabela já exista
+DO $$ BEGIN
+    ALTER TABLE public.wanderer_confirmations ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+    ALTER TABLE public.wanderer_confirmations ADD COLUMN IF NOT EXISTS username TEXT;
+    ALTER TABLE public.wanderer_confirmations ADD COLUMN IF NOT EXISTS full_name TEXT;
+    ALTER TABLE public.wanderer_confirmations ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+    ALTER TABLE public.wanderer_confirmations ADD COLUMN IF NOT EXISTS character_name TEXT;
+    ALTER TABLE public.wanderer_confirmations ADD COLUMN IF NOT EXISTS instagram TEXT;
+    ALTER TABLE public.wanderer_confirmations ADD COLUMN IF NOT EXISTS twitch TEXT;
+    ALTER TABLE public.wanderer_confirmations ADD COLUMN IF NOT EXISTS youtube TEXT;
+    ALTER TABLE public.wanderer_confirmations ADD COLUMN IF NOT EXISTS twitter_x TEXT;
+EXCEPTION WHEN others THEN null; END $$;
 
 -- 6. CICLOS DO ANDARILHO
 CREATE TABLE IF NOT EXISTS public.wanderer_cycles (
@@ -145,9 +167,25 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     email TEXT,
     is_admin BOOLEAN DEFAULT false,
     role TEXT DEFAULT 'user',
+    character_name TEXT,
+    instagram TEXT,
+    twitch TEXT,
+    youtube TEXT,
+    twitter_x TEXT,
+    custom_bio TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     last_login_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Garantir colunas caso a tabela já exista
+DO $$ BEGIN
+    ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS character_name TEXT;
+    ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS instagram TEXT;
+    ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS twitch TEXT;
+    ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS youtube TEXT;
+    ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS twitter_x TEXT;
+    ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS custom_bio TEXT;
+EXCEPTION WHEN others THEN null; END $$;
 
 -- 10. REGISTRO DE SESSÕES / LOGS DE ACESSO
 CREATE TABLE IF NOT EXISTS public.access_logs (

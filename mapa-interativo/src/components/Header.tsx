@@ -53,34 +53,42 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Main Standard Nav Links: PÁGINA INICIAL, Sistemas, Plataforma */}
       <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold tracking-wider text-slate-300">
-        <a href="/" className="hover:text-[#38bdf8] transition-colors py-1">PÁGINA INICIAL</a>
-        <a href="/sistemas/" className="hover:text-[#38bdf8] transition-colors py-1">SISTEMAS</a>
-        <a href="/plataforma/" className="hover:text-[#38bdf8] transition-colors py-1">PLATAFORMA</a>
+        <a href="/" className="hover:text-[#ffc046] transition-colors py-1">PÁGINA INICIAL</a>
+        <a href="/sistemas/" className="hover:text-[#ffc046] transition-colors py-1">SISTEMAS</a>
+        <a href="/plataforma/" className="hover:text-[#ffc046] transition-colors py-1">PLATAFORMA</a>
       </nav>
+
+      {/* Fan Site Badge */}
+      <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-black uppercase tracking-widest shadow-sm">
+        <span>⭐ FÃ-SITE CIDADE ALTA & VALLEY</span>
+      </div>
 
       {/* Actions & User Discord Auth Button */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Seletor Oficial de Servidores (CDA & VALLEY) */}
-        <div className="flex items-center bg-[#060d1a] border border-[#00d2ff]/40 p-1 rounded-xl shadow-lg gap-1">
+        <div className="flex items-center bg-[#131622] border border-[#232738] p-1 rounded-xl shadow-lg gap-1">
           {servers
             .filter((s) => s.slug === 'cda' || s.slug === 'valley')
             .map((server) => {
               const isActive =
                 currentServer?.id === server.id || currentServer?.slug === server.slug;
+              const isCda = server.slug === 'cda';
               return (
                 <button
                   key={server.id}
                   onClick={() => onSelectServer(server)}
                   className={`px-3 py-1 rounded-lg text-xs font-black tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
                     isActive
-                      ? 'bg-gradient-to-r from-[#00d2ff] to-[#38bdf8] text-black shadow-[0_0_12px_rgba(0,210,255,0.6)]'
+                      ? isCda
+                        ? 'bg-gradient-to-r from-[#ffc046] to-[#ffb703] text-black shadow-[0_0_14px_rgba(255,192,70,0.5)]'
+                        : 'bg-gradient-to-r from-[#52b6ff] to-[#00d2ff] text-black shadow-[0_0_14px_rgba(82,182,255,0.5)]'
                       : 'text-slate-300 hover:text-white hover:bg-white/10'
                   }`}
                   title={`Visualizar marcações de ${server.name}`}
                 >
                   <span
                     className={`w-2 h-2 rounded-full inline-block ${
-                      isActive ? 'bg-black animate-pulse' : 'bg-[#00d2ff]'
+                      isActive ? 'bg-black animate-pulse' : isCda ? 'bg-[#ffc046]' : 'bg-[#52b6ff]'
                     }`}
                   />
                   <span>{server.slug.toUpperCase()}</span>

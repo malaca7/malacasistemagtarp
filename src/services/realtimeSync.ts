@@ -18,6 +18,7 @@ export interface WandererSyncPayload {
   reason?: string;
   username?: string;
   confirmed_at?: string;
+  user?: any;
   timestamp: number;
 }
 
@@ -459,12 +460,31 @@ class RealtimeSyncManager {
 
       const localState = getLocalWandererCycleState();
       localState.counts[payload.locationId] = this.broadcastCounts[payload.locationId];
-      if (payload.username && payload.action === 'vote_added') {
-        if (!localState.latestConfirmations) localState.latestConfirmations = {};
-        localState.latestConfirmations[payload.locationId] = {
-          username: payload.username,
-          confirmed_at: payload.confirmed_at || new Date().toISOString(),
-        };
+      if (payload.action === 'vote_added') {
+        const uName = payload.username || payload.user?.username;
+        if (uName) {
+          if (!localState.latestConfirmations) localState.latestConfirmations = {};
+          localState.latestConfirmations[payload.locationId] = {
+            username: uName,
+            confirmed_at: payload.confirmed_at || new Date().toISOString(),
+          };
+        }
+        if (payload.user) {
+          if (!localState.confirmedUsersByLocation) localState.confirmedUsersByLocation = {};
+          if (!localState.confirmedUsersByLocation[payload.locationId]) {
+            localState.confirmedUsersByLocation[payload.locationId] = [];
+          }
+          const list = localState.confirmedUsersByLocation[payload.locationId];
+          if (!list.some((u: any) => u.username === payload.user.username)) {
+            list.unshift(payload.user);
+          }
+        }
+      } else if (payload.action === 'vote_removed' && payload.username) {
+        if (localState.confirmedUsersByLocation && localState.confirmedUsersByLocation[payload.locationId]) {
+          localState.confirmedUsersByLocation[payload.locationId] = localState.confirmedUsersByLocation[payload.locationId].filter(
+            (u: any) => u.username !== payload.username
+          );
+        }
       }
       saveLocalWandererCycleState(localState);
     }
@@ -545,7 +565,8 @@ class RealtimeSyncManager {
     locationId: string,
     serverId?: string,
     count?: number,
-    meta?: { username?: string; confirmed_at?: string }
+    meta?: { username?: string; confirmed_at?: string; user?: any },
+    confirmedUser?: any
   ) {
     const cycle = calculateWandererCycle();
     if (locationId) {
@@ -566,6 +587,7 @@ class RealtimeSyncManager {
       count: this.broadcastCounts[locationId],
       username: meta?.username,
       confirmed_at: meta?.confirmed_at,
+      user: confirmedUser || meta?.user,
       timestamp: Date.now(),
     };
 

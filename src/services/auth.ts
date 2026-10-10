@@ -7,6 +7,12 @@ export interface UserProfile {
   full_name: string;
   avatar_url: string;
   email?: string;
+  character_name?: string;
+  instagram?: string;
+  twitch?: string;
+  youtube?: string;
+  twitter_x?: string;
+  custom_bio?: string;
   is_admin?: boolean;
   role?: 'admin' | 'user';
   created_at: string;
@@ -177,6 +183,27 @@ export const AuthService = {
       const isAdmin = isOfficialAdmin || checkAdminPermission(user);
       const now = new Date().toISOString();
 
+      // Tentar resgatar dados adicionais existentes no Supabase (como character_name e redes)
+      let existingProfile: any = null;
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('character_name, instagram, twitch, youtube, twitter_x, custom_bio')
+          .eq('id', user.id)
+          .single();
+        if (data) existingProfile = data;
+      } catch (err) {}
+
+      // Se existir cache local, usar como fallback
+      const localCached = AuthService.getSavedProfile();
+
+      const characterName = existingProfile?.character_name || localCached?.character_name || '';
+      const instagram = existingProfile?.instagram || localCached?.instagram || '';
+      const twitch = existingProfile?.twitch || localCached?.twitch || '';
+      const youtube = existingProfile?.youtube || localCached?.youtube || '';
+      const twitterX = existingProfile?.twitter_x || localCached?.twitter_x || '';
+      const customBio = existingProfile?.custom_bio || localCached?.custom_bio || '';
+
       const profileData = {
         id: user.id,
         discord_id: String(discordId),
@@ -184,6 +211,12 @@ export const AuthService = {
         full_name: String(fullName),
         avatar_url: String(avatarUrl),
         email: email || undefined,
+        character_name: characterName,
+        instagram: instagram,
+        twitch: twitch,
+        youtube: youtube,
+        twitter_x: twitterX,
+        custom_bio: customBio,
         is_admin: isAdmin,
         role: isAdmin ? ('admin' as const) : ('user' as const),
         last_login_at: now,
@@ -217,6 +250,12 @@ export const AuthService = {
         full_name: String(fullName),
         avatar_url: String(avatarUrl),
         email,
+        character_name: characterName,
+        instagram,
+        twitch,
+        youtube,
+        twitter_x: twitterX,
+        custom_bio: customBio,
         is_admin: isAdmin,
         role: isAdmin ? 'admin' : 'user',
         created_at: user.created_at || now,
@@ -296,6 +335,45 @@ export const AuthService = {
       }
       return parsed;
     } catch (e) {
+      return null;
+    }
+  },
+
+  // Update Profile fields (character_name, redes sociais, bio)
+  updateProfile: async (updates: Partial<UserProfile>): Promise<UserProfile | null> => {
+    try {
+      const current = AuthService.getSavedProfile();
+      if (!current) return null;
+
+      const updated: UserProfile = {
+        ...current,
+        ...updates,
+      };
+
+      localStorage.setItem('malaca_user_profile', JSON.stringify(updated));
+
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            character_name: updated.character_name || '',
+            instagram: updated.instagram || '',
+            twitch: updated.twitch || '',
+            youtube: updated.youtube || '',
+            twitter_x: updated.twitter_x || '',
+            custom_bio: updated.custom_bio || '',
+          })
+          .eq('id', current.id);
+      } catch (e) {
+        console.warn('Erro ao atualizar profiles no Supabase:', e);
+      }
+
+      window.dispatchEvent(new CustomEvent('auth_profile_updated', { detail: updated }));
+      window.dispatchEvent(new Event('auth_state_changed'));
+
+      return updated;
+    } catch (e) {
+      console.error('Error updating profile:', e);
       return null;
     }
   },
