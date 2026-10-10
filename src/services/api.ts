@@ -132,7 +132,7 @@ const MOCK_LOCATIONS: Record<string, MapLocation[]> = {
     { id: 'cda-and-11', server_id: 'cda-server-uuid', name: 'Andarilho - Praia Construção', category: 'local_possivel', description: 'Ao lado da lixeira, dentro da construção cercada de madeira na praia.', x: 333, y: 238, color: '#a78bfa', is_active: true, confirmations_count: 0 },
     { id: 'cda-and-12', server_id: 'cda-server-uuid', name: 'Andarilho - Praia Pier', category: 'local_possivel', description: 'Possível localização do Andarilho na Praia', x: 413, y: 188, color: '#a78bfa', is_active: true, confirmations_count: 0 },
     { id: 'cda-and-13', server_id: 'cda-server-uuid', name: 'Andarilho - Paleto Galinheiro', category: 'local_possivel', description: 'Possível localização do Andarilho em Paleto Galinheiro', x: 448, y: 823, color: '#a78bfa', is_active: true, confirmations_count: 0 },
-    { id: 'cda-and-14', server_id: 'cda-server-uuid', name: 'Andarilho - Paleto Posto', category: 'local_possivel', description: 'Possível localização do Andarilho em Paleto', x: 578, y: 836, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+    { id: 'cda-and-14', server_id: 'cda-server-uuid', name: 'Andarilho - Paleto Posto', category: 'local_possivel', description: 'Possível localização do Andarilho em Paleto (Posto)', x: 435, y: 828, color: '#a78bfa', is_active: true, confirmations_count: 0 },
     { id: 'cda-and-15', server_id: 'cda-server-uuid', name: 'Andarilho - Paleto Leste', category: 'local_possivel', description: 'Possível localização do Andarilho em Paleto', x: 440, y: 840, color: '#a78bfa', is_active: true, confirmations_count: 0 }
   ],
   'valley-server-uuid': [

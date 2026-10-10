@@ -19,21 +19,30 @@
   height: 100% !important;
   background-color: #060d1a !important;
   outline: none;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container .leaflet-tile {
+  max-width: none !important;
+  max-height: none !important;
 }
 
 .leaflet-div-icon,
 .custom-map-pin-wrapper {
   background: transparent !important;
   border: none !important;
-  width: 36px !important;
-  height: 36px !important;
-  margin-left: -18px !important;
-  margin-top: -18px !important;
+  width: 44px !important;
+  height: 44px !important;
+  margin-left: -22px !important;
+  margin-top: -22px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   pointer-events: auto !important;
   touch-action: manipulation !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
   -webkit-tap-highlight-color: transparent !important;
 }
  

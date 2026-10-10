@@ -8,7 +8,7 @@ interface MapContainerProps {
   mapImageUrl: string;
   locations: MapLocation[];
   selectedLocation: MapLocation | null;
-  onSelectLocation: (location: MapLocation) => void;
+  onSelectLocation: (location: MapLocation | null) => void;
   selectedCategories: LocationCategory[];
   isAdminPinMode?: boolean;
   onAdminMapClick?: (x: number, y: number) => void;
@@ -135,6 +135,8 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       zoomControl: false,
       attributionControl: false,
       bounceAtZoomLimits: false,
+      // @ts-ignore
+      tapTolerance: 15,
     });
 
     const overlay = L.imageOverlay(mapImageUrl, bounds, {
@@ -192,13 +194,19 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     };
 
     map.on('mousemove', (e: L.LeafletMouseEvent) => updateCoords(e.latlng));
-    map.on('click', (e: L.LeafletMouseEvent) => updateCoords(e.latlng));
+    map.on('click', (e: L.LeafletMouseEvent) => {
+      updateCoords(e.latlng);
+      if (!isAdminPinMode) {
+        onSelectLocation(null);
+      }
+    });
 
     const markersGroup = L.layerGroup().addTo(map);
     markersGroupRef.current = markersGroup;
     mapRef.current = map;
 
     return () => {
+      clearTimeout(sizeTimer);
       if (typeof window !== 'undefined') {
         window.removeEventListener('resize', handleResize);
         window.removeEventListener('orientationchange', handleResize);
@@ -225,15 +233,6 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       map.off('click', handleMapClick);
     };
   }, [isAdminPinMode, onAdminMapClick]);
-
-  // Invalidate map size when selected location changes or UI toggles
-  useEffect(() => {
-    if (mapRef.current) {
-      setTimeout(() => {
-        mapRef.current?.invalidateSize();
-      }, 100);
-    }
-  }, [selectedLocation]);
 
   // Update Markers
   useEffect(() => {
@@ -288,27 +287,27 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         className: 'custom-map-pin-wrapper',
         html: `
           <div class="relative flex items-center justify-center pointer-events-auto cursor-pointer transition-transform duration-200 ${
-            isSelected ? 'scale-125 z-50' : isConfirmedAndarilho ? 'scale-110 z-40' : 'scale-100 active:scale-125 z-20'
-          }" style="width: 36px; height: 36px; transform-origin: center center;">
+            isSelected ? 'scale-115 z-50' : isConfirmedAndarilho ? 'scale-110 z-40' : 'scale-100 active:scale-110 z-20'
+          }" style="width: 44px; height: 44px; transform-origin: center center;">
             ${
               isMostConfirmed
-                ? `<div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#00d2ff] to-[#38bdf8] text-black font-black text-[9px] px-2 py-0.5 rounded-full border border-white shadow-xl flex items-center gap-0.5 animate-bounce z-30 whitespace-nowrap pointer-events-none">
+                ? `<div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#00d2ff] to-[#38bdf8] text-black font-black text-[9px] px-2 py-0.5 rounded-full border border-white shadow-xl flex items-center gap-0.5 z-30 whitespace-nowrap pointer-events-none">
                     👑 MAIS CONFIRMADO
                    </div>`
                 : ''
             }
             ${
               isUnconfirmedPossivel
-                ? `<div class="absolute inset-0 rounded-full border-2 border-[#00d2ff]/40 animate-ping pointer-events-none opacity-40"></div>`
+                ? `<div class="absolute inset-1 rounded-full border-2 border-[#00d2ff]/40 animate-ping pointer-events-none opacity-40"></div>`
                 : ''
             }
             <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs transition-all duration-300 ${
               isConfirmedAndarilho
-                ? 'bg-gradient-to-tr from-[#0284c7] via-[#00d2ff] to-[#38bdf8] border-2 border-white ring-4 ring-[#00d2ff]/70 shadow-[0_0_20px_#00d2ff] animate-pulse text-white'
+                ? 'bg-gradient-to-tr from-[#0284c7] via-[#00d2ff] to-[#38bdf8] border-2 border-white ring-4 ring-[#00d2ff]/70 shadow-[0_0_20px_#00d2ff] text-white'
                 : isUnconfirmedPossivel
                 ? 'bg-[#060d1a] border-2 border-[#00d2ff] shadow-[0_0_14px_rgba(0,210,255,0.75)] text-[#38bdf8] hover:border-white'
                 : isSelected
-                ? 'border-2 border-white shadow-[0_0_15px_#00d2ff] animate-bounce ring-2 ring-[#38bdf8]'
+                ? 'border-2 border-white shadow-[0_0_22px_#00d2ff] ring-4 ring-[#38bdf8] animate-pulse'
                 : 'border-2 border-black/80 shadow-black/80'
             }" style="${!isConfirmedAndarilho && !isUnconfirmedPossivel ? `background-color: ${color};` : ''}">
               <span class="drop-shadow-md text-xs leading-none select-none">${iconSymbol}</span>
@@ -316,7 +315,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
             
             ${
               hasConfirmations
-                ? `<div class="absolute -bottom-1 -right-1 ${
+                ? `<div class="absolute bottom-0 right-0 ${
                     isMostConfirmed ? 'bg-[#38bdf8] text-black font-black' : 'bg-[#00d2ff] text-black font-black'
                   } text-[9px] font-extrabold px-1.5 py-0.2 rounded-full border border-white shadow-md leading-none pointer-events-none">
                     ${loc.confirmations_count || 1}
@@ -324,13 +323,13 @@ export const MapContainer: React.FC<MapContainerProps> = ({
                 : ''
             }
 
-            <div class="absolute top-10 left-1/2 -translate-x-1/2 hidden md:group-hover:block bg-[#030712]/95 text-white text-[10px] font-semibold px-2 py-1 rounded-lg border border-[#00d2ff]/40 whitespace-nowrap shadow-2xl z-50 pointer-events-none">
+            <div class="absolute top-11 left-1/2 -translate-x-1/2 hidden md:group-hover:block bg-[#030712]/95 text-white text-[10px] font-semibold px-2 py-1 rounded-lg border border-[#00d2ff]/40 whitespace-nowrap shadow-2xl z-50 pointer-events-none">
               ${loc.name} ${loc.confirmations_count ? `(${loc.confirmations_count} confirmações)` : isUnconfirmedPossivel ? '(Possível Local)' : ''}
             </div>
           </div>
         `,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
+        iconSize: [44, 44],
+        iconAnchor: [22, 22],
       });
 
       const marker = L.marker([loc.y, loc.x], { icon: customIcon, riseOnHover: true });
@@ -342,14 +341,20 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         onSelectLocation(loc);
         if (mapRef.current) {
           const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-          const targetZoom = Math.max(mapRef.current.getZoom(), 2);
-          mapRef.current.setView([loc.y, loc.x], targetZoom, { animate: true });
+          const currentZoom = mapRef.current.getZoom();
+          const targetZoom = isMobile
+            ? Math.max(currentZoom, 0.5)
+            : Math.max(currentZoom, 1.5);
+
           if (isMobile) {
-            setTimeout(() => {
-              if (mapRef.current) {
-                mapRef.current.panBy([0, window.innerHeight * 0.16], { animate: true, duration: 0.25 });
-              }
-            }, 100);
+            // Direct projection calculation to center marker above the bottom sheet
+            const targetPoint = mapRef.current.project([loc.y, loc.x], targetZoom);
+            const containerHeight = containerRef.current?.clientHeight || window.innerHeight;
+            const shiftedPoint = targetPoint.add([0, containerHeight * 0.18]);
+            const newCenter = mapRef.current.unproject(shiftedPoint, targetZoom);
+            mapRef.current.setView(newCenter, targetZoom, { animate: true, duration: 0.35 });
+          } else {
+            mapRef.current.setView([loc.y, loc.x], targetZoom, { animate: true, duration: 0.35 });
           }
         }
       };
@@ -373,13 +378,17 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     onSelectLocation(loc);
     if (mapRef.current) {
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-      mapRef.current.setView([loc.y, loc.x], 2, { animate: true });
+      const currentZoom = mapRef.current.getZoom();
+      const targetZoom = isMobile ? Math.max(currentZoom, 0.5) : Math.max(currentZoom, 1.5);
+
       if (isMobile) {
-        setTimeout(() => {
-          if (mapRef.current) {
-            mapRef.current.panBy([0, window.innerHeight * 0.16], { animate: true, duration: 0.25 });
-          }
-        }, 100);
+        const targetPoint = mapRef.current.project([loc.y, loc.x], targetZoom);
+        const containerHeight = containerRef.current?.clientHeight || window.innerHeight;
+        const shiftedPoint = targetPoint.add([0, containerHeight * 0.18]);
+        const newCenter = mapRef.current.unproject(shiftedPoint, targetZoom);
+        mapRef.current.setView(newCenter, targetZoom, { animate: true, duration: 0.35 });
+      } else {
+        mapRef.current.setView([loc.y, loc.x], targetZoom, { animate: true, duration: 0.35 });
       }
     }
     setSearchQuery('');
@@ -510,7 +519,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       )}
 
       {/* Map Interactive Control Panel */}
-      <div className="absolute bottom-6 right-4 z-20 flex flex-col gap-2">
+      <div className={`absolute right-4 z-20 flex flex-col gap-2 transition-all duration-300 ${selectedLocation ? 'bottom-[48vh] md:bottom-6' : 'bottom-6'}`}>
         <button
           onClick={handleToggleTheme}
           className="w-10 h-10 rounded-xl bg-[#060d1a] backdrop-blur-md border border-[#00d2ff]/25 text-slate-200 hover:text-white hover:bg-[#00d2ff]/20 hover:border-[#00d2ff]/60 flex items-center justify-center shadow-xl transition-all group"

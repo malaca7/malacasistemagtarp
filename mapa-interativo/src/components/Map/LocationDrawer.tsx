@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { MapLocation, UserProfile } from '../../types';
 import {
   X,
@@ -12,6 +12,8 @@ import {
   Sparkles,
   Layers,
   Lock,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface LocationDrawerProps {
@@ -32,6 +34,11 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
   onRequireAuth,
 }) => {
   const [loading, setLoading] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    setIsCollapsed(false);
+  }, [location?.id]);
 
   if (!location) return null;
 
@@ -64,32 +71,50 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
     setLoading(false);
   };
 
-
   return (
-    <div className="fixed bottom-0 left-0 right-0 md:left-auto md:top-20 md:right-6 md:bottom-auto w-full md:w-96 bg-[#060d1a]/95 backdrop-blur-xl border border-[#00d2ff]/30 rounded-t-3xl md:rounded-2xl shadow-2xl z-40 p-4 sm:p-5 space-y-3 max-h-[46vh] md:max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
-      {/* Mobile Drag Handle */}
-      <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto -mt-1 mb-1 md:hidden" />
+    <div className={`fixed bottom-0 left-0 right-0 md:left-auto md:top-20 md:right-6 md:bottom-auto w-full md:w-96 bg-[#060d1a]/95 backdrop-blur-xl border border-[#00d2ff]/30 rounded-t-3xl md:rounded-2xl shadow-2xl z-40 p-4 sm:p-5 space-y-3 transition-all duration-300 animate-in slide-in-from-bottom ${
+      isCollapsed ? 'max-h-20 md:max-h-[85vh] overflow-hidden' : 'max-h-[44vh] md:max-h-[85vh] overflow-y-auto'
+    }`}>
+      {/* Mobile Drag & Collapse Handle */}
+      <div 
+        onClick={() => setIsCollapsed((prev) => !prev)}
+        className="w-16 h-1.5 bg-slate-700 hover:bg-[#00d2ff] rounded-full mx-auto -mt-1 mb-2 md:hidden cursor-pointer transition-colors"
+        title={isCollapsed ? 'Expandir Detalhes' : 'Recolher para ver o mapa'}
+      />
 
       {/* Header */}
-      <div className="flex items-start justify-between border-b border-slate-800/80 pb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-[#00d2ff]/20 border border-[#00d2ff]/30 flex items-center justify-center text-lg shadow-inner">
+      <div className="flex items-start justify-between border-b border-slate-800/80 pb-2.5">
+        <div className="flex items-center gap-2.5 truncate pr-2">
+          <div className="w-10 h-10 rounded-xl bg-[#00d2ff]/20 border border-[#00d2ff]/30 flex-shrink-0 flex items-center justify-center text-lg shadow-inner">
             {location.category === 'andarilho' || location.category === 'local_possivel' ? (location.confirmations_count ? '🚶‍♂️' : '❓') : location.category === 'desmanche' ? '🔧' : location.category === 'hospital_ilegal' ? '🏥' : location.category === 'mercado_ilegal' ? '🛒' : '📍'}
           </div>
-          <div>
-            <h3 className="font-extrabold text-white text-base leading-tight">{location.name}</h3>
-            <span className="text-[11px] text-[#38bdf8] font-semibold uppercase tracking-wider">
+          <div className="truncate">
+            <h3 className="font-extrabold text-white text-sm sm:text-base leading-tight truncate">{location.name}</h3>
+            <span className="text-[10px] sm:text-[11px] text-[#38bdf8] font-semibold uppercase tracking-wider block truncate">
               {location.category === 'local_possivel' ? 'Possível Local do Andarilho' : location.category.replace('_', ' ')}
             </span>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            onClick={() => setIsCollapsed((prev) => !prev)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 md:hidden transition-colors"
+            title={isCollapsed ? 'Expandir' : 'Recolher'}
+          >
+            {isCollapsed ? <ChevronUp className="w-5 h-5 text-[#00d2ff]" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            title="Fechar Detalhes"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
+
+      {!isCollapsed && (
+        <>
 
       {/* Image if available */}
       {location.image_url && (
@@ -186,6 +211,8 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
           )}
 
         </div>
+      )}
+        </>
       )}
     </div>
   );

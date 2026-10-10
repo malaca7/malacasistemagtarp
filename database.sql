@@ -320,7 +320,7 @@ INSERT INTO public.map_locations (server_id, name, category, description, x, y, 
 ('cda-server-uuid', 'Andarilho - Praia Construção', 'local_possivel', 'Ao lado da lixeira, dentro da construção cercada de madeira na praia.', 333, 238, '#a78bfa'),
 ('cda-server-uuid', 'Andarilho - Praia Pier', 'local_possivel', 'Possível localização do Andarilho na Praia', 413, 188, '#a78bfa'),
 ('cda-server-uuid', 'Andarilho - Paleto Galinheiro', 'local_possivel', 'Possível localização do Andarilho no Galinheiro de Paleto', 448, 823, '#a78bfa'),
-('cda-server-uuid', 'Andarilho - Paleto Posto', 'local_possivel', 'Possível localização do Andarilho em Paleto Posto', 578, 836, '#a78bfa'),
+('cda-server-uuid', 'Andarilho - Paleto Posto', 'local_possivel', 'Possível localização do Andarilho em Paleto (Posto)', 435, 828, '#a78bfa'),
 ('cda-server-uuid', 'Andarilho - Paleto Leste', 'local_possivel', 'Possível localização do Andarilho em Paleto Leste', 440, 840, '#a78bfa')
 ON CONFLICT DO NOTHING;
 
