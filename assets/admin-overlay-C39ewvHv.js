@@ -1,4 +1,4 @@
-import{t as e}from"./dist-CJgmpDaA.js";var t=e(`https://pdzytmdssswiyjwohvwn.supabase.co`,`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkenl0bWRzc3N3aXlqd29odnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1ODI0NjQsImV4cCI6MjEwNzE1ODQ2NH0.RxTwiHG5JRHK02u1eBx3cFXI_3fKYMrxuI2op846FME`,{auth:{persistSession:!0,autoRefreshToken:!0,detectSessionInUrl:!0}});(function(){document.body.insertAdjacentHTML(`beforeend`,`
+import{t as e}from"./dist-C4Qc8-Kv.js";var t=e(`https://pdzytmdssswiyjwohvwn.supabase.co`,`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkenl0bWRzc3N3aXlqd29odnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1ODI0NjQsImV4cCI6MjEwNzE1ODQ2NH0.RxTwiHG5JRHK02u1eBx3cFXI_3fKYMrxuI2op846FME`,{auth:{persistSession:!0,autoRefreshToken:!0,detectSessionInUrl:!0}});(function(){document.body.insertAdjacentHTML(`beforeend`,`
     <div id="global-admin-modal" class="global-admin-overlay">
         <div class="global-admin-dialog">
             <div class="global-admin-header">
@@ -146,7 +146,7 @@ import{t as e}from"./dist-CJgmpDaA.js";var t=e(`https://pdzytmdssswiyjwohvwn.sup
                         <i class="fa-solid fa-arrow-right"></i>
                     </div>
                 </div>
-            `,t.appendChild(n)})},window.openGlobalAdminModal=function(){let e=document.getElementById(`global-admin-modal`);e&&(e.classList.add(`active`),m())},window.closeGlobalAdminModal=function(){let e=document.getElementById(`global-admin-modal`);e&&e.classList.remove(`active`)};function d(){let e=JSON.parse(localStorage.getItem(`malaca_custom_servers`)||`[]`);return e.length>0?e:u}function f(){let e=JSON.parse(localStorage.getItem(`malaca_custom_systems`)||`[]`);return e.length>0?e:l}function p(e){if(!e)return!1;if(e.is_admin===!0||e.role===`admin`||e.user_metadata?.is_admin===!0)return!0;let t=(e.email||e.user_metadata?.email||``).toLowerCase(),n=(e.username||e.user_metadata?.name||e.user_metadata?.full_name||e.user_metadata?.preferred_username||``).toLowerCase();if(t&&[`rogeriomalaquiasjr@gmail.com`,`rogeriosantanajr@gmail.com`].some(e=>t.includes(e))||n&&[`malaca`,`malaquias`,`malaca7`].some(e=>n.includes(e)))return!0;try{let r=JSON.parse(localStorage.getItem(`malaca_admin_discord_accounts`)||`[]`),i=e.discord_id||e.id||e.user_metadata?.sub;if(i&&r.includes(i)||t&&r.includes(t)||n&&r.includes(n))return!0}catch{}return!1}window.loginAdminWithDiscord=function(){let e=window.location.origin+window.location.pathname;t.auth.signInWithOAuth({provider:`discord`,options:{redirectTo:e,scopes:`identify email`}})},t.auth.getSession().then(({data:{session:e}})=>{e&&e.user&&p(e.user)&&(a=!0)}),t.auth.onAuthStateChange((e,t)=>{if(t&&t.user&&p(t.user)){a=!0;let e=document.getElementById(`global-admin-modal`);e&&e.classList.contains(`active`)&&m()}});function m(){let e=document.getElementById(`global-admin-content`);if(!a)e.innerHTML=`
+            `,t.appendChild(n)})},window.openGlobalAdminModal=function(){let e=document.getElementById(`global-admin-modal`);e&&(e.classList.add(`active`),m())},window.closeGlobalAdminModal=function(){let e=document.getElementById(`global-admin-modal`);e&&e.classList.remove(`active`)};function d(){let e=JSON.parse(localStorage.getItem(`malaca_custom_servers`)||`[]`);return e.length>0?e:u}function f(){let e=JSON.parse(localStorage.getItem(`malaca_custom_systems`)||`[]`);return e.length>0?e:l}function p(e){if(!e)return!1;if(e.is_admin===!0||e.role===`admin`||e.user_metadata?.is_admin===!0)return!0;let t=String(e.discord_id||e.id||e.user_metadata?.sub||e.user_metadata?.provider_id||``);if(t&&[`722320491767136346`,`917826984778797087`].includes(t))return!0;let n=(e.email||e.user_metadata?.email||``).toLowerCase(),r=(e.username||e.user_metadata?.name||e.user_metadata?.full_name||e.user_metadata?.preferred_username||``).toLowerCase();if(n&&[`rogeriomalaquiasjr@gmail.com`,`rogeriosantanajr@gmail.com`].some(e=>n.includes(e))||r&&[`malaca`,`malaquias`,`malaca7`].some(e=>r.includes(e)))return!0;try{let e=JSON.parse(localStorage.getItem(`malaca_admin_discord_accounts`)||`[]`);if(t&&e.includes(t)||n&&e.includes(n)||r&&e.includes(r))return!0}catch{}return!1}window.loginAdminWithDiscord=function(){let e=window.location.origin+window.location.pathname;t.auth.signInWithOAuth({provider:`discord`,options:{redirectTo:e,scopes:`identify email`}})},t.auth.getSession().then(({data:{session:e}})=>{e&&e.user&&p(e.user)&&(a=!0)}),t.auth.onAuthStateChange((e,t)=>{if(t&&t.user&&p(t.user)){a=!0;let e=document.getElementById(`global-admin-modal`);e&&e.classList.contains(`active`)&&m()}});function m(){let e=document.getElementById(`global-admin-content`);if(!a)e.innerHTML=`
                 <div class="global-admin-body">
                     <div class="global-admin-auth-box">
                         <i class="fa-brands fa-discord" style="font-size: 3rem; color: #5865F2; margin-bottom: 12px;"></i>
@@ -175,15 +175,89 @@ import{t as e}from"./dist-CJgmpDaA.js";var t=e(`https://pdzytmdssswiyjwohvwn.sup
                 </div>
             `;else{let t=d(),n=f();e.innerHTML=`
                 <div class="global-admin-nav">
+                    <button class="global-admin-nav-btn ${o===`users`?`active`:``}" onclick="switchAdminTab('users')"><i class="fa-solid fa-users"></i> Usuários</button>
+                    <button class="global-admin-nav-btn ${o===`access_logs`?`active`:``}" onclick="switchAdminTab('access_logs')"><i class="fa-solid fa-chart-line"></i> Acessos</button>
+                    <button class="global-admin-nav-btn ${o===`settings`?`active`:``}" onclick="switchAdminTab('settings')"><i class="fa-solid fa-gear"></i> Opções Globais</button>
                     <button class="global-admin-nav-btn ${o===`cities`?`active`:``}" onclick="switchAdminTab('cities')"><i class="fa-solid fa-city"></i> Cidades (${t.length})</button>
                     <button class="global-admin-nav-btn ${o===`systems`?`active`:``}" onclick="switchAdminTab('systems')"><i class="fa-solid fa-layer-group"></i> Sistemas (${n.length})</button>
-                    <button class="global-admin-nav-btn ${o===`andarilho`?`active`:``}" onclick="switchAdminTab('andarilho')"><i class="fa-solid fa-person-walking"></i> Ciclo Andarilho</button>
+                    <button class="global-admin-nav-btn ${o===`andarilho`?`active`:``}" onclick="switchAdminTab('andarilho')"><i class="fa-solid fa-person-walking"></i> Andarilho</button>
                     <button class="global-admin-nav-btn" onclick="logoutAdmin()" style="margin-left: auto; color: #ff5252;"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
                 </div>
                 <div class="global-admin-body" id="admin-tab-body">
                     ${h(o,t,n)}
                 </div>
-            `}}window.switchAdminTab=function(e){o=e,m()},window.handleAdminLogin=function(e){e.preventDefault();let t=document.getElementById(`admin-user-input`).value.trim(),n=document.getElementById(`admin-pass-input`).value.trim();t===`malaca`&&n===`199425`||t===`admin`&&(n===`cidadealta123`||n===`admin`)?(a=!0,m()):document.getElementById(`admin-auth-err`).style.display=`block`},window.logoutAdmin=function(){a=!1,m()};function h(e,t,n){if(e===`cities`){let e=s?t.find(e=>e.id===s):null;return`
+            `,o===`users`?loadAdminUsersView():o===`access_logs`?loadAdminLogsView():o===`settings`&&loadAdminSettingsView()}}window.switchAdminTab=function(e){o=e,m()},window.handleAdminLogin=function(e){e.preventDefault();let t=document.getElementById(`admin-user-input`).value.trim(),n=document.getElementById(`admin-pass-input`).value.trim();t===`malaca`&&n===`199425`||t===`admin`&&(n===`cidadealta123`||n===`admin`)?(a=!0,m()):document.getElementById(`admin-auth-err`).style.display=`block`},window.logoutAdmin=function(){a=!1,m()};function h(e,t,n){if(e===`users`)return`
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.95rem; margin: 0;">
+                            <i class="fa-solid fa-users" style="color: #5865F2;"></i> Gestão de Usuários & Administradores
+                        </h4>
+                        <button onclick="loadAdminUsersView()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; padding: 6px 12px; border-radius: 8px; font-size: 0.72rem; cursor: pointer; display: flex; items-center; gap: 6px;">
+                            <i class="fa-solid fa-rotate"></i> Atualizar
+                        </button>
+                    </div>
+                    <div id="admin-users-list-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px;">
+                        <div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 40px; font-size: 0.8rem;">
+                            <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: #5865F2; display: block; margin-bottom: 8px;"></i>
+                            Carregando usuários do Supabase...
+                        </div>
+                    </div>
+                </div>
+            `;if(e===`access_logs`)return`
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.95rem; margin: 0;">
+                            <i class="fa-solid fa-chart-line" style="color: #22c55e;"></i> Auditoria de Acessos Recentes
+                        </h4>
+                        <button onclick="loadAdminLogsView()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; padding: 6px 12px; border-radius: 8px; font-size: 0.72rem; cursor: pointer; display: flex; items-center; gap: 6px;">
+                            <i class="fa-solid fa-rotate"></i> Atualizar
+                        </button>
+                    </div>
+                    <div id="admin-logs-list-container" style="background: rgba(15,20,32,0.6); border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); overflow: hidden;">
+                        <div style="text-align: center; color: #94a3b8; padding: 40px; font-size: 0.8rem;">
+                            <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: #22c55e; display: block; margin-bottom: 8px;"></i>
+                            Carregando logs de acesso...
+                        </div>
+                    </div>
+                </div>
+            `;if(e===`settings`)return`
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <!-- Anúncio Global -->
+                    <div style="background: rgba(15,20,32,0.6); padding: 20px; border-radius: 14px; border: 1px solid rgba(245,158,11,0.3);">
+                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-bullhorn" style="color: #f59e0b;"></i> Anúncio Global da Plataforma
+                        </h4>
+                        <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 12px;">Transmita mensagens em tempo real no topo do site para todos os usuários.</p>
+                        <form onsubmit="handleSaveGlobalAnnouncement(event)" style="display: flex; flex-direction: column; gap: 10px;">
+                            <textarea id="setting-announcement-text" class="global-admin-input" rows="2" placeholder="Digite o anúncio global..." style="margin:0; resize: vertical;"></textarea>
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #cbd5e1; cursor: pointer;">
+                                    <input type="checkbox" id="setting-announcement-active" style="width: 16px; height: 16px; accent-color: #f59e0b;">
+                                    Ativar Banner de Anúncio
+                                </label>
+                                <button type="submit" class="global-admin-submit" style="width: auto; padding: 8px 20px; background: #f59e0b; color: #000; font-weight: 800;">SALVAR E TRANSMITIR</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Modo Manutenção -->
+                    <div style="background: rgba(15,20,32,0.6); padding: 20px; border-radius: 14px; border: 1px solid rgba(239,68,68,0.3);">
+                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i> Modo de Manutenção
+                        </h4>
+                        <form onsubmit="handleSaveMaintenance(event)" style="display: flex; flex-direction: column; gap: 10px;">
+                            <input type="text" id="setting-maint-msg" class="global-admin-input" placeholder="Mensagem de manutenção..." value="Plataforma em manutenção para melhorias no servidor." style="margin:0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #cbd5e1; cursor: pointer;">
+                                    <input type="checkbox" id="setting-maint-active" style="width: 16px; height: 16px; accent-color: #ef4444;">
+                                    Ativar Modo de Manutenção Geral
+                                </label>
+                                <button type="submit" class="global-admin-submit" style="width: auto; padding: 8px 20px; background: #ef4444; color: #fff; font-weight: 800;">APLICAR MANUTENÇÃO</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;if(e===`cities`){let e=s?t.find(e=>e.id===s):null;return`
                 <div style="display: flex; flex-direction: column; gap: 20px;">
                     <div style="background: rgba(15,20,32,0.6); padding: 20px; border-radius: 14px; border: 1px solid rgba(255,102,0,0.2);">
                         <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.9rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
@@ -276,4 +350,63 @@ import{t as e}from"./dist-CJgmpDaA.js";var t=e(`https://pdzytmdssswiyjwohvwn.sup
                     <p style="font-size: 0.8rem; color: #94a3b8; max-width: 500px; margin: 0 auto 16px;">Limpa todas as confirmações da comunidade acumuladas no ciclo atual do Andarilho em todas as cidades.</p>
                     <button onclick="handleResetWandererCycle()" class="global-admin-submit" style="width: auto; background: linear-gradient(135deg, #ff5500 0%, #e62e00 50%, #ffaa00 100%); color: #fff; padding: 10px 24px;">CONFIRMAR RESET DO CICLO</button>
                 </div>
-            `;return``}window.startEditCity=function(e){s=e,m()},window.cancelEditCity=function(){s=null,m()},window.handleSaveCity=function(e){e.preventDefault();let t=document.getElementById(`city-form-name`).value.trim(),n=document.getElementById(`city-form-slug`).value.trim(),r=document.getElementById(`city-form-sub`).value.trim(),i=document.getElementById(`city-form-banner`).value.trim(),a=d();s?(a=a.map(e=>e.id===s?{...e,name:t,slug:n,subtitle:r,banner_image_url:i}:e),s=null,alert(`Cidade atualizada com sucesso!`)):(a.push({id:`city-`+Date.now(),name:t,slug:n,subtitle:r,banner_image_url:i,description:`Cidade cadastrada via Admin.`}),alert(`Cidade cadastrada com sucesso!`)),localStorage.setItem(`malaca_custom_servers`,JSON.stringify(a)),m(),window.loadCustomCities&&window.loadCustomCities()},window.moveCityUp=function(e){if(e<=0)return;let t=d(),n=t[e-1];t[e-1]=t[e],t[e]=n,localStorage.setItem(`malaca_custom_servers`,JSON.stringify(t)),m(),window.loadCustomCities&&window.loadCustomCities()},window.moveCityDown=function(e){let t=d();if(e>=t.length-1)return;let n=t[e+1];t[e+1]=t[e],t[e]=n,localStorage.setItem(`malaca_custom_servers`,JSON.stringify(t)),m(),window.loadCustomCities&&window.loadCustomCities()},window.deleteCity=function(e,t){if(confirm(`Tem certeza que deseja excluir a cidade "${t}"?`)){let t=d();t=t.filter(t=>t.id!==e),localStorage.setItem(`malaca_custom_servers`,JSON.stringify(t)),m(),window.loadCustomCities&&window.loadCustomCities()}},window.startEditSystem=function(e){c=e,m()},window.cancelEditSystem=function(){c=null,m()},window.handleSaveSystem=function(e){e.preventDefault();let t=document.getElementById(`sys-form-name`).value.trim(),n=document.getElementById(`sys-form-slug`).value.trim(),r=document.getElementById(`sys-form-tag`).value.trim(),i=document.getElementById(`sys-form-link`).value.trim(),a=Array.from(document.querySelectorAll(`input[name="city-link-check"]:checked`)).map(e=>e.value),o=f();c?(o=o.map(e=>e.id===c?{...e,name:t,slug:n,tag:r,link:i,city_ids:a}:e),c=null,alert(`Sistema atualizado com sucesso!`)):(o.push({id:`sys-`+Date.now(),name:t,slug:n,tag:r,link:i||`${n}/`,city_ids:a,is_active:!0}),alert(`Sistema cadastrado com sucesso!`)),localStorage.setItem(`malaca_custom_systems`,JSON.stringify(o)),m()},window.moveSystemUp=function(e){if(e<=0)return;let t=f(),n=t[e-1];t[e-1]=t[e],t[e]=n,localStorage.setItem(`malaca_custom_systems`,JSON.stringify(t)),m()},window.moveSystemDown=function(e){let t=f();if(e>=t.length-1)return;let n=t[e+1];t[e+1]=t[e],t[e]=n,localStorage.setItem(`malaca_custom_systems`,JSON.stringify(t)),m()},window.deleteSystem=function(e,t){if(confirm(`Tem certeza que deseja excluir o sistema "${t}"?`)){let t=f();t=t.filter(t=>t.id!==e),localStorage.setItem(`malaca_custom_systems`,JSON.stringify(t)),m()}},window.handleResetWandererCycle=function(){localStorage.removeItem(`cidade_alta_user_confirmations`),alert(`Ciclo do Andarilho resetado com sucesso!`)},document.addEventListener(`DOMContentLoaded`,()=>{let e=new URLSearchParams(window.location.search);(e.get(`admin`)===`true`||e.get(`admin`)===`1`)&&window.openGlobalAdminModal()})})();
+            `;return``}window.startEditCity=function(e){s=e,m()},window.cancelEditCity=function(){s=null,m()},window.handleSaveCity=function(e){e.preventDefault();let t=document.getElementById(`city-form-name`).value.trim(),n=document.getElementById(`city-form-slug`).value.trim(),r=document.getElementById(`city-form-sub`).value.trim(),i=document.getElementById(`city-form-banner`).value.trim(),a=d();s?(a=a.map(e=>e.id===s?{...e,name:t,slug:n,subtitle:r,banner_image_url:i}:e),s=null,alert(`Cidade atualizada com sucesso!`)):(a.push({id:`city-`+Date.now(),name:t,slug:n,subtitle:r,banner_image_url:i,description:`Cidade cadastrada via Admin.`}),alert(`Cidade cadastrada com sucesso!`)),localStorage.setItem(`malaca_custom_servers`,JSON.stringify(a)),m(),window.loadCustomCities&&window.loadCustomCities()},window.moveCityUp=function(e){if(e<=0)return;let t=d(),n=t[e-1];t[e-1]=t[e],t[e]=n,localStorage.setItem(`malaca_custom_servers`,JSON.stringify(t)),m(),window.loadCustomCities&&window.loadCustomCities()},window.moveCityDown=function(e){let t=d();if(e>=t.length-1)return;let n=t[e+1];t[e+1]=t[e],t[e]=n,localStorage.setItem(`malaca_custom_servers`,JSON.stringify(t)),m(),window.loadCustomCities&&window.loadCustomCities()},window.deleteCity=function(e,t){if(confirm(`Tem certeza que deseja excluir a cidade "${t}"?`)){let t=d();t=t.filter(t=>t.id!==e),localStorage.setItem(`malaca_custom_servers`,JSON.stringify(t)),m(),window.loadCustomCities&&window.loadCustomCities()}},window.startEditSystem=function(e){c=e,m()},window.cancelEditSystem=function(){c=null,m()},window.handleSaveSystem=function(e){e.preventDefault();let t=document.getElementById(`sys-form-name`).value.trim(),n=document.getElementById(`sys-form-slug`).value.trim(),r=document.getElementById(`sys-form-tag`).value.trim(),i=document.getElementById(`sys-form-link`).value.trim(),a=Array.from(document.querySelectorAll(`input[name="city-link-check"]:checked`)).map(e=>e.value),o=f();c?(o=o.map(e=>e.id===c?{...e,name:t,slug:n,tag:r,link:i,city_ids:a}:e),c=null,alert(`Sistema atualizado com sucesso!`)):(o.push({id:`sys-`+Date.now(),name:t,slug:n,tag:r,link:i||`${n}/`,city_ids:a,is_active:!0}),alert(`Sistema cadastrado com sucesso!`)),localStorage.setItem(`malaca_custom_systems`,JSON.stringify(o)),m()},window.moveSystemUp=function(e){if(e<=0)return;let t=f(),n=t[e-1];t[e-1]=t[e],t[e]=n,localStorage.setItem(`malaca_custom_systems`,JSON.stringify(t)),m()},window.moveSystemDown=function(e){let t=f();if(e>=t.length-1)return;let n=t[e+1];t[e+1]=t[e],t[e]=n,localStorage.setItem(`malaca_custom_systems`,JSON.stringify(t)),m()},window.deleteSystem=function(e,t){if(confirm(`Tem certeza que deseja excluir o sistema "${t}"?`)){let t=f();t=t.filter(t=>t.id!==e),localStorage.setItem(`malaca_custom_systems`,JSON.stringify(t)),m()}},window.handleResetWandererCycle=function(){localStorage.removeItem(`cidade_alta_user_confirmations`),alert(`Ciclo do Andarilho resetado com sucesso!`)},window.loadAdminUsersView=async function(){let e=document.getElementById(`admin-users-list-container`);if(e)try{let{data:n,error:r}=await t.from(`profiles`).select(`*`).order(`created_at`,{ascending:!1});if(r)throw r;if(!n||n.length===0){e.innerHTML=`<div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 30px; font-size: 0.8rem;">Nenhum usuário cadastrado ainda.</div>`;return}e.innerHTML=n.map(e=>{let t=e.is_admin||e.role===`admin`,n=e.is_banned===!0;return`
+                    <div style="background: rgba(15,20,32,0.5); padding: 14px; border-radius: 12px; border: 1px solid ${n?`rgba(239,68,68,0.4)`:t?`rgba(88,101,242,0.4)`:`rgba(255,255,255,0.06)`}; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${e.avatar_url||`https://cdn.discordapp.com/embed/avatars/0.png`}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${t?`#5865F2`:`#38bdf8`}; object-fit: cover;" />
+                            <div style="min-width: 0; flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <h5 style="color: #fff; font-size: 0.85rem; font-weight: 800; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${e.full_name||e.username}</h5>
+                                    ${t?`<span style="font-size: 9px; font-weight: 800; background: rgba(88,101,242,0.2); color: #818cf8; padding: 2px 5px; border-radius: 4px; border: 1px solid rgba(88,101,242,0.4);">ADMIN</span>`:``}
+                                    ${n?`<span style="font-size: 9px; font-weight: 800; background: rgba(239,68,68,0.2); color: #fca5a5; padding: 2px 5px; border-radius: 4px; border: 1px solid rgba(239,68,68,0.4);">BANIDO</span>`:``}
+                                </div>
+                                <span style="color: #38bdf8; font-size: 0.72rem; font-weight: 700;">@${e.username}</span>
+                                <div style="color: #64748b; font-size: 0.68rem; font-family: monospace;">ID: ${e.discord_id}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
+                            <button onclick="toggleAdminProfile('${e.id}', ${t})" style="background: ${t?`rgba(245,158,11,0.15)`:`rgba(88,101,242,0.15)`}; border: 1px solid ${t?`rgba(245,158,11,0.4)`:`rgba(88,101,242,0.4)`}; color: ${t?`#fde68a`:`#c7d2fe`}; padding: 4px 10px; border-radius: 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer;">
+                                <i class="fa-solid fa-shield"></i> ${t?`Remover Admin`:`Tornar Admin`}
+                            </button>
+                            <button onclick="toggleBanProfile('${e.id}', ${n})" style="background: ${n?`rgba(34,197,94,0.15)`:`rgba(239,68,68,0.15)`}; border: 1px solid ${n?`rgba(34,197,94,0.4)`:`rgba(239,68,68,0.4)`}; color: ${n?`#86efac`:`#fca5a5`}; padding: 4px 10px; border-radius: 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer;">
+                                <i class="fa-solid fa-ban"></i> ${n?`Desbanir`:`Banir`}
+                            </button>
+                        </div>
+                    </div>
+                `}).join(``)}catch(t){e.innerHTML=`<div style="grid-column: 1/-1; color: #f87171; font-size: 0.75rem; text-align: center; padding: 20px;">Falha ao carregar usuários: ${t.message}</div>`}},window.toggleAdminProfile=async function(e,n){let r=!n;try{await t.from(`profiles`).update({is_admin:r,role:r?`admin`:`user`}).eq(`id`,e),alert(`Permissão atualizada para: ${r?`ADMIN`:`USUÁRIO`}`),loadAdminUsersView()}catch(e){alert(`Erro ao atualizar permissão: `+e.message)}},window.toggleBanProfile=async function(e,n){let r=!n;try{await t.from(`profiles`).update({is_banned:r}).eq(`id`,e),alert(`Usuário ${r?`BANIDO`:`DESBANIDO`} com sucesso.`),loadAdminUsersView()}catch(e){alert(`Erro ao atualizar status de banimento: `+e.message)}},window.loadAdminLogsView=async function(){let e=document.getElementById(`admin-logs-list-container`);if(e)try{let{data:n,error:r}=await t.from(`access_logs`).select(`*`).order(`logged_at`,{ascending:!1}).limit(40);if(r)throw r;if(!n||n.length===0){e.innerHTML=`<div style="text-align: center; color: #94a3b8; padding: 30px; font-size: 0.8rem;">Nenhum log gravado ainda.</div>`;return}e.innerHTML=n.map(e=>`
+                <div style="padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #fff; font-weight: 800; font-size: 0.78rem;">${e.username||`Discord User`}</span>
+                            <span style="color: #38bdf8; font-family: monospace; font-size: 0.68rem; background: rgba(0,210,255,0.1); padding: 2px 6px; border-radius: 4px;">ID: ${e.discord_id||`—`}</span>
+                        </div>
+                        <span style="color: #64748b; font-size: 0.68rem; font-family: monospace;">${e.user_agent?e.user_agent.substring(0,70)+`...`:`Navegador Web`}</span>
+                    </div>
+                    <span style="color: #94a3b8; font-size: 0.72rem; font-family: monospace; white-space: nowrap;">
+                        ${e.logged_at?new Date(e.logged_at).toLocaleTimeString(`pt-BR`):``}
+                    </span>
+                </div>
+            `).join(``)}catch(t){e.innerHTML=`<div style="color: #f87171; font-size: 0.75rem; text-align: center; padding: 20px;">Falha ao carregar logs: ${t.message}</div>`}},window.loadAdminSettingsView=async function(){try{let{data:e}=await t.from(`platform_settings`).select(`*`).eq(`id`,`default`).maybeSingle();if(e){let t=document.getElementById(`setting-announcement-text`),n=document.getElementById(`setting-announcement-active`),r=document.getElementById(`setting-maint-msg`),i=document.getElementById(`setting-maint-active`);t&&(t.value=e.global_announcement||``),n&&(n.checked=!!e.announcement_active),r&&(r.value=e.maintenance_message||`Plataforma em manutenção.`),i&&(i.checked=!!e.maintenance_mode)}}catch{}},window.handleSaveGlobalAnnouncement=async function(e){e.preventDefault();let n=document.getElementById(`setting-announcement-text`).value.trim(),r=document.getElementById(`setting-announcement-active`).checked;try{await t.from(`platform_settings`).upsert([{id:`default`,global_announcement:n,announcement_active:r,updated_at:new Date().toISOString()}],{onConflict:`id`}),alert(`Anúncio global salvo e transmitido com sucesso!`),_()}catch(e){alert(`Erro ao salvar anúncio: `+e.message)}},window.handleSaveMaintenance=async function(e){e.preventDefault();let n=document.getElementById(`setting-maint-msg`).value.trim(),r=document.getElementById(`setting-maint-active`).checked;try{await t.from(`platform_settings`).upsert([{id:`default`,maintenance_message:n,maintenance_mode:r,updated_at:new Date().toISOString()}],{onConflict:`id`}),alert(`Status de manutenção atualizado!`)}catch(e){alert(`Erro ao salvar manutenção: `+e.message)}};function g(){if(!(window.location.pathname.includes(`/lockpick`)||window.location.pathname.includes(`/caixinha`)||window.location.pathname.includes(`/hacking`)))return;let e=localStorage.getItem(`malaca_user_profile`);if(e&&JSON.parse(e)){let e=document.getElementById(`system-auth-guard-overlay`);e&&e.remove()}else{let e=document.getElementById(`system-auth-guard-overlay`);e||(e=document.createElement(`div`),e.id=`system-auth-guard-overlay`,e.style.cssText=`
+                    position: fixed; inset: 0; background: rgba(3, 7, 18, 0.94); backdrop-filter: blur(12px);
+                    z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 20px;
+                `,e.innerHTML=`
+                    <div style="background: linear-gradient(135deg, #090e17 0%, #000000 100%); border: 1px solid rgba(88,101,242,0.4); border-radius: 20px; padding: 36px; max-width: 440px; width: 100%; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.8);">
+                        <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(88,101,242,0.15); border: 2px solid #5865F2; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #5865F2; font-size: 30px;">
+                            <i class="fa-brands fa-discord"></i>
+                        </div>
+                        <h3 style="font-family: var(--font-header, sans-serif); font-size: 1.15rem; font-weight: 900; color: #fff; margin-bottom: 8px;">ACESSO RESTRITO POR DISCORD</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; line-height: 1.6; margin-bottom: 24px;">
+                            Para utilizar este simulador e participar das ferramentas do Malaca System GTARP, é necessário estar conectado com sua conta do Discord.
+                        </p>
+                        <button onclick="loginWithDiscordGlobal()" style="width: 100%; padding: 14px; border-radius: 12px; background: #5865F2; color: #fff; font-size: 0.85rem; font-weight: 800; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 25px rgba(88,101,242,0.35); transition: all 0.2s ease;">
+                            <i class="fa-brands fa-discord" style="font-size: 1.2rem;"></i> ENTRAR COM O DISCORD
+                        </button>
+                        <a href="/cidades/cda/" style="display: block; margin-top: 16px; font-size: 0.75rem; color: #64748b; text-decoration: none; font-weight: 600;">
+                            <i class="fa-solid fa-arrow-left"></i> Voltar para a Central
+                        </a>
+                    </div>
+                `,document.body.appendChild(e))}}async function _(){try{let{data:e}=await t.from(`platform_settings`).select(`*`).eq(`id`,`default`).maybeSingle(),n=document.getElementById(`global-live-announcement-bar`);e&&e.announcement_active&&e.global_announcement?(n||(n=document.createElement(`div`),n.id=`global-live-announcement-bar`,n.style.cssText=`
+                        position: fixed; top: 0; left: 0; right: 0; background: linear-gradient(90deg, #f59e0b, #d97706);
+                        color: #000; font-weight: 900; font-size: 0.78rem; padding: 8px 16px; text-align: center;
+                        z-index: 99998; box-shadow: 0 4px 15px rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; gap: 8px;
+                    `,document.body.prepend(n)),n.innerHTML=`<i class="fa-solid fa-bullhorn"></i> <span>${e.global_announcement}</span>`):n&&n.remove()}catch{}}document.addEventListener(`DOMContentLoaded`,()=>{let e=new URLSearchParams(window.location.search);(e.get(`admin`)===`true`||e.get(`admin`)===`1`)&&window.openGlobalAdminModal(),g(),_()}),g(),_()})();
