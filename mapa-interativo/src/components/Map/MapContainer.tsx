@@ -126,12 +126,13 @@ export const MapContainer: React.FC<MapContainerProps> = ({
 
     const map = L.map(containerRef.current, {
       crs: L.CRS.Simple,
+      minZoom: -10,
       maxZoom: 4,
-      zoomSnap: 0.25,
-      zoomDelta: 0.5,
-      wheelPxPerZoomLevel: 100,
-      maxBounds: extendedBounds,
-      maxBoundsViscosity: 0.4,
+      zoomSnap: 0.05,
+      zoomDelta: 0.4,
+      wheelPxPerZoomLevel: 80,
+      maxBounds: bounds,
+      maxBoundsViscosity: 1.0,
       zoomControl: false,
       attributionControl: false,
       bounceAtZoomLimits: false,
@@ -151,12 +152,12 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     applyThemeToMapOverlay(mapTheme);
 
     const updateZoomLimits = () => {
-      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-      const fitZoom = map.getBoundsZoom(bounds, false);
-      const minZoom = isMobile ? fitZoom - 0.25 : fitZoom;
-      map.setMinZoom(minZoom);
-      if (map.getZoom() < minZoom) {
-        map.setZoom(minZoom);
+      map.setMinZoom(-10);
+      // inside: true garante cálculo de zoom 'cover' (maior escala entre x e y), preenchendo 100% da tela sem nenhuma borda preta
+      const coverZoom = map.getBoundsZoom(bounds, true);
+      map.setMinZoom(coverZoom);
+      if (map.getZoom() < coverZoom) {
+        map.setZoom(coverZoom);
       }
     };
 
@@ -167,16 +168,28 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       updateZoomLimits();
     };
 
-    map.fitBounds(bounds);
-    updateZoomLimits();
+    // Inicializa enquadrado em [500, 500] cobrindo toda a tela perfeitamente
+    map.setMinZoom(-10);
+    const initialCoverZoom = map.getBoundsZoom(bounds, true);
+    map.setMinZoom(initialCoverZoom);
+    map.setView([500, 500], initialCoverZoom);
 
-    // Guarantee exact size calculation on mobile layout stabilization
+    // Guarantee exact size calculation on layout stabilization
     const sizeTimer = setTimeout(() => {
       if (mapRef.current) {
         mapRef.current.invalidateSize();
         updateZoomLimits();
       }
     }, 150);
+
+    // ResizeObserver para detectar instantaneamente mudanças na largura da sidebar ou da tela
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        handleResize();
+      });
+      resizeObserver.observe(containerRef.current);
+    }
 
     map.on('resize', handleResize);
     if (typeof window !== 'undefined') {
@@ -207,6 +220,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
 
     return () => {
       clearTimeout(sizeTimer);
+      if (resizeObserver) resizeObserver.disconnect();
       if (typeof window !== 'undefined') {
         window.removeEventListener('resize', handleResize);
         window.removeEventListener('orientationchange', handleResize);
@@ -435,12 +449,26 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   // Controls Handlers
   const handleZoomIn = () => mapRef.current?.zoomIn();
   const handleZoomOut = () => mapRef.current?.zoomOut();
-  const handleResetView = () => mapRef.current?.fitBounds(bounds);
+  const handleResetView = () => {
+    if (!mapRef.current) return;
+    mapRef.current.setMinZoom(-10);
+    const coverZoom = mapRef.current.getBoundsZoom(bounds, true);
+    mapRef.current.setMinZoom(coverZoom);
+    mapRef.current.setView([500, 500], coverZoom, { animate: true, duration: 0.35 });
+  };
   const handleCenter = () => {
+    if (!mapRef.current) return;
+    mapRef.current.setMinZoom(-10);
+    const coverZoom = mapRef.current.getBoundsZoom(bounds, true);
+    mapRef.current.setMinZoom(coverZoom);
     if (selectedLocation) {
-      mapRef.current?.setView([selectedLocation.y, selectedLocation.x], 2);
+      mapRef.current.setView(
+        [selectedLocation.y, selectedLocation.x],
+        Math.max(mapRef.current.getZoom(), coverZoom + 0.6),
+        { animate: true, duration: 0.35 }
+      );
     } else {
-      mapRef.current?.setView([500, 500], 0);
+      mapRef.current.setView([500, 500], coverZoom, { animate: true, duration: 0.35 });
     }
   };
 
@@ -453,7 +481,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   };
 
   return (
-    <div className={`relative w-full h-full bg-slate-950 overflow-hidden select-none ${mapTheme === 'dark' ? 'map-dark-theme' : 'map-light-theme'}`}>
+    <div className={`relative w-full h-full overflow-hidden select-none ${mapTheme === 'dark' ? 'map-dark-theme bg-[#071526]' : 'map-light-theme bg-[#729eb3]'}`}>
       {/* Scoped style to guarantee map dark/light filter across all browsers and bundlers */}
       <style>{`
         .map-dark-theme .leaflet-image-layer,
@@ -464,7 +492,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
           transition: filter 0.35s ease !important;
         }
         .map-dark-theme .leaflet-container {
-          background-color: #060913 !important;
+          background-color: #071526 !important;
         }
         .map-light-theme .leaflet-image-layer,
         .map-light-theme .gta-map-image-layer,
@@ -474,7 +502,14 @@ export const MapContainer: React.FC<MapContainerProps> = ({
           transition: filter 0.35s ease !important;
         }
         .map-light-theme .leaflet-container {
-          background-color: #1e293b !important;
+          background-color: #729eb3 !important;
+        }
+        .leaflet-container {
+          outline: none !important;
+        }
+        .gta-map-image-layer,
+        .leaflet-image-layer {
+          object-fit: cover !important;
         }
       `}</style>
 

@@ -39,10 +39,11 @@ export const Header: React.FC<HeaderProps> = ({
 
         <button
           onClick={onToggleSidebar}
-          className="p-2 rounded-lg bg-[#060d1a] border border-[#00d2ff]/30 text-slate-300 hover:text-white md:hidden transition-colors"
-          title="Abrir Menu"
+          className="p-2 rounded-lg bg-[#060d1a] border border-[#00d2ff]/30 text-slate-300 hover:text-white hover:border-[#00d2ff] transition-colors cursor-pointer flex items-center gap-1.5"
+          title="Alternar Painel do Jogador"
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="w-5 h-5 text-[#00d2ff]" />
+          <span className="hidden sm:inline text-xs font-bold text-slate-300">PAINEL</span>
         </button>
 
         <a href="/" className="flex items-center gap-2.5">

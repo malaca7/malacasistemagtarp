@@ -32,7 +32,12 @@ export const App: React.FC = () => {
 
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768;
+    }
+    return true;
+  });
   const [adminOpen, setAdminOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [discordAuthOpen, setDiscordAuthOpen] = useState(false);

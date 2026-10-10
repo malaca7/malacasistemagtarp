@@ -94,8 +94,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Panel */}
       <aside
-        className={`fixed md:static top-0 left-0 h-full w-80 md:w-84 max-w-[85vw] bg-[#060d1a] backdrop-blur-xl border-r border-[#00d2ff]/20 z-40 flex flex-col transition-transform duration-300 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        className={`fixed md:relative top-0 left-0 h-full w-80 md:w-84 max-w-[85vw] bg-[#060d1a] backdrop-blur-xl border-r border-[#00d2ff]/20 z-40 flex flex-col transition-all duration-300 ease-in-out shrink-0 overflow-hidden ${
+          isOpen ? 'translate-x-0' : '-translate-x-full md:-ml-84 md:w-0 md:opacity-0 md:pointer-events-none'
         }`}
       >
         {/* Top Header inside Sidebar */}
@@ -108,7 +108,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white md:hidden"
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Recolher Painel"
           >
             <X className="w-5 h-5" />
           </button>

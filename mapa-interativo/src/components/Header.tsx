@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Server } from '../types';
 import type { UserProfile } from '../services/auth';
-import { Menu, Settings, ArrowLeft, Sliders } from 'lucide-react';
+import { Menu, Settings, ArrowLeft, Sliders, UserCheck } from 'lucide-react';
 
 interface HeaderProps {
   servers: Server[];
@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenDiscordAuth,
 }) => {
   return (
-    <header className="h-16 bg-black/95 backdrop-blur-xl border-b border-[#00d2ff]/20 px-4 md:px-6 flex items-center justify-between z-30 relative shadow-2xl">
+    <header className="h-16 bg-[#030712]/95 backdrop-blur-xl border-b border-[#00d2ff]/20 px-4 md:px-6 flex items-center justify-between z-30 relative shadow-2xl">
       {/* Navigation Left: Back Button & Brand */}
       <div className="flex items-center gap-4">
         <a 
@@ -39,14 +39,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         <button
           onClick={onToggleSidebar}
-          className="p-2 rounded-lg bg-[#060d1a] border border-[#00d2ff]/30 text-slate-300 hover:text-white md:hidden transition-colors"
-          title="Abrir Menu"
+          className="p-2 rounded-lg bg-[#060d1a] border border-[#00d2ff]/30 text-slate-300 hover:text-white hover:border-[#00d2ff] transition-colors cursor-pointer flex items-center gap-1.5"
+          title="Alternar Painel do Jogador"
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="w-5 h-5 text-[#00d2ff]" />
+          <span className="hidden sm:inline text-xs font-bold text-slate-300">PAINEL</span>
         </button>
 
         <a href="/" className="flex items-center gap-2.5">
-          <img src="/images/logo_malaca_sistemas.png" alt="MALACA SISTEMAS" className="h-8 md:h-9 object-contain drop-shadow-[0_0_12px_rgba(250,118,8,0.5)]" />
+          <img src="/images/logo_malaca_sistemas.png" alt="MALACA SISTEMAS" className="h-8 md:h-9 object-contain drop-shadow-[0_0_14px_rgba(0,210,255,0.6)]" />
         </a>
       </div>
 
@@ -95,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({
             className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-md ${
               user
                 ? 'bg-slate-900 border border-[#00d2ff]/50 text-white hover:border-[#38bdf8]'
-                : 'bg-[#5865F2] hover:bg-[#4752C4] text-white shadow-[#5865F2]/25'
+                : 'bg-[#0284c7] hover:bg-[#0369a1] text-white shadow-[#0284c7]/25'
             }`}
             title={user ? `Perfil: ${user.username}` : 'Entrar com Discord'}
           >
