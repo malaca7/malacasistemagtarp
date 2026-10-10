@@ -340,7 +340,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                               {loc.confirmations_count} conf.
                             </span>
-                            {loc.last_confirmed_by && (
+                            {loc.last_confirmed_by &&
+                              !loc.last_confirmed_by.includes('Comunidade RP') &&
+                              !loc.last_confirmed_by.startsWith('anon_') &&
+                              !loc.last_confirmed_by.startsWith('@anon_') && (
                               <span
                                 className="text-[8px] text-[#38bdf8] font-bold truncate max-w-[110px]"
                                 title={`Marcado por ${loc.last_confirmed_by}`}

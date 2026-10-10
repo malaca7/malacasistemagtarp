@@ -129,6 +129,31 @@ export function getLocalWandererCycleState(): StoredWandererCycleState {
     if (raw) {
       const parsed: StoredWandererCycleState = JSON.parse(raw);
       if (parsed && parsed.cycleKey === current.cycleKey) {
+        // Sanitiza registros residuais de fallback fake 'Comunidade RP'
+        let hasChanged = false;
+        if (parsed.latestConfirmations) {
+          for (const locId of Object.keys(parsed.latestConfirmations)) {
+            const uName = parsed.latestConfirmations[locId]?.username;
+            if (uName && (uName.includes('Comunidade RP') || uName.startsWith('anon_') || uName.startsWith('@anon_'))) {
+              delete parsed.latestConfirmations[locId];
+              hasChanged = true;
+            }
+          }
+        }
+        if (parsed.confirmedUsersByLocation) {
+          for (const locId of Object.keys(parsed.confirmedUsersByLocation)) {
+            const beforeLen = parsed.confirmedUsersByLocation[locId].length;
+            parsed.confirmedUsersByLocation[locId] = parsed.confirmedUsersByLocation[locId].filter(
+              (u) => u.username && !u.username.includes('Comunidade RP') && !u.username.startsWith('anon_') && !u.username.startsWith('@anon_')
+            );
+            if (parsed.confirmedUsersByLocation[locId].length !== beforeLen) {
+              hasChanged = true;
+            }
+          }
+        }
+        if (hasChanged) {
+          saveLocalWandererCycleState(parsed);
+        }
         return parsed;
       }
     }

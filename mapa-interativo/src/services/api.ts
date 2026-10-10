@@ -448,9 +448,41 @@ export const ApiService = {
       const userConfirmedSet = new Set<string>(cycleState.userConfirmedIds);
 
       if (confirmations) {
+        // Dispara limpeza preventiva no Supabase para registros legados com Comunidade RP
+        (async () => {
+          try {
+            await supabase
+              .from('wanderer_confirmations')
+              .delete()
+              .or('username.ilike.%Comunidade RP%,anonymous_user_id.ilike.%Comunidade RP%');
+          } catch {}
+        })();
+
         confirmations.forEach((c) => {
-          remoteCounts[c.location_id] = (remoteCounts[c.location_id] || 0) + 1;
           const rawId = c.anonymous_user_id || '';
+          const rawUsername = c.username || '';
+
+          // REJEITA completamente registros fictícios, anônimos não identificados ou legados com Comunidade RP
+          if (
+            rawUsername.includes('Comunidade RP') ||
+            rawId.includes('Comunidade RP') ||
+            rawUsername === '@Comunidade RP' ||
+            (!c.user_id && !c.username && rawId.startsWith('anon_'))
+          ) {
+            return;
+          }
+
+          // Identifica o autor real (sempre com @ e priorizando perfil real de jogador)
+          const parsedName = c.username
+            ? (c.username.startsWith('@') ? c.username : `@${c.username}`)
+            : (rawId.startsWith('@') ? rawId : null);
+
+          // Se não houver nome válido de jogador, não processa como confirmação real
+          if (!parsedName || parsedName.includes('Comunidade RP') || parsedName.startsWith('anon_') || parsedName.startsWith('@anon_')) {
+            return;
+          }
+
+          remoteCounts[c.location_id] = (remoteCounts[c.location_id] || 0) + 1;
           const isUserMatch =
             rawId === anonId ||
             (rawId.startsWith('@') && cycleState.userConfirmedIds.includes(c.location_id)) ||
@@ -458,14 +490,6 @@ export const ApiService = {
           if (isUserMatch) {
             userConfirmedSet.add(c.location_id);
           }
-
-          const parsedName = c.username
-            ? (c.username.startsWith('@') ? c.username : `@${c.username}`)
-            : (rawId.startsWith('@')
-              ? rawId
-              : rawId.startsWith('anon_')
-              ? 'Comunidade RP'
-              : `@${rawId}`);
 
           if (!latestConfirmationsMap[c.location_id]) {
             latestConfirmationsMap[c.location_id] = {
@@ -497,29 +521,46 @@ export const ApiService = {
       return baseLocations.map((loc) => {
         const isWanderer = loc.category === 'andarilho' || loc.category === 'local_possivel';
         const isLocallyConfirmed = userConfirmedSet.has(loc.id);
-        const remoteCount = remoteCounts[loc.id] || 0;
-        const localCycleCount = cycleState.counts[loc.id] || 0;
-        const liveCount = realtimeCounts[loc.id] || 0;
 
-        // Se for marcação do Andarilho, combina contagem remota, realtime coletiva e local
-        const totalCount = isWanderer
-          ? Math.max(remoteCount, localCycleCount, liveCount) + (isLocallyConfirmed && !remoteCount && !localCycleCount && !liveCount ? 1 : 0)
-          : (loc.confirmations_count || 0);
-
-        const latestConf = isWanderer ? latestConfirmationsMap[loc.id] : undefined;
-        
-        // Mescla usuários confirmados remotos com os locais da sessão ativa
         let mergedUsers: ConfirmedUser[] | undefined = undefined;
+        let latestConf: { username: string; confirmed_at: string } | undefined = undefined;
+
         if (isWanderer) {
           const list = [...(confirmedUsersMap[loc.id] || [])];
           const localList = (cycleState.confirmedUsersByLocation && cycleState.confirmedUsersByLocation[loc.id]) || [];
           localList.forEach((lu: ConfirmedUser) => {
-            if (!list.some((u) => u.username === lu.username || (lu.user_id && u.user_id === lu.user_id))) {
+            if (
+              lu.username &&
+              !lu.username.includes('Comunidade RP') &&
+              !lu.username.startsWith('anon_') &&
+              !lu.username.startsWith('@anon_') &&
+              !list.some((u) => u.username === lu.username || (lu.user_id && u.user_id === lu.user_id))
+            ) {
               list.push(lu);
             }
           });
           mergedUsers = list.length > 0 ? list : undefined;
+
+          // Define último confirmado exclusivamente de usuários reais
+          const rawLatest = latestConfirmationsMap[loc.id];
+          if (
+            rawLatest?.username &&
+            !rawLatest.username.includes('Comunidade RP') &&
+            !rawLatest.username.startsWith('anon_') &&
+            !rawLatest.username.startsWith('@anon_')
+          ) {
+            latestConf = rawLatest;
+          } else if (mergedUsers && mergedUsers.length > 0) {
+            latestConf = {
+              username: mergedUsers[0].username,
+              confirmed_at: mergedUsers[0].confirmed_at || new Date().toISOString(),
+            };
+          }
         }
+
+        // Para o Andarilho, a contagem reflete exclusivamente as confirmações reais
+        const realCount = mergedUsers ? mergedUsers.length : (isLocallyConfirmed ? 1 : 0);
+        const totalCount = isWanderer ? realCount : (loc.confirmations_count || 0);
 
         return {
           ...loc,
@@ -546,22 +587,44 @@ export const ApiService = {
       return baseLocations.map((loc) => {
         const isWanderer = loc.category === 'andarilho' || loc.category === 'local_possivel';
         const isLocallyConfirmed = userConfirmedSet.has(loc.id);
-        const localCount = cycleState.counts[loc.id] || 0;
-        const liveCount = realtimeCounts[loc.id] || 0;
-        const totalCount = isWanderer
-          ? Math.max(localCount, liveCount) + (isLocallyConfirmed && !localCount && !liveCount ? 1 : 0)
-          : (loc.confirmations_count || 0);
 
-        const latestConf = isWanderer && cycleState.latestConfirmations ? cycleState.latestConfirmations[loc.id] : undefined;
-        const localUsers = isWanderer && cycleState.confirmedUsersByLocation ? cycleState.confirmedUsersByLocation[loc.id] : undefined;
+        let validLocalUsers: ConfirmedUser[] | undefined = undefined;
+        let validLatest: string | undefined = undefined;
+
+        if (isWanderer) {
+          const localUsers = cycleState.confirmedUsersByLocation ? cycleState.confirmedUsersByLocation[loc.id] : undefined;
+          const filtered = localUsers?.filter(
+            (u) =>
+              u.username &&
+              !u.username.includes('Comunidade RP') &&
+              !u.username.startsWith('anon_') &&
+              !u.username.startsWith('@anon_')
+          );
+          validLocalUsers = filtered && filtered.length > 0 ? filtered : undefined;
+
+          const rawLatest = cycleState.latestConfirmations ? cycleState.latestConfirmations[loc.id] : undefined;
+          if (
+            rawLatest?.username &&
+            !rawLatest.username.includes('Comunidade RP') &&
+            !rawLatest.username.startsWith('anon_') &&
+            !rawLatest.username.startsWith('@anon_')
+          ) {
+            validLatest = rawLatest.username;
+          } else if (validLocalUsers && validLocalUsers.length > 0) {
+            validLatest = validLocalUsers[0].username;
+          }
+        }
+
+        const realCount = validLocalUsers ? validLocalUsers.length : (isLocallyConfirmed ? 1 : 0);
+        const totalCount = isWanderer ? realCount : (loc.confirmations_count || 0);
 
         return {
           ...loc,
           confirmations_count: totalCount,
           user_confirmed: isLocallyConfirmed,
-          last_confirmed_by: latestConf?.username,
-          last_confirmed_at: latestConf?.confirmed_at,
-          confirmed_users: localUsers,
+          last_confirmed_by: validLatest,
+          last_confirmed_at: cycleState.latestConfirmations?.[loc.id]?.confirmed_at,
+          confirmed_users: validLocalUsers,
         };
       });
     }
@@ -574,7 +637,11 @@ export const ApiService = {
     user?: UserProfile | any | null
   ): Promise<boolean> {
     const rawUsername = user?.username || user?.full_name;
-    const authorTag = rawUsername ? `@${rawUsername.replace(/^@/, '')}` : getAnonymousUserId();
+    if (!rawUsername || rawUsername.includes('Comunidade RP') || rawUsername.startsWith('anon_')) {
+      console.warn('Confirmação do Andarilho recusada: requer usuário real logado.');
+      return false;
+    }
+    const authorTag = `@${rawUsername.replace(/^@/, '')}`;
     const cycleState = getLocalWandererCycleState();
     const nowIso = new Date().toISOString();
 
@@ -650,7 +717,10 @@ export const ApiService = {
     user?: UserProfile | any | null
   ): Promise<boolean> {
     const rawUsername = user?.username || user?.full_name;
-    const authorTag = rawUsername ? `@${rawUsername.replace(/^@/, '')}` : getAnonymousUserId();
+    if (!rawUsername) {
+      return false;
+    }
+    const authorTag = `@${rawUsername.replace(/^@/, '')}`;
     const cycleState = getLocalWandererCycleState();
 
     cycleState.userConfirmedIds = cycleState.userConfirmedIds.filter((id) => id !== locationId);

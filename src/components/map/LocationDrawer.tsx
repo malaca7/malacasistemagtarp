@@ -43,18 +43,28 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
   if (!location) return null;
 
   const isAndarilho = location.category === 'andarilho' || location.category === 'local_possivel';
-  const confirmations = location.confirmations_count || 0;
+
+  // Filtra apenas jogadores reais confirmados (exclui Comunidade RP, anon_ e vazios)
+  const validConfirmedUsers = (location.confirmed_users || []).filter(
+    (u) => u.username && !u.username.includes('Comunidade RP') && !u.username.startsWith('anon_') && !u.username.startsWith('@anon_')
+  );
+  const confirmations = validConfirmedUsers.length > 0
+    ? validConfirmedUsers.length
+    : (location.user_confirmed ? 1 : 0);
 
   // Reliability Badge Calculator
-  let reliabilityText = 'Poucas confirmações';
-  let reliabilityColor = 'text-amber-400 bg-amber-500/10 border-amber-500/20';
+  let reliabilityText = 'Sem confirmações ativas neste ciclo';
+  let reliabilityColor = 'text-slate-400 bg-slate-800/40 border-slate-700/50';
 
-  if (confirmations >= 15) {
-    reliabilityText = 'Alta Confiança da Comunidade';
+  if (confirmations >= 10) {
+    reliabilityText = 'Alta Confiança de Jogadores Reais';
     reliabilityColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-  } else if (confirmations >= 5) {
-    reliabilityText = 'Confirmado pela Comunidade';
+  } else if (confirmations >= 3) {
+    reliabilityText = 'Confirmado por Jogadores Reais';
     reliabilityColor = 'text-[#38bdf8] bg-[#00d2ff]/10 border-[#00d2ff]/20';
+  } else if (confirmations >= 1) {
+    reliabilityText = 'Poucas confirmações de Jogadores';
+    reliabilityColor = 'text-amber-400 bg-amber-500/10 border-amber-500/20';
   }
 
   const handleToggleConfirm = async () => {
@@ -169,10 +179,10 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-[#38bdf8]" />
-              Confirmações da Comunidade
+              Confirmações de Jogadores Reais
             </span>
             <span className="text-sm font-black text-[#38bdf8] font-mono">
-              {confirmations} votos
+              {validConfirmedUsers.length} {validConfirmedUsers.length === 1 ? 'voto real' : 'votos reais'}
             </span>
           </div>
 
@@ -187,12 +197,12 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
             <span>{reliabilityText}</span>
           </div>
 
-          {/* Lista Completa de Usuários que Marcaram */}
-          {confirmations > 0 ? (
+          {/* Lista Completa de Jogadores Reais que Marcaram */}
+          {validConfirmedUsers.length > 0 ? (
             <div className="bg-[#030712]/90 border border-[#00d2ff]/30 rounded-xl p-3 space-y-2.5">
               <div className="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
                 <span className="text-[11px] font-extrabold text-[#38bdf8] flex items-center gap-1.5 uppercase tracking-wider">
-                  <span>👥</span> Jogadores que Marcaram ({location.confirmed_users?.length || confirmations})
+                  <span>👥</span> Jogadores que Marcaram ({validConfirmedUsers.length})
                 </span>
                 {location.last_confirmed_at && (
                   <span className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
@@ -202,115 +212,97 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
                 )}
               </div>
 
-              {location.confirmed_users && location.confirmed_users.length > 0 ? (
-                <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                  {location.confirmed_users.map((cUser, idx) => (
-                    <div
-                      key={`${cUser.username}-${idx}`}
-                      className="p-2 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-[#00d2ff]/40 flex items-center justify-between gap-2.5 transition-colors"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <img
-                          src={cUser.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}
-                          alt={cUser.username}
-                          className="w-8 h-8 rounded-full border border-[#00d2ff]/50 object-cover flex-shrink-0 shadow-[0_0_8px_rgba(0,210,255,0.3)]"
-                        />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-xs font-bold text-white truncate">
-                              {cUser.full_name || cUser.username}
+              <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                {validConfirmedUsers.map((cUser, idx) => (
+                  <div
+                    key={`${cUser.username}-${idx}`}
+                    className="p-2 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-[#00d2ff]/40 flex items-center justify-between gap-2.5 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <img
+                        src={cUser.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}
+                        alt={cUser.username}
+                        className="w-8 h-8 rounded-full border border-[#00d2ff]/50 object-cover flex-shrink-0 shadow-[0_0_8px_rgba(0,210,255,0.3)]"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-white truncate">
+                            {cUser.full_name || cUser.username}
+                          </span>
+                          {cUser.character_name && (
+                            <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded font-semibold truncate max-w-[120px]">
+                              RP: {cUser.character_name}
                             </span>
-                            {cUser.character_name && (
-                              <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded font-semibold truncate max-w-[120px]">
-                                RP: {cUser.character_name}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
-                            <span className="text-[#38bdf8] font-mono">{cUser.username}</span>
-                            {cUser.confirmed_at && (
-                              <span className="flex items-center gap-0.5 text-slate-500">
-                                <Clock className="w-2.5 h-2.5" />
-                                {new Date(cUser.confirmed_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            )}
-                          </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                          <span className="text-[#38bdf8] font-mono">{cUser.username}</span>
+                          {cUser.confirmed_at && (
+                            <span className="flex items-center gap-0.5 text-slate-500">
+                              <Clock className="w-2.5 h-2.5" />
+                              {new Date(cUser.confirmed_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
                         </div>
                       </div>
-
-                      {/* Redes Sociais */}
-                      {(cUser.instagram || cUser.twitch || cUser.youtube || cUser.twitter_x) && (
-                        <div className="flex items-center gap-1 flex-shrink-0 text-slate-400">
-                          {cUser.instagram && (
-                            <a
-                              href={cUser.instagram.startsWith('http') ? cUser.instagram : `https://instagram.com/${cUser.instagram.replace('@', '')}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="w-6 h-6 rounded-md bg-white/5 hover:bg-pink-500/20 text-pink-400 hover:text-pink-300 flex items-center justify-center transition-colors"
-                              title={`Instagram: ${cUser.instagram}`}
-                            >
-                              <i className="fa-brands fa-instagram text-xs"></i>
-                            </a>
-                          )}
-                          {cUser.twitch && (
-                            <a
-                              href={cUser.twitch.startsWith('http') ? cUser.twitch : `https://twitch.tv/${cUser.twitch.replace('@', '')}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="w-6 h-6 rounded-md bg-white/5 hover:bg-purple-500/20 text-purple-400 hover:text-purple-300 flex items-center justify-center transition-colors"
-                              title={`Twitch: ${cUser.twitch}`}
-                            >
-                              <i className="fa-brands fa-twitch text-xs"></i>
-                            </a>
-                          )}
-                          {cUser.youtube && (
-                            <a
-                              href={cUser.youtube.startsWith('http') ? cUser.youtube : `https://youtube.com/@${cUser.youtube.replace('@', '')}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="w-6 h-6 rounded-md bg-white/5 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 flex items-center justify-center transition-colors"
-                              title={`YouTube: ${cUser.youtube}`}
-                            >
-                              <i className="fa-brands fa-youtube text-xs"></i>
-                            </a>
-                          )}
-                          {cUser.twitter_x && (
-                            <a
-                              href={cUser.twitter_x.startsWith('http') ? cUser.twitter_x : `https://x.com/${cUser.twitter_x.replace('@', '')}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="w-6 h-6 rounded-md bg-white/5 hover:bg-sky-500/20 text-slate-200 hover:text-white flex items-center justify-center transition-colors"
-                              title={`X: ${cUser.twitter_x}`}
-                            >
-                              <i className="fa-brands fa-x-twitter text-xs"></i>
-                            </a>
-                          )}
-                        </div>
-                      )}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2.5 p-2 rounded-lg bg-slate-900/80 border border-slate-800">
-                  <div className="w-8 h-8 rounded-full bg-[#00d2ff]/20 border border-[#00d2ff]/50 flex items-center justify-center text-xs text-[#00d2ff] font-bold">
-                    👤
+
+                    {/* Redes Sociais */}
+                    {(cUser.instagram || cUser.twitch || cUser.youtube || cUser.twitter_x) && (
+                      <div className="flex items-center gap-1 flex-shrink-0 text-slate-400">
+                        {cUser.instagram && (
+                          <a
+                            href={cUser.instagram.startsWith('http') ? cUser.instagram : `https://instagram.com/${cUser.instagram.replace('@', '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-6 h-6 rounded-md bg-white/5 hover:bg-pink-500/20 text-pink-400 hover:text-pink-300 flex items-center justify-center transition-colors"
+                            title={`Instagram: ${cUser.instagram}`}
+                          >
+                            <i className="fa-brands fa-instagram text-xs"></i>
+                          </a>
+                        )}
+                        {cUser.twitch && (
+                          <a
+                            href={cUser.twitch.startsWith('http') ? cUser.twitch : `https://twitch.tv/${cUser.twitch.replace('@', '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-6 h-6 rounded-md bg-white/5 hover:bg-purple-500/20 text-purple-400 hover:text-purple-300 flex items-center justify-center transition-colors"
+                            title={`Twitch: ${cUser.twitch}`}
+                          >
+                            <i className="fa-brands fa-twitch text-xs"></i>
+                          </a>
+                        )}
+                        {cUser.youtube && (
+                          <a
+                            href={cUser.youtube.startsWith('http') ? cUser.youtube : `https://youtube.com/@${cUser.youtube.replace('@', '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-6 h-6 rounded-md bg-white/5 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 flex items-center justify-center transition-colors"
+                            title={`YouTube: ${cUser.youtube}`}
+                          >
+                            <i className="fa-brands fa-youtube text-xs"></i>
+                          </a>
+                        )}
+                        {cUser.twitter_x && (
+                          <a
+                            href={cUser.twitter_x.startsWith('http') ? cUser.twitter_x : `https://x.com/${cUser.twitter_x.replace('@', '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-6 h-6 rounded-md bg-white/5 hover:bg-sky-500/20 text-slate-200 hover:text-white flex items-center justify-center transition-colors"
+                            title={`X: ${cUser.twitter_x}`}
+                          >
+                            <i className="fa-brands fa-x-twitter text-xs"></i>
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <span className="text-xs font-bold text-white block">
-                      {location.last_confirmed_by
-                        ? location.last_confirmed_by.startsWith('@')
-                          ? location.last_confirmed_by
-                          : `@${location.last_confirmed_by}`
-                        : '@Comunidade RP'}
-                    </span>
-                    <span className="text-[10px] text-slate-400">Confirmado pela comunidade no ciclo ativo</span>
-                  </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
           ) : (
             <div className="text-[11px] text-slate-400 bg-black/30 p-2.5 rounded-lg border border-slate-800/80 text-center">
-              ⭕ Nenhuma confirmação registrada neste ciclo. Avistou o Andarilho? Marque abaixo!
+              ⭕ Nenhuma confirmação de jogador real neste ciclo. Avistou o Andarilho? Marque abaixo com seu Discord!
             </div>
           )}
 

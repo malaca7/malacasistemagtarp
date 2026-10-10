@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, ArrowLeft } from 'lucide-react';
-import type { Server, MapLocation, LocationCategory, Suggestion, SuggestionType } from './types';
+import type { Server, MapLocation, LocationCategory, Suggestion, SuggestionType, ConfirmedUser } from './types';
 import { ApiService } from './services/api';
 import { RealtimeSync } from './services/realtimeSync';
 import { Header } from './components/Header';
@@ -142,18 +142,34 @@ export const App: React.FC = () => {
     const subConf = ApiService.subscribeToConfirmations(async (payload) => {
       if (payload && payload.locationId) {
         const locId = payload.locationId;
-        const delta = payload.action === 'vote_added' ? 1 : -1;
         setLocations((prev) =>
           prev.map((loc) => {
             if (loc.id === locId) {
-              const freshVal = typeof payload.count === 'number'
+              let updatedUsers = loc.confirmed_users ? [...loc.confirmed_users] : [];
+              if (payload.action === 'vote_added' && payload.user) {
+                if (!updatedUsers.some((u) => u.username === payload.user?.username)) {
+                  updatedUsers.unshift(payload.user);
+                }
+              } else if (payload.action === 'vote_removed' && payload.username) {
+                updatedUsers = updatedUsers.filter((u) => u.username !== payload.username);
+              }
+              const isWanderer = loc.category === 'andarilho' || loc.category === 'local_possivel';
+              const nextCount = isWanderer
+                ? updatedUsers.length
+                : typeof payload.count === 'number'
                 ? payload.count
-                : Math.max(0, (loc.confirmations_count || 0) + delta);
+                : Math.max(0, (loc.confirmations_count || 0) + (payload.action === 'vote_added' ? 1 : -1));
+
+              const validLatest = payload.username && !payload.username.includes('Comunidade RP') && !payload.username.startsWith('anon_')
+                ? payload.username
+                : updatedUsers[0]?.username;
+
               return {
                 ...loc,
-                confirmations_count: freshVal,
-                last_confirmed_by: payload.username || loc.last_confirmed_by,
-                last_confirmed_at: payload.confirmed_at || (payload.username ? new Date().toISOString() : loc.last_confirmed_at),
+                confirmations_count: nextCount,
+                last_confirmed_by: validLatest,
+                last_confirmed_at: payload.confirmed_at || loc.last_confirmed_at,
+                confirmed_users: updatedUsers.length > 0 ? updatedUsers : undefined,
               };
             }
             return loc;
@@ -162,14 +178,31 @@ export const App: React.FC = () => {
 
         setSelectedLocation((prev) => {
           if (!prev || prev.id !== locId) return prev;
-          const freshVal = typeof payload.count === 'number'
+          let updatedUsers = prev.confirmed_users ? [...prev.confirmed_users] : [];
+          if (payload.action === 'vote_added' && payload.user) {
+            if (!updatedUsers.some((u) => u.username === payload.user?.username)) {
+              updatedUsers.unshift(payload.user);
+            }
+          } else if (payload.action === 'vote_removed' && payload.username) {
+            updatedUsers = updatedUsers.filter((u) => u.username !== payload.username);
+          }
+          const isWanderer = prev.category === 'andarilho' || prev.category === 'local_possivel';
+          const nextCount = isWanderer
+            ? updatedUsers.length
+            : typeof payload.count === 'number'
             ? payload.count
-            : Math.max(0, (prev.confirmations_count || 0) + delta);
+            : Math.max(0, (prev.confirmations_count || 0) + (payload.action === 'vote_added' ? 1 : -1));
+
+          const validLatest = payload.username && !payload.username.includes('Comunidade RP') && !payload.username.startsWith('anon_')
+            ? payload.username
+            : updatedUsers[0]?.username;
+
           return {
             ...prev,
-            confirmations_count: freshVal,
-            last_confirmed_by: payload.username || prev.last_confirmed_by,
-            last_confirmed_at: payload.confirmed_at || (payload.username ? new Date().toISOString() : prev.last_confirmed_at),
+            confirmations_count: nextCount,
+            last_confirmed_by: validLatest,
+            last_confirmed_at: payload.confirmed_at || prev.last_confirmed_at,
+            confirmed_users: updatedUsers.length > 0 ? updatedUsers : undefined,
           };
         });
       } else if (currentServer) {
@@ -319,35 +352,66 @@ export const App: React.FC = () => {
       return;
     }
     if (!currentServer) return;
-    const authorTag = user.username ? `@${user.username.replace(/^@/, '')}` : 'Membro';
+    const authorTag = user.username ? `@${user.username.replace(/^@/, '')}` : (user.full_name ? `@${user.full_name}` : null);
+    if (!authorTag) return;
     const nowIso = new Date().toISOString();
+
     const ok = await ApiService.addWandererConfirmation(locationId, currentServer.id, user);
     if (ok) {
+      const userEntry: ConfirmedUser = {
+        user_id: user.id,
+        discord_id: user.discord_id,
+        username: authorTag,
+        full_name: user.full_name || authorTag,
+        avatar_url: user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png',
+        character_name: user.character_name || '',
+        instagram: user.instagram || '',
+        twitch: user.twitch || '',
+        youtube: user.youtube || '',
+        twitter_x: user.twitter_x || '',
+        confirmed_at: nowIso,
+      };
+
       setLocations((prev) =>
-        prev.map((loc) =>
-          loc.id === locationId
-            ? {
-                ...loc,
-                confirmations_count: (loc.confirmations_count || 0) + 1,
-                user_confirmed: true,
-                last_confirmed_by: authorTag,
-                last_confirmed_at: nowIso,
-              }
-            : loc
-        )
+        prev.map((loc) => {
+          if (loc.id === locationId) {
+            const nextUsers = [
+              userEntry,
+              ...(loc.confirmed_users || []).filter(
+                (u) => u.username !== authorTag && (user.id ? u.user_id !== user.id : true)
+              ),
+            ];
+            return {
+              ...loc,
+              confirmations_count: nextUsers.length,
+              user_confirmed: true,
+              last_confirmed_by: authorTag,
+              last_confirmed_at: nowIso,
+              confirmed_users: nextUsers,
+            };
+          }
+          return loc;
+        })
       );
+
       if (selectedLocation?.id === locationId) {
-        setSelectedLocation((prev) =>
-          prev
-            ? {
-                ...prev,
-                confirmations_count: (prev.confirmations_count || 0) + 1,
-                user_confirmed: true,
-                last_confirmed_by: authorTag,
-                last_confirmed_at: nowIso,
-              }
-            : null
-        );
+        setSelectedLocation((prev) => {
+          if (!prev) return null;
+          const nextUsers = [
+            userEntry,
+            ...(prev.confirmed_users || []).filter(
+              (u) => u.username !== authorTag && (user.id ? u.user_id !== user.id : true)
+            ),
+          ];
+          return {
+            ...prev,
+            confirmations_count: nextUsers.length,
+            user_confirmed: true,
+            last_confirmed_by: authorTag,
+            last_confirmed_at: nowIso,
+            confirmed_users: nextUsers,
+          };
+        });
       }
     }
   };
@@ -360,29 +424,43 @@ export const App: React.FC = () => {
       return;
     }
     if (!currentServer) return;
+    const authorTag = user.username ? `@${user.username.replace(/^@/, '')}` : (user.full_name ? `@${user.full_name}` : '');
     const ok = await ApiService.removeWandererConfirmation(locationId, currentServer.id, user);
     if (ok) {
       setLocations((prev) =>
-        prev.map((loc) =>
-          loc.id === locationId
-            ? {
-                ...loc,
-                confirmations_count: Math.max(0, (loc.confirmations_count || 1) - 1),
-                user_confirmed: false,
-              }
-            : loc
-        )
+        prev.map((loc) => {
+          if (loc.id === locationId) {
+            const nextUsers = (loc.confirmed_users || []).filter(
+              (u) => u.username !== authorTag && (user.id ? u.user_id !== user.id : true)
+            );
+            return {
+              ...loc,
+              confirmations_count: nextUsers.length,
+              user_confirmed: false,
+              last_confirmed_by: nextUsers[0]?.username,
+              last_confirmed_at: nextUsers[0]?.confirmed_at,
+              confirmed_users: nextUsers.length > 0 ? nextUsers : undefined,
+            };
+          }
+          return loc;
+        })
       );
+
       if (selectedLocation?.id === locationId) {
-        setSelectedLocation((prev) =>
-          prev
-            ? {
-                ...prev,
-                confirmations_count: Math.max(0, (prev.confirmations_count || 1) - 1),
-                user_confirmed: false,
-              }
-            : null
-        );
+        setSelectedLocation((prev) => {
+          if (!prev) return null;
+          const nextUsers = (prev.confirmed_users || []).filter(
+            (u) => u.username !== authorTag && (user.id ? u.user_id !== user.id : true)
+          );
+          return {
+            ...prev,
+            confirmations_count: nextUsers.length,
+            user_confirmed: false,
+            last_confirmed_by: nextUsers[0]?.username,
+            last_confirmed_at: nextUsers[0]?.confirmed_at,
+            confirmed_users: nextUsers.length > 0 ? nextUsers : undefined,
+          };
+        });
       }
     }
   };
