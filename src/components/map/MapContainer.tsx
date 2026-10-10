@@ -110,6 +110,11 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     [1000, 1000],
   ];
 
+  const extendedBounds: L.LatLngBoundsExpression = [
+    [-150, -150],
+    [1150, 1150],
+  ];
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
@@ -121,9 +126,9 @@ export const MapContainer: React.FC<MapContainerProps> = ({
 
     const map = L.map(containerRef.current, {
       crs: L.CRS.Simple,
-      maxZoom: 3,
-      maxBounds: bounds,
-      maxBoundsViscosity: 1.0,
+      maxZoom: 4,
+      maxBounds: extendedBounds,
+      maxBoundsViscosity: 0.4,
       zoomControl: false,
       attributionControl: false,
       bounceAtZoomLimits: false,
@@ -141,7 +146,9 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     applyThemeToMapOverlay(mapTheme);
 
     const updateZoomLimits = () => {
-      const minZoom = map.getBoundsZoom(bounds, true);
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      const fitZoom = map.getBoundsZoom(bounds, false);
+      const minZoom = isMobile ? fitZoom - 0.4 : fitZoom;
       map.setMinZoom(minZoom);
       if (map.getZoom() < minZoom) {
         map.setZoom(minZoom);
@@ -242,9 +249,9 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       const customIcon = L.divIcon({
         className: 'custom-map-pin-wrapper',
         html: `
-          <div class="relative group cursor-pointer transition-all duration-300 flex items-center justify-center ${
-            isSelected ? 'scale-125 z-50' : isConfirmedAndarilho ? 'scale-110 z-40' : 'scale-100 hover:scale-125 z-20'
-          }">
+          <div class="relative flex items-center justify-center pointer-events-auto cursor-pointer transition-transform duration-300 ${
+            isSelected ? 'scale-125 z-50' : isConfirmedAndarilho ? 'scale-110 z-40' : 'scale-100 active:scale-125 z-20'
+          }" style="width: 32px; height: 32px;">
             ${
               isMostConfirmed
                 ? `<div class="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#00d2ff] to-[#38bdf8] text-black font-black text-[9px] px-2 py-0.5 rounded-full border border-white shadow-xl flex items-center gap-0.5 animate-bounce z-30 whitespace-nowrap pointer-events-none">
@@ -257,7 +264,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
                 ? `<div class="absolute inset-0 -m-1 rounded-full border border-[#00d2ff]/40 animate-ping pointer-events-none opacity-40"></div>`
                 : ''
             }
-            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all duration-300 ${
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all duration-300 ${
               isConfirmedAndarilho
                 ? 'bg-gradient-to-tr from-[#0284c7] via-[#00d2ff] to-[#38bdf8] border-2 border-white ring-4 ring-[#00d2ff]/70 shadow-[0_0_20px_#00d2ff] animate-pulse text-white'
                 : isUnconfirmedPossivel
@@ -273,26 +280,29 @@ export const MapContainer: React.FC<MapContainerProps> = ({
               hasConfirmations
                 ? `<div class="absolute -bottom-1 -right-1 ${
                     isMostConfirmed ? 'bg-[#38bdf8] text-black font-black' : 'bg-[#00d2ff] text-black font-black'
-                  } text-[8px] font-extrabold px-1.5 py-0.2 rounded-full border border-white shadow-md leading-none pointer-events-none">
+                  } text-[9px] font-extrabold px-1.5 py-0.2 rounded-full border border-white shadow-md leading-none pointer-events-none">
                     ${loc.confirmations_count || 1}
                    </div>`
                 : ''
             }
 
-            <div class="absolute top-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#030712]/95 text-white text-[10px] font-semibold px-2 py-1 rounded-lg border border-[#00d2ff]/40 whitespace-nowrap shadow-2xl z-50 pointer-events-none">
+            <div class="absolute top-9 left-1/2 -translate-x-1/2 hidden md:group-hover:block bg-[#030712]/95 text-white text-[10px] font-semibold px-2 py-1 rounded-lg border border-[#00d2ff]/40 whitespace-nowrap shadow-2xl z-50 pointer-events-none">
               ${loc.name} ${loc.confirmations_count ? `(${loc.confirmations_count} confirmações)` : isUnconfirmedPossivel ? '(Possível Local)' : ''}
             </div>
           </div>
         `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
       });
 
-      const marker = L.marker([loc.y, loc.x], { icon: customIcon });
+      const marker = L.marker([loc.y, loc.x], { icon: customIcon, riseOnHover: true });
 
-      marker.on('click', () => {
+      const handleSelect = (e: L.LeafletEvent) => {
+        L.DomEvent.stopPropagation(e as any);
         onSelectLocation(loc);
-      });
+      };
+
+      marker.on('click', handleSelect);
 
       markersGroup.addLayer(marker);
     });

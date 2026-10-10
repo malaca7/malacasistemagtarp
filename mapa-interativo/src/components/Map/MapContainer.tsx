@@ -48,10 +48,12 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
   const overlayRef = useRef<L.ImageOverlay | null>(null);
 
+  // Live Coordinates HUD
   const [hoverCoords, setHoverCoords] = useState<{ x: number; y: number } | null>(null);
+
+  // Quick Search Bar
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Map Theme: default is Dark ('dark')
   const [mapTheme, setMapTheme] = useState<'dark' | 'light'>(() => {
@@ -99,9 +101,18 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     applyThemeToMapOverlay(mapTheme);
   }, [mapTheme]);
 
+  // Toast feedback
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Map Bounds for relative coordinate space (0..1000, 0..1000)
   const bounds: L.LatLngBoundsExpression = [
     [0, 0],
     [1000, 1000],
+  ];
+
+  const extendedBounds: L.LatLngBoundsExpression = [
+    [-150, -150],
+    [1150, 1150],
   ];
 
   const showToast = (msg: string) => {
@@ -109,14 +120,15 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Initialize Map
   useEffect(() => {
     if (!containerRef.current) return;
 
     const map = L.map(containerRef.current, {
       crs: L.CRS.Simple,
-      maxZoom: 3,
-      maxBounds: bounds,
-      maxBoundsViscosity: 1.0,
+      maxZoom: 4,
+      maxBounds: extendedBounds,
+      maxBoundsViscosity: 0.4,
       zoomControl: false,
       attributionControl: false,
       bounceAtZoomLimits: false,
@@ -134,7 +146,9 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     applyThemeToMapOverlay(mapTheme);
 
     const updateZoomLimits = () => {
-      const minZoom = map.getBoundsZoom(bounds, true);
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      const fitZoom = map.getBoundsZoom(bounds, false);
+      const minZoom = isMobile ? fitZoom - 0.4 : fitZoom;
       map.setMinZoom(minZoom);
       if (map.getZoom() < minZoom) {
         map.setZoom(minZoom);
@@ -146,6 +160,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
 
     map.on('resize', updateZoomLimits);
 
+    // Track mouse movement for live X/Y GTA coordinates
     map.on('mousemove', (e: L.LeafletMouseEvent) => {
       const x = Math.round(e.latlng.lng);
       const y = Math.round(e.latlng.lat);
@@ -164,6 +179,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     };
   }, [mapImageUrl]);
 
+  // Handle Admin Click for Coordinates
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -181,12 +197,14 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     };
   }, [isAdminPinMode, onAdminMapClick]);
 
+  // Update Markers
   useEffect(() => {
     const markersGroup = markersGroupRef.current;
     if (!markersGroup) return;
 
     markersGroup.clearLayers();
 
+    // Find Wanderer location with highest confirmations
     const wandererLocs = locations.filter(
       (l) => (l.category === 'andarilho' || l.category === 'local_possivel') && (l.confirmations_count || 0) > 0
     );
@@ -195,13 +213,16 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       const topLoc = wandererLocs.reduce((max, loc) =>
         (loc.confirmations_count || 0) > (max.confirmations_count || 0) ? loc : max
       );
+      if ((topLoc.confirmations_count || 0) > 0) {
+        mostConfirmedId = topLoc.id;
+      }
     }
 
     // Filtro inteligente para locais do Andarilho e demais categorias
     const filteredLocations = locations.filter((loc) => {
       const isWandererPoint = loc.category === 'andarilho' || loc.category === 'local_possivel';
       if (isWandererPoint) {
-        const hasConfirmations = (loc.confirmations_count || 0) > 0 || (loc as any).user_confirmed;
+        const hasConfirmations = (loc.confirmations_count || 0) > 0 || loc.user_confirmed;
         const wantPossivel = selectedCategories.includes('local_possivel');
         const wantConfirmado = selectedCategories.includes('andarilho');
 
@@ -216,20 +237,21 @@ export const MapContainer: React.FC<MapContainerProps> = ({
 
     filteredLocations.forEach((loc) => {
       const isSelected = selectedLocation?.id === loc.id;
-      const color = loc.color || CATEGORY_COLORS[loc.category] || '#00d2ff';
       const isAndarilho = loc.category === 'andarilho' || loc.category === 'local_possivel';
-      const isMostConfirmed = isAndarilho && loc.id === mostConfirmedId && (loc.confirmations_count || 0) > 0;
-      const hasConfirmations = (loc.confirmations_count || 0) > 0 || (loc as any).user_confirmed;
+      const isMostConfirmed = loc.id === mostConfirmedId && (loc.confirmations_count || 0) > 0;
+      const hasConfirmations = (loc.confirmations_count || 0) > 0 || loc.user_confirmed;
       const isUnconfirmedPossivel = isAndarilho && !hasConfirmations;
       const isConfirmedAndarilho = isAndarilho && hasConfirmations;
+
+      const color = loc.color || CATEGORY_COLORS[loc.category] || '#00d2ff';
       const iconSymbol = isUnconfirmedPossivel ? '❓' : CATEGORY_ICONS[loc.category] || '📍';
 
       const customIcon = L.divIcon({
         className: 'custom-map-pin-wrapper',
         html: `
-          <div class="relative group cursor-pointer transition-all duration-300 flex items-center justify-center ${
-            isSelected ? 'scale-125 z-50' : isConfirmedAndarilho ? 'scale-110 z-40' : 'scale-100 hover:scale-125 z-20'
-          }">
+          <div class="relative flex items-center justify-center pointer-events-auto cursor-pointer transition-transform duration-300 ${
+            isSelected ? 'scale-125 z-50' : isConfirmedAndarilho ? 'scale-110 z-40' : 'scale-100 active:scale-125 z-20'
+          }" style="width: 32px; height: 32px;">
             ${
               isMostConfirmed
                 ? `<div class="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#00d2ff] to-[#38bdf8] text-black font-black text-[9px] px-2 py-0.5 rounded-full border border-white shadow-xl flex items-center gap-0.5 animate-bounce z-30 whitespace-nowrap pointer-events-none">
@@ -242,7 +264,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
                 ? `<div class="absolute inset-0 -m-1 rounded-full border border-[#00d2ff]/40 animate-ping pointer-events-none opacity-40"></div>`
                 : ''
             }
-            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all duration-300 ${
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all duration-300 ${
               isConfirmedAndarilho
                 ? 'bg-gradient-to-tr from-[#0284c7] via-[#00d2ff] to-[#38bdf8] border-2 border-white ring-4 ring-[#00d2ff]/70 shadow-[0_0_20px_#00d2ff] animate-pulse text-white'
                 : isUnconfirmedPossivel
@@ -258,31 +280,35 @@ export const MapContainer: React.FC<MapContainerProps> = ({
               hasConfirmations
                 ? `<div class="absolute -bottom-1 -right-1 ${
                     isMostConfirmed ? 'bg-[#38bdf8] text-black font-black' : 'bg-[#00d2ff] text-black font-black'
-                  } text-[8px] font-extrabold px-1.5 py-0.2 rounded-full border border-white shadow-md leading-none pointer-events-none">
+                  } text-[9px] font-extrabold px-1.5 py-0.2 rounded-full border border-white shadow-md leading-none pointer-events-none">
                     ${loc.confirmations_count || 1}
                    </div>`
                 : ''
             }
 
-            <div class="absolute top-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#030712]/95 text-white text-[10px] font-semibold px-2 py-1 rounded-lg border border-[#00d2ff]/40 whitespace-nowrap shadow-2xl z-50 pointer-events-none">
+            <div class="absolute top-9 left-1/2 -translate-x-1/2 hidden md:group-hover:block bg-[#030712]/95 text-white text-[10px] font-semibold px-2 py-1 rounded-lg border border-[#00d2ff]/40 whitespace-nowrap shadow-2xl z-50 pointer-events-none">
               ${loc.name} ${loc.confirmations_count ? `(${loc.confirmations_count} confirmações)` : isUnconfirmedPossivel ? '(Possível Local)' : ''}
             </div>
           </div>
         `,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
       });
 
-      const marker = L.marker([loc.y, loc.x], { icon: customIcon });
+      const marker = L.marker([loc.y, loc.x], { icon: customIcon, riseOnHover: true });
 
-      marker.on('click', () => {
+      const handleSelect = (e: L.LeafletEvent) => {
+        L.DomEvent.stopPropagation(e as any);
         onSelectLocation(loc);
-      });
+      };
+
+      marker.on('click', handleSelect);
 
       markersGroup.addLayer(marker);
     });
   }, [locations, selectedCategories, selectedLocation, onSelectLocation]);
 
+  // Search Results Filtering
   const searchResults = searchQuery.trim()
     ? locations.filter(
         (l) =>
@@ -305,8 +331,10 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     }
   };
 
+  // Controls Handlers
   const handleZoomIn = () => mapRef.current?.zoomIn();
   const handleZoomOut = () => mapRef.current?.zoomOut();
+  const handleResetView = () => mapRef.current?.fitBounds(bounds);
   const handleCenter = () => {
     if (selectedLocation) {
       mapRef.current?.setView([selectedLocation.y, selectedLocation.x], 2);
@@ -351,7 +379,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
 
       {/* Toast Feedback */}
       {toastMessage && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#00d2ff] text-white font-bold text-xs px-4 py-2 rounded-full shadow-2xl border border-[#38bdf8] z-30 animate-in fade-in duration-200">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#00d2ff] text-black font-extrabold text-xs px-4 py-2 rounded-full shadow-2xl border border-white z-30 animate-in fade-in duration-200">
           {toastMessage}
         </div>
       )}
@@ -361,7 +389,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
 
       {/* Admin Mode Overlay Banner */}
       {isAdminPinMode && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#00d2ff] to-[#2563eb] text-white text-xs font-bold px-4 py-2 rounded-full border border-[#38bdf8] shadow-2xl z-20 flex items-center gap-2 animate-pulse">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#00d2ff] to-[#2563eb] text-black font-black text-xs px-4 py-2 rounded-full border border-white shadow-2xl z-20 flex items-center gap-2 animate-pulse">
           <LocateFixed className="w-4 h-4" />
           <span>Modo de Seleção de Coordenada Ativo. Clique em qualquer lugar no mapa!</span>
         </div>
@@ -380,7 +408,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
               setSearchOpen(true);
             }}
             onFocus={() => setSearchOpen(true)}
-            className="w-full bg-[#000000]/90 backdrop-blur-md border border-[#00d2ff]/25 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00d2ff] shadow-2xl transition-all"
+            className="w-full bg-[#030712]/90 backdrop-blur-md border border-[#00d2ff]/25 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00d2ff] shadow-2xl transition-all"
           />
 
           {/* Search Dropdown Results */}
@@ -410,7 +438,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       {hoverCoords && (
         <div
           onClick={handleCopyHoverCoords}
-          className="absolute top-4 right-4 z-20 bg-[#000000]/90 backdrop-blur-md border border-[#00d2ff]/30 px-3.5 py-1.5 rounded-xl shadow-2xl flex items-center gap-2 cursor-pointer hover:border-[#00d2ff] transition-all text-xs font-mono text-slate-300 group"
+          className="absolute top-4 right-4 z-20 bg-[#030712]/90 backdrop-blur-md border border-[#00d2ff]/30 px-3.5 py-1.5 rounded-xl shadow-2xl flex items-center gap-2 cursor-pointer hover:border-[#00d2ff] transition-all text-xs font-mono text-slate-300 group"
           title="Clique para copiar coordenadas GTA"
         >
           <Crosshair className="w-3.5 h-3.5 text-[#00d2ff] group-hover:animate-spin" />
@@ -423,7 +451,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       <div className="absolute bottom-6 right-4 z-20 flex flex-col gap-2">
         <button
           onClick={handleToggleTheme}
-          className="w-10 h-10 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 text-slate-200 hover:text-white hover:bg-cyan-600/20 hover:border-cyan-500/50 flex items-center justify-center shadow-xl transition-all group"
+          className="w-10 h-10 rounded-xl bg-[#060d1a] backdrop-blur-md border border-[#00d2ff]/25 text-slate-200 hover:text-white hover:bg-[#00d2ff]/20 hover:border-[#00d2ff]/60 flex items-center justify-center shadow-xl transition-all group"
           title={mapTheme === 'dark' ? 'Mudar para Mapa Claro' : 'Mudar para Mapa Escuro (Padrão)'}
         >
           {mapTheme === 'dark' ? (
@@ -434,24 +462,24 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         </button>
         <button
           onClick={handleZoomIn}
-          className="w-10 h-10 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 text-slate-200 hover:text-white hover:bg-cyan-600/20 hover:border-cyan-500/50 flex items-center justify-center shadow-xl transition-all"
+          className="w-10 h-10 rounded-xl bg-[#060d1a] backdrop-blur-md border border-[#00d2ff]/25 text-slate-200 hover:text-white hover:bg-[#00d2ff]/20 hover:border-[#00d2ff]/60 flex items-center justify-center shadow-xl transition-all"
           title="Zoom In"
         >
           <ZoomIn className="w-5 h-5" />
         </button>
         <button
           onClick={handleZoomOut}
-          className="w-10 h-10 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 text-slate-200 hover:text-white hover:bg-cyan-600/20 hover:border-cyan-500/50 flex items-center justify-center shadow-xl transition-all"
+          className="w-10 h-10 rounded-xl bg-[#060d1a] backdrop-blur-md border border-[#00d2ff]/25 text-slate-200 hover:text-white hover:bg-[#00d2ff]/20 hover:border-[#00d2ff]/60 flex items-center justify-center shadow-xl transition-all"
           title="Zoom Out"
         >
           <ZoomOut className="w-5 h-5" />
         </button>
         <button
           onClick={handleCenter}
-          className="w-10 h-10 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 text-slate-200 hover:text-white hover:bg-cyan-600/20 hover:border-cyan-500/50 flex items-center justify-center shadow-xl transition-all"
+          className="w-10 h-10 rounded-xl bg-[#060d1a] backdrop-blur-md border border-[#00d2ff]/25 text-slate-200 hover:text-white hover:bg-[#00d2ff]/20 hover:border-[#00d2ff]/60 flex items-center justify-center shadow-xl transition-all"
           title="Centralizar no Ponto"
         >
-          <Compass className="w-5 h-5 text-cyan-400" />
+          <Compass className="w-5 h-5 text-[#00d2ff]" />
         </button>
         <button
           onClick={handleToggleFullscreen}
@@ -462,6 +490,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         </button>
       </div>
 
+      {/* Map Legend */}
       <div className="absolute bottom-6 left-4 z-20 hidden md:block">
         <div className="bg-slate-950/80 backdrop-blur-md border border-slate-800/80 p-3 rounded-xl shadow-2xl text-xs space-y-1.5 max-w-[200px]">
           <span className="font-bold text-slate-400 uppercase tracking-wider text-[10px] block mb-1">
