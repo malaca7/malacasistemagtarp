@@ -16,6 +16,8 @@ export interface WandererSyncPayload {
   cycleKey: string;
   count?: number;
   reason?: string;
+  username?: string;
+  confirmed_at?: string;
   timestamp: number;
 }
 
@@ -457,6 +459,13 @@ class RealtimeSyncManager {
 
       const localState = getLocalWandererCycleState();
       localState.counts[payload.locationId] = this.broadcastCounts[payload.locationId];
+      if (payload.username && payload.action === 'vote_added') {
+        if (!localState.latestConfirmations) localState.latestConfirmations = {};
+        localState.latestConfirmations[payload.locationId] = {
+          username: payload.username,
+          confirmed_at: payload.confirmed_at || new Date().toISOString(),
+        };
+      }
       saveLocalWandererCycleState(localState);
     }
 
@@ -531,7 +540,13 @@ class RealtimeSyncManager {
     return combined;
   }
 
-  public broadcastVoteChange(action: 'vote_added' | 'vote_removed', locationId: string, serverId?: string, count?: number) {
+  public broadcastVoteChange(
+    action: 'vote_added' | 'vote_removed',
+    locationId: string,
+    serverId?: string,
+    count?: number,
+    meta?: { username?: string; confirmed_at?: string }
+  ) {
     const cycle = calculateWandererCycle();
     if (locationId) {
       if (typeof count === 'number') {
@@ -549,6 +564,8 @@ class RealtimeSyncManager {
       serverId,
       cycleKey: cycle.cycleKey,
       count: this.broadcastCounts[locationId],
+      username: meta?.username,
+      confirmed_at: meta?.confirmed_at,
       timestamp: Date.now(),
     };
 

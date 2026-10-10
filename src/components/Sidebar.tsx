@@ -55,8 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectLocation,
   currentServer,
 }) => {
-  const [activeTab, setActiveTab] = useState<'filters' | 'npcs' | 'tickets'>('filters');
-  const [ticketView, setTicketView] = useState<'list' | 'create'>('list');
+  const [activeTab, setActiveTab] = useState<'filters' | 'npcs'>('filters');
   const [npcSearch, setNpcSearch] = useState('');
   const [howToOpen, setHowToOpen] = useState(false);
 
@@ -72,27 +71,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const interval = setInterval(updateCountdown, 1000);
     return () => clearInterval(interval);
   }, []);
-
-  // Form States
-  const [sugNickname, setSugNickname] = useState('');
-  const [sugType, setSugType] = useState<SuggestionType>('novo_npc');
-  const [sugContent, setSugContent] = useState('');
-  const [sugSubmitting, setSugSubmitting] = useState(false);
-  const [sugSuccess, setSugSuccess] = useState(false);
-
-  const handleSuggestionSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!sugNickname.trim() || !sugContent.trim()) return;
-    setSugSubmitting(true);
-    const ok = await onAddSuggestion(sugNickname, sugType, sugContent);
-    setSugSubmitting(false);
-    if (ok) {
-      setSugContent('');
-      setSugSuccess(true);
-      setTicketView('list');
-      setTimeout(() => setSugSuccess(false), 5000);
-    }
-  };
 
   const filteredLocationsList = locations.filter((l) => {
     if (!npcSearch.trim()) return true;
@@ -204,23 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }`}
           >
             <span>🚶</span>
-            NPCs ({locations.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('tickets')}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
-              activeTab === 'tickets'
-                ? 'bg-[#00d2ff]/15 text-[#38bdf8] border border-[#00d2ff]/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <MessageSquare className="w-3.5 h-3.5 text-[#00d2ff]" />
-            Tickets
-            {suggestions.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] bg-[#00d2ff]/20 text-[#38bdf8] font-mono">
-                {suggestions.length}
-              </span>
-            )}
+            NPCs & Locais ({locations.length})
           </button>
         </div>
 
@@ -390,9 +352,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         {isConfirmed && (
-                          <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                            {loc.confirmations_count} conf.
-                          </span>
+                          <div className="flex flex-col items-end gap-0.5">
+                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                              {loc.confirmations_count} conf.
+                            </span>
+                            {loc.last_confirmed_by && (
+                              <span
+                                className="text-[8px] text-[#38bdf8] font-bold truncate max-w-[110px]"
+                                title={`Marcado por ${loc.last_confirmed_by}`}
+                              >
+                                {loc.last_confirmed_by.startsWith('@') ? loc.last_confirmed_by : `@${loc.last_confirmed_by}`}
+                                {loc.last_confirmed_at && (
+                                  <span className="text-slate-400 font-normal ml-1">
+                                    {new Date(loc.last_confirmed_at).toLocaleTimeString('pt-BR', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                          </div>
                         )}
                         <span className="text-[9px] font-mono text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
                           {loc.x},{loc.y}
@@ -402,189 +382,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   );
                 })}
               </div>
-            </div>
-          )}
-
-
-          {/* TAB 2: ATENDIMENTO TICKETS */}
-          {activeTab === 'tickets' && (
-            <div className="space-y-3">
-              {/* Sub-view toggle */}
-              <div className="flex bg-black/40 p-1 rounded-xl border border-slate-800 gap-1 text-[11px] font-bold">
-                <button
-                  type="button"
-                  onClick={() => setTicketView('list')}
-                  className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                    ticketView === 'list'
-                      ? 'bg-[#00d2ff]/20 text-[#38bdf8] border border-[#00d2ff]/40 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  Todos os Tickets ({suggestions.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTicketView('create')}
-                  className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                    ticketView === 'create'
-                      ? 'bg-[#00d2ff]/20 text-[#38bdf8] border border-[#00d2ff]/40 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <Lightbulb className="w-3.5 h-3.5" />
-                  + Abrir Ticket
-                </button>
-              </div>
-
-              {sugSuccess && (
-                <div className="p-3 bg-emerald-950/60 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                  <span>Ticket enviado com sucesso! Nossa equipe analisará em breve.</span>
-                </div>
-              )}
-
-              {ticketView === 'list' && (
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Tickets Registrados ({suggestions.length})
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setTicketView('create')}
-                      className="text-[10px] text-[#38bdf8] hover:underline font-bold"
-                    >
-                      + Novo Ticket
-                    </button>
-                  </div>
-
-                  {suggestions.length === 0 ? (
-                    <div className="text-center py-8 px-4 bg-slate-900/40 rounded-xl border border-slate-800">
-                      <MessageSquare className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                      <p className="text-xs font-bold text-slate-300 mb-1">Nenhum ticket aberto no momento</p>
-                      <p className="text-[11px] text-slate-500 mb-3">Seja o primeiro a enviar uma sugestão, dúvida ou reportar um local!</p>
-                      <button
-                        type="button"
-                        onClick={() => setTicketView('create')}
-                        className="px-3 py-1.5 bg-[#00d2ff]/20 border border-[#00d2ff]/40 text-[#38bdf8] text-xs font-bold rounded-lg hover:bg-[#00d2ff]/30 transition-all"
-                      >
-                        Abrir Ticket de Atendimento
-                      </button>
-                    </div>
-                  ) : (
-                    suggestions.map((ticket) => {
-                      const statusMap: Record<string, { label: string; color: string }> = {
-                        nova: { label: 'NOVO', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' },
-                        em_analise: { label: 'EM ANÁLISE', color: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
-                        aceita: { label: 'ACEITO', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
-                        implementada: { label: 'RESOLVIDO', color: 'bg-purple-500/20 text-purple-300 border-purple-500/40' },
-                        recusada: { label: 'RECUSADO', color: 'bg-red-500/20 text-red-300 border-red-500/40' },
-                      };
-                      const st = statusMap[ticket.status] || { label: String(ticket.status).toUpperCase(), color: 'bg-slate-800 text-slate-300 border-slate-700' };
-
-                      return (
-                        <div
-                          key={ticket.id}
-                          className="bg-[#030712]/80 p-3 rounded-xl border border-slate-800 hover:border-[#00d2ff]/30 transition-all space-y-2"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-bold text-white text-xs truncate">
-                              {ticket.nickname || 'Anônimo'}
-                            </span>
-                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${st.color}`}>
-                              {st.label}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                            <span className="bg-slate-800 px-1.5 py-0.5 rounded text-[#7dd3fc]">
-                              {ticket.type.replace('_', ' ').toUpperCase()}
-                            </span>
-                            <span>•</span>
-                            <span>{ticket.created_at ? new Date(ticket.created_at).toLocaleDateString('pt-BR') : 'Recente'}</span>
-                          </div>
-
-                          <p className="text-xs text-slate-300 leading-relaxed bg-black/30 p-2 rounded-lg border border-slate-900">
-                            {ticket.content}
-                          </p>
-
-                          {ticket.admin_notes && (
-                            <div className="text-[11px] text-[#38bdf8] bg-[#00d2ff]/10 border border-[#00d2ff]/20 p-2 rounded-lg">
-                              <span className="font-bold block text-[10px] uppercase text-[#00d2ff]">Resposta da Administração:</span>
-                              {ticket.admin_notes}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-
-              {ticketView === 'create' && (
-                <form onSubmit={handleSuggestionSubmit} className="space-y-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
-                  <div>
-                    <label className="text-[10px] text-slate-400 font-bold block mb-1">NICKNAME / SEU NOME</label>
-                    <input
-                      type="text"
-                      placeholder="Seu nome ou apelido no jogo"
-                      value={sugNickname}
-                      onChange={(e) => setSugNickname(e.target.value)}
-                      maxLength={30}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-[#00d2ff]"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] text-slate-400 font-bold block mb-1">TIPO DE ATENDIMENTO</label>
-                    <select
-                      value={sugType}
-                      onChange={(e) => setSugType(e.target.value as SuggestionType)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-[#00d2ff]"
-                    >
-                      <option value="novo_npc">Dúvida / Atendimento Geral</option>
-                      <option value="novo_local">Novo Local / Marcação</option>
-                      <option value="correcao_localizacao">Correção de Coordenada / Bug</option>
-                      <option value="alteracao_informacao">Alterar Informação</option>
-                      <option value="nova_funcionalidade">Sugestão de Funcionalidade</option>
-                      <option value="outro">Outro Motivo</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] text-slate-400 font-bold block mb-1">MENSAGEM / DETALHES</label>
-                    <textarea
-                      placeholder="Explique sua dúvida, problema ou sugestão em detalhes..."
-                      value={sugContent}
-                      onChange={(e) => setSugContent(e.target.value)}
-                      maxLength={1000}
-                      rows={4}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-[#00d2ff] resize-none"
-                      required
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setTicketView('list')}
-                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold transition-all"
-                    >
-                      Voltar à Lista
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={sugSubmitting}
-                      className="flex-1 py-2 bg-gradient-to-r from-[#0284c7] via-[#00d2ff] to-[#38bdf8] hover:brightness-110 text-slate-950 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-md shadow-[#00d2ff]/20 disabled:opacity-50"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-slate-950" />
-                      {sugSubmitting ? 'Enviando...' : 'Enviar Ticket de Atendimento'}
-                    </button>
-                  </div>
-                </form>
-              )}
             </div>
           )}
         </div>

@@ -144,7 +144,12 @@ export const App: React.FC = () => {
               const freshVal = typeof payload.count === 'number'
                 ? payload.count
                 : Math.max(0, (loc.confirmations_count || 0) + delta);
-              return { ...loc, confirmations_count: freshVal };
+              return {
+                ...loc,
+                confirmations_count: freshVal,
+                last_confirmed_by: payload.username || loc.last_confirmed_by,
+                last_confirmed_at: payload.confirmed_at || (payload.username ? new Date().toISOString() : loc.last_confirmed_at),
+              };
             }
             return loc;
           })
@@ -155,7 +160,12 @@ export const App: React.FC = () => {
           const freshVal = typeof payload.count === 'number'
             ? payload.count
             : Math.max(0, (prev.confirmations_count || 0) + delta);
-          return { ...prev, confirmations_count: freshVal };
+          return {
+            ...prev,
+            confirmations_count: freshVal,
+            last_confirmed_by: payload.username || prev.last_confirmed_by,
+            last_confirmed_at: payload.confirmed_at || (payload.username ? new Date().toISOString() : prev.last_confirmed_at),
+          };
         });
       } else if (currentServer) {
         const locs = await ApiService.fetchLocations(currentServer.id);
@@ -304,7 +314,9 @@ export const App: React.FC = () => {
       return;
     }
     if (!currentServer) return;
-    const ok = await ApiService.addWandererConfirmation(locationId, currentServer.id);
+    const authorTag = user.username ? `@${user.username.replace(/^@/, '')}` : 'Membro';
+    const nowIso = new Date().toISOString();
+    const ok = await ApiService.addWandererConfirmation(locationId, currentServer.id, user);
     if (ok) {
       setLocations((prev) =>
         prev.map((loc) =>
@@ -313,6 +325,8 @@ export const App: React.FC = () => {
                 ...loc,
                 confirmations_count: (loc.confirmations_count || 0) + 1,
                 user_confirmed: true,
+                last_confirmed_by: authorTag,
+                last_confirmed_at: nowIso,
               }
             : loc
         )
@@ -324,6 +338,8 @@ export const App: React.FC = () => {
                 ...prev,
                 confirmations_count: (prev.confirmations_count || 0) + 1,
                 user_confirmed: true,
+                last_confirmed_by: authorTag,
+                last_confirmed_at: nowIso,
               }
             : null
         );
@@ -339,7 +355,7 @@ export const App: React.FC = () => {
       return;
     }
     if (!currentServer) return;
-    const ok = await ApiService.removeWandererConfirmation(locationId, currentServer.id);
+    const ok = await ApiService.removeWandererConfirmation(locationId, currentServer.id, user);
     if (ok) {
       setLocations((prev) =>
         prev.map((loc) =>

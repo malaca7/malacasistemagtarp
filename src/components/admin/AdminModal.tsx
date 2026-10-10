@@ -908,17 +908,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 Andarilho
               </button>
 
-              <button
-                onClick={() => setActiveTab('suggestions')}
-                className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-                  activeTab === 'suggestions'
-                    ? 'border-[#00d2ff] text-[#38bdf8] bg-[#00d2ff]/15'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4 text-[#38bdf8]" />
-                Atendimento Tickets ({suggestions.length})
-              </button>
             </div>
 
             {/* Tab Contents View */}
@@ -1737,61 +1726,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   </div>
                 );
               })()}
-
-              {/* TAB 7: ATENDIMENTO TICKETS */}
-              {activeTab === 'suggestions' && (
-                <div className="space-y-4">
-                  <h4 className="font-bold text-white text-sm">Tickets de Atendimento & Suporte ({suggestions.length})</h4>
-                  <div className="space-y-2">
-                    {suggestions.length === 0 ? (
-                      <div className="p-8 text-center text-xs text-slate-500 font-semibold bg-[#060d1a] rounded-xl border border-slate-800">
-                        Nenhuma sugestão enviada pela comunidade ainda.
-                      </div>
-                    ) : (
-                      suggestions.map((sug) => (
-                        <div key={sug.id} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-white text-xs">{sug.nickname}</span>
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">{sug.type}</span>
-                              <span className={`text-[10px] font-bold uppercase ${
-                                sug.status === 'aceita' ? 'text-emerald-400' :
-                                sug.status === 'recusada' ? 'text-rose-400' :
-                                'text-amber-400'
-                              }`}>{sug.status}</span>
-                            </div>
-                            <p className="text-xs text-slate-300">{sug.content}</p>
-                          </div>
-
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              onClick={() => onUpdateSuggestionStatus && onUpdateSuggestionStatus(sug.id, 'aceita')}
-                              className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-                              title="Aceitar Sugestão"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => onUpdateSuggestionStatus && onUpdateSuggestionStatus(sug.id, 'recusada')}
-                              className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors"
-                              title="Recusar Sugestão"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteSuggestion(sug.id)}
-                              className="p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors"
-                              title="Excluir Sugestão"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* TAB 8: GERENCIAMENTO DE USUÁRIOS */}
               {activeTab === 'users' && (() => {

@@ -64,6 +64,9 @@ export interface MapLocation {
   updated_at?: string;
   confirmations_count?: number;
   user_confirmed?: boolean;
+  last_confirmed_by?: string;
+  last_confirmed_at?: string;
+  confirmed_users?: { username: string; confirmed_at: string }[];
 }
 
 export interface WandererConfirmation {

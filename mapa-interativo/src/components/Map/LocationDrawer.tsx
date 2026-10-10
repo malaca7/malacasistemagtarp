@@ -187,6 +187,42 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
             <span>{reliabilityText}</span>
           </div>
 
+          {/* Quem marcou e horário */}
+          {confirmations > 0 ? (
+            <div className="bg-[#030712]/90 border border-[#00d2ff]/30 rounded-xl p-3 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 font-bold flex items-center gap-1.5">
+                  <span className="text-[#00d2ff]">👤</span> Marcado por:
+                </span>
+                <span className="font-extrabold text-[#38bdf8] font-mono text-xs">
+                  {location.last_confirmed_by
+                    ? location.last_confirmed_by.startsWith('@')
+                      ? location.last_confirmed_by
+                      : `@${location.last_confirmed_by}`
+                    : '@Comunidade'}
+                </span>
+              </div>
+              {location.last_confirmed_at && (
+                <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-800/80">
+                  <span className="text-slate-400 font-bold flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" /> Horário da Marcação:
+                  </span>
+                  <span className="font-mono text-slate-200 font-semibold text-xs">
+                    {new Date(location.last_confirmed_at).toLocaleTimeString('pt-BR', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    })}
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-[11px] text-slate-400 bg-black/30 p-2.5 rounded-lg border border-slate-800/80 text-center">
+              ⭕ Nenhuma confirmação registrada neste ciclo. Avistou o Andarilho? Marque abaixo!
+            </div>
+          )}
+
           {/* Action Button */}
           {!user ? (
             <button

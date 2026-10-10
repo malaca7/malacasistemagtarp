@@ -422,16 +422,48 @@ export const ApiService = {
       const { data: confirmations } = await supabase
         .from('wanderer_confirmations')
         .select('location_id, anonymous_user_id, created_at')
-        .gte('created_at', currentCycle.startTime.toISOString());
+        .gte('created_at', currentCycle.startTime.toISOString())
+        .order('created_at', { ascending: false });
 
       const remoteCounts: Record<string, number> = {};
+      const latestConfirmationsMap: Record<string, { username: string; confirmed_at: string }> = {
+        ...(cycleState.latestConfirmations || {}),
+      };
+      const confirmedUsersMap: Record<string, { username: string; confirmed_at: string }[]> = {};
       const userConfirmedSet = new Set<string>(cycleState.userConfirmedIds);
 
       if (confirmations) {
         confirmations.forEach((c) => {
           remoteCounts[c.location_id] = (remoteCounts[c.location_id] || 0) + 1;
-          if (c.anonymous_user_id === anonId) {
+          const rawId = c.anonymous_user_id || '';
+          const isUserMatch =
+            rawId === anonId ||
+            (rawId.startsWith('@') && cycleState.userConfirmedIds.includes(c.location_id));
+          if (isUserMatch) {
             userConfirmedSet.add(c.location_id);
+          }
+
+          const parsedName = rawId.startsWith('@')
+            ? rawId
+            : rawId.startsWith('anon_')
+            ? 'Comunidade RP'
+            : `@${rawId}`;
+
+          if (!latestConfirmationsMap[c.location_id]) {
+            latestConfirmationsMap[c.location_id] = {
+              username: parsedName,
+              confirmed_at: c.created_at,
+            };
+          }
+
+          if (!confirmedUsersMap[c.location_id]) {
+            confirmedUsersMap[c.location_id] = [];
+          }
+          if (!confirmedUsersMap[c.location_id].some((u) => u.username === parsedName)) {
+            confirmedUsersMap[c.location_id].push({
+              username: parsedName,
+              confirmed_at: c.created_at,
+            });
           }
         });
       }
@@ -448,10 +480,16 @@ export const ApiService = {
           ? Math.max(remoteCount, localCycleCount, liveCount) + (isLocallyConfirmed && !remoteCount && !localCycleCount && !liveCount ? 1 : 0)
           : (loc.confirmations_count || 0);
 
+        const latestConf = isWanderer ? latestConfirmationsMap[loc.id] : undefined;
+        const confUsers = isWanderer ? confirmedUsersMap[loc.id] : undefined;
+
         return {
           ...loc,
           confirmations_count: totalCount,
           user_confirmed: isLocallyConfirmed,
+          last_confirmed_by: latestConf?.username,
+          last_confirmed_at: latestConf?.confirmed_at,
+          confirmed_users: confUsers,
         };
       });
     } catch {
@@ -476,48 +514,74 @@ export const ApiService = {
           ? Math.max(localCount, liveCount) + (isLocallyConfirmed && !localCount && !liveCount ? 1 : 0)
           : (loc.confirmations_count || 0);
 
+        const latestConf = isWanderer && cycleState.latestConfirmations ? cycleState.latestConfirmations[loc.id] : undefined;
+
         return {
           ...loc,
           confirmations_count: totalCount,
           user_confirmed: isLocallyConfirmed,
+          last_confirmed_by: latestConf?.username,
+          last_confirmed_at: latestConf?.confirmed_at,
         };
       });
     }
   },
 
   // Confirm Wanderer Location (com Broadcast instantâneo e Presence para todas as telas)
-  async addWandererConfirmation(locationId: string, serverId?: string): Promise<boolean> {
-    const anonId = getAnonymousUserId();
+  async addWandererConfirmation(
+    locationId: string,
+    serverId?: string,
+    user?: { username?: string; full_name?: string } | null
+  ): Promise<boolean> {
+    const rawUsername = user?.username || user?.full_name;
+    const authorTag = rawUsername ? `@${rawUsername.replace(/^@/, '')}` : getAnonymousUserId();
     const cycleState = getLocalWandererCycleState();
+    const nowIso = new Date().toISOString();
 
     if (!cycleState.userConfirmedIds.includes(locationId)) {
       cycleState.userConfirmedIds.push(locationId);
     }
     cycleState.counts[locationId] = (cycleState.counts[locationId] || 0) + 1;
+    if (!cycleState.latestConfirmations) cycleState.latestConfirmations = {};
+    cycleState.latestConfirmations[locationId] = {
+      username: authorTag,
+      confirmed_at: nowIso,
+    };
     saveLocalWandererCycleState(cycleState);
 
     // Atualiza Presença Realtime no Supabase para sincronizar com todos os usuários ativos
     RealtimeSync.syncPresence(cycleState.userConfirmedIds);
 
     // Broadcast em tempo real para todas as telas/abas
-    RealtimeSync.broadcastVoteChange('vote_added', locationId, serverId, cycleState.counts[locationId]);
+    RealtimeSync.broadcastVoteChange('vote_added', locationId, serverId, cycleState.counts[locationId], {
+      username: authorTag,
+      confirmed_at: nowIso,
+    });
 
     try {
       await supabase.from('wanderer_confirmations').insert({
         location_id: locationId,
-        anonymous_user_id: anonId,
+        anonymous_user_id: authorTag,
       });
     } catch {}
     return true;
   },
 
   // Remove Wanderer Confirmation (com Broadcast instantâneo e Presence para todas as telas)
-  async removeWandererConfirmation(locationId: string, serverId?: string): Promise<boolean> {
-    const anonId = getAnonymousUserId();
+  async removeWandererConfirmation(
+    locationId: string,
+    serverId?: string,
+    user?: { username?: string; full_name?: string } | null
+  ): Promise<boolean> {
+    const rawUsername = user?.username || user?.full_name;
+    const authorTag = rawUsername ? `@${rawUsername.replace(/^@/, '')}` : getAnonymousUserId();
     const cycleState = getLocalWandererCycleState();
 
     cycleState.userConfirmedIds = cycleState.userConfirmedIds.filter((id) => id !== locationId);
     cycleState.counts[locationId] = Math.max(0, (cycleState.counts[locationId] || 1) - 1);
+    if (cycleState.latestConfirmations && cycleState.latestConfirmations[locationId]?.username === authorTag) {
+      delete cycleState.latestConfirmations[locationId];
+    }
     saveLocalWandererCycleState(cycleState);
 
     // Atualiza Presença Realtime no Supabase
@@ -531,7 +595,7 @@ export const ApiService = {
         .from('wanderer_confirmations')
         .delete()
         .eq('location_id', locationId)
-        .eq('anonymous_user_id', anonId);
+        .or(`anonymous_user_id.eq.${authorTag},anonymous_user_id.eq.${getAnonymousUserId()}`);
     } catch {}
     return true;
   },

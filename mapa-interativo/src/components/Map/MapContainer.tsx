@@ -323,8 +323,19 @@ export const MapContainer: React.FC<MapContainerProps> = ({
                 : ''
             }
 
-            <div class="absolute top-11 left-1/2 -translate-x-1/2 hidden md:group-hover:block bg-[#030712]/95 text-white text-[10px] font-semibold px-2 py-1 rounded-lg border border-[#00d2ff]/40 whitespace-nowrap shadow-2xl z-50 pointer-events-none">
-              ${loc.name} ${loc.confirmations_count ? `(${loc.confirmations_count} confirmações)` : isUnconfirmedPossivel ? '(Possível Local)' : ''}
+            <div class="absolute top-11 left-1/2 -translate-x-1/2 hidden md:group-hover:block bg-[#030712]/95 text-white text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border border-[#00d2ff]/40 whitespace-nowrap shadow-2xl z-50 pointer-events-none text-left">
+              <div class="font-bold text-white">${loc.name} ${loc.confirmations_count ? `(${loc.confirmations_count} confirmações)` : isUnconfirmedPossivel ? '(Possível Local)' : ''}</div>
+              ${
+                loc.last_confirmed_by
+                  ? `<div class="text-[9px] text-[#38bdf8] font-mono font-bold mt-0.5">👤 Marcado por: ${
+                      loc.last_confirmed_by.startsWith('@') ? loc.last_confirmed_by : `@${loc.last_confirmed_by}`
+                    }${
+                      loc.last_confirmed_at
+                        ? ` às ${new Date(loc.last_confirmed_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                        : ''
+                    }</div>`
+                  : ''
+              }
             </div>
           </div>
         `,

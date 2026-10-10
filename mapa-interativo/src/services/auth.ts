@@ -33,36 +33,32 @@ export const DEFAULT_ADMIN_DISCORD_IDS = [
 export const checkAdminPermission = (userOrProfile: any): boolean => {
   if (!userOrProfile) return false;
 
-  // Check explicit boolean in profile or metadata
-  if (userOrProfile.is_admin === true || userOrProfile.role === 'admin' || userOrProfile.user_metadata?.is_admin === true) return true;
+  // Extrair ID do Discord garantindo tipagem consistente
+  const discordId = String(
+    userOrProfile.discord_id ||
+    userOrProfile.id ||
+    userOrProfile.user_metadata?.provider_id ||
+    userOrProfile.user_metadata?.sub ||
+    ''
+  ).trim();
 
-  // Check Discord ID
-  const discordId = String(userOrProfile.discord_id || userOrProfile.id || userOrProfile.user_metadata?.sub || userOrProfile.user_metadata?.provider_id || '');
-  if (discordId && DEFAULT_ADMIN_DISCORD_IDS.includes(discordId)) return true;
+  // Apenas IDs oficiais e explicitamente designados possuem privilégio administrativo
+  if (discordId && DEFAULT_ADMIN_DISCORD_IDS.includes(discordId)) {
+    return true;
+  }
 
-  // Check user email & username
-  const email = (userOrProfile.email || userOrProfile.user_metadata?.email || '').toLowerCase();
-  const username = (userOrProfile.username || userOrProfile.user_metadata?.name || userOrProfile.user_metadata?.full_name || userOrProfile.user_metadata?.preferred_username || '').toLowerCase();
-
-  if (email && DEFAULT_ADMIN_EMAILS.some((e) => email.includes(e))) return true;
-  if (username && DEFAULT_ADMIN_USERNAMES.some((u) => username.includes(u))) return true;
-
-  // Check custom allowed list in localStorage
+  // Lista personalizada configurada pelo administrador no painel
   try {
     const customAdminsRaw = localStorage.getItem('malaca_admin_discord_accounts');
     if (customAdminsRaw) {
       const customAdmins: string[] = JSON.parse(customAdminsRaw);
-      const discordId = userOrProfile.discord_id || userOrProfile.id || userOrProfile.user_metadata?.sub || userOrProfile.user_metadata?.provider_id;
-      if (
-        (discordId && customAdmins.includes(discordId)) ||
-        (email && customAdmins.includes(email)) ||
-        (username && customAdmins.includes(username))
-      ) {
+      if (discordId && customAdmins.includes(discordId)) {
         return true;
       }
     }
   } catch (e) {}
 
+  // Todos os novos usuários cadastrados são comuns por padrão
   return false;
 };
 

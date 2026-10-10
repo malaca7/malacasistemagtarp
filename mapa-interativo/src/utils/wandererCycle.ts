@@ -15,6 +15,7 @@ export interface StoredWandererCycleState {
   cycleKey: string;
   userConfirmedIds: string[];
   counts: Record<string, number>;
+  latestConfirmations?: Record<string, { username: string; confirmed_at: string }>;
 }
 
 export function getBrasiliaParts(date: Date = new Date()) {

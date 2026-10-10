@@ -174,12 +174,9 @@ BEGIN
     v_full_name := COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'global_name', new.raw_user_meta_data->>'name', v_username);
     v_avatar := COALESCE(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture', 'https://cdn.discordapp.com/embed/avatars/0.png');
     
-    -- Verificação de Administrador (722320491767136346, 917826984778797087, malaca7, malaca, malaquias ou e-mails oficiais)
+    -- Apenas IDs do Discord explicitamente autorizados são administradores; todo novo cadastro é usuário comum
     v_is_admin := (
         v_discord_id IN ('722320491767136346', '917826984778797087')
-        OR LOWER(v_username) IN ('malaca', 'malaquias', 'malaca7')
-        OR LOWER(COALESCE(new.email, '')) IN ('rogeriomalaquiasjr@gmail.com', 'rogeriosantanajr@gmail.com')
-        OR COALESCE(new.raw_user_meta_data->>'is_admin', 'false') = 'true'
     );
 
     INSERT INTO public.profiles (

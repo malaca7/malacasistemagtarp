@@ -663,24 +663,20 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
 
     function checkAdminPermission(user) {
         if (!user) return false;
-        if (user.is_admin === true || user.role === 'admin' || user.user_metadata?.is_admin === true) return true;
 
-        const discordId = String(user.discord_id || user.id || user.user_metadata?.sub || user.user_metadata?.provider_id || '');
+        const discordId = String(
+            user.discord_id ||
+            user.id ||
+            (user.user_metadata && (user.user_metadata.provider_id || user.user_metadata.sub)) ||
+            ''
+        ).trim();
+
         const defaultDiscordIds = ['722320491767136346', '917826984778797087'];
         if (discordId && defaultDiscordIds.includes(discordId)) return true;
 
-        const email = (user.email || user.user_metadata?.email || '').toLowerCase();
-        const username = (user.username || user.user_metadata?.name || user.user_metadata?.full_name || user.user_metadata?.preferred_username || '').toLowerCase();
-
-        const defaultEmails = ['rogeriomalaquiasjr@gmail.com', 'rogeriosantanajr@gmail.com'];
-        const defaultUsernames = ['malaca', 'malaquias', 'malaca7'];
-
-        if (email && defaultEmails.some(e => email.includes(e))) return true;
-        if (username && defaultUsernames.some(u => username.includes(u))) return true;
-
         try {
             const customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
-            if ((discordId && customAdmins.includes(discordId)) || (email && customAdmins.includes(email)) || (username && customAdmins.includes(username))) {
+            if (discordId && customAdmins.includes(discordId)) {
                 return true;
             }
         } catch(e) {}
@@ -755,7 +751,6 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                     <button class="global-admin-nav-btn ${activeTab === 'cities' ? 'active' : ''}" onclick="switchAdminTab('cities')"><i class="fa-solid fa-city"></i> Cidades (${allServers.length})</button>
                     <button class="global-admin-nav-btn ${activeTab === 'systems' ? 'active' : ''}" onclick="switchAdminTab('systems')"><i class="fa-solid fa-layer-group"></i> Sistemas (${allSystems.length})</button>
                     <button class="global-admin-nav-btn ${activeTab === 'andarilho' ? 'active' : ''}" onclick="switchAdminTab('andarilho')"><i class="fa-solid fa-person-walking"></i> Andarilho</button>
-                    <button class="global-admin-nav-btn ${activeTab === 'tickets' ? 'active' : ''}" onclick="switchAdminTab('tickets')"><i class="fa-solid fa-ticket"></i> Atendimento Tickets</button>
                     <button class="global-admin-nav-btn" onclick="logoutAdmin()" style="margin-left: auto; color: #ff5252;"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
                 </div>
                 <div class="global-admin-body" id="admin-tab-body">
@@ -769,8 +764,6 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 loadAdminLogsView();
             } else if (activeTab === 'settings') {
                 loadAdminSettingsView();
-            } else if (activeTab === 'tickets') {
-                loadAdminTicketsView();
             }
         }
     }
@@ -838,25 +831,6 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                         <div style="text-align: center; color: #94a3b8; padding: 40px; font-size: 0.8rem;">
                             <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: #22c55e; display: block; margin-bottom: 8px;"></i>
                             Carregando logs de acesso...
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else if (tab === 'tickets') {
-            return `
-                <div style="display: flex; flex-direction: column; gap: 16px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.95rem; margin: 0;">
-                            <i class="fa-solid fa-ticket" style="color: #00d2ff;"></i> Gestão de Atendimento & Tickets de Suporte
-                        </h4>
-                        <button onclick="loadAdminTicketsView()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; padding: 6px 12px; border-radius: 8px; font-size: 0.72rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                            <i class="fa-solid fa-rotate"></i> Atualizar
-                        </button>
-                    </div>
-                    <div id="admin-tickets-list-container" style="display: flex; flex-direction: column; gap: 10px;">
-                        <div style="text-align: center; color: #94a3b8; padding: 40px; font-size: 0.8rem;">
-                            <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: #00d2ff; display: block; margin-bottom: 8px;"></i>
-                            Carregando tickets de atendimento...
                         </div>
                     </div>
                 </div>
@@ -1440,101 +1414,6 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         }
     };
 
-    // Admin Tickets & Support View
-    window.loadAdminTicketsView = async function() {
-        const container = document.getElementById('admin-tickets-list-container');
-        if (!container) return;
-        try {
-            const { data, error } = await supabaseClient.from('suggestions').select('*').order('created_at', { ascending: false });
-            if (error) throw error;
-            if (!data || data.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 40px; font-size: 0.8rem; background: rgba(15,20,32,0.5); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);"><i class="fa-solid fa-ticket" style="font-size: 2rem; color: #475569; display: block; margin-bottom: 10px;"></i>Nenhum ticket de atendimento registrado ainda.</div>';
-                return;
-            }
-            container.innerHTML = data.map(t => {
-                const statusMap = {
-                    nova: { label: 'NOVO', color: '#00d2ff', bg: 'rgba(0,210,255,0.15)', border: 'rgba(0,210,255,0.3)' },
-                    em_analise: { label: 'EM ANÁLISE', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' },
-                    aceita: { label: 'ACEITO', color: '#10b981', bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)' },
-                    implementada: { label: 'RESOLVIDO', color: '#a855f7', bg: 'rgba(168,85,247,0.15)', border: 'rgba(168,85,247,0.3)' },
-                    recusada: { label: 'RECUSADO', color: '#ef4444', bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)' }
-                };
-                const st = statusMap[t.status] || { label: String(t.status).toUpperCase(), color: '#94a3b8', bg: 'rgba(255,255,255,0.1)', border: 'rgba(255,255,255,0.2)' };
-
-                return `
-                    <div style="background: rgba(15,20,32,0.6); padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 10px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 13px; font-weight: 800; color: #fff;">${t.nickname || 'Anônimo'}</span>
-                                <span style="font-size: 10px; font-weight: 700; color: #7dd3fc; background: rgba(0,210,255,0.15); padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(0,210,255,0.25);">${(t.type || 'geral').replace('_', ' ').toUpperCase()}</span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 10px; font-weight: 900; color: ${st.color}; background: ${st.bg}; border: 1px solid ${st.border}; padding: 3px 8px; border-radius: 6px;">${st.label}</span>
-                                <span style="font-size: 10px; color: #64748b; font-family: monospace;">${new Date(t.created_at).toLocaleDateString('pt-BR')} ${new Date(t.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span>
-                            </div>
-                        </div>
-
-                        <div style="background: rgba(0,0,0,0.4); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); font-size: 12px; color: #cbd5e1; line-height: 1.5;">
-                            ${t.content}
-                        </div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.04);">
-                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                                <button onclick="updateAdminTicketStatus('${t.id}', 'aceita')" style="background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;">
-                                    <i class="fa-solid fa-check"></i> Aceitar
-                                </button>
-                                <button onclick="updateAdminTicketStatus('${t.id}', 'em_analise')" style="background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #fbbf24; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;">
-                                    <i class="fa-solid fa-clock"></i> Em Análise
-                                </button>
-                                <button onclick="updateAdminTicketStatus('${t.id}', 'implementada')" style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #c084fc; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;">
-                                    <i class="fa-solid fa-circle-check"></i> Concluir
-                                </button>
-                                <button onclick="updateAdminTicketStatus('${t.id}', 'recusada')" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;">
-                                    <i class="fa-solid fa-xmark"></i> Recusar
-                                </button>
-                            </div>
-                            <button onclick="deleteAdminTicket('${t.id}')" style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); color: #fca5a5; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; cursor: pointer;">
-                                <i class="fa-solid fa-trash"></i> Excluir
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        } catch(e) {
-            container.innerHTML = `<div style="color: #f87171; font-size: 0.75rem; text-align: center; padding: 20px;">Falha ao carregar tickets: ${e.message}</div>`;
-        }
-    };
-
-    window.updateAdminTicketStatus = async function(id, status) {
-        try {
-            await supabaseClient.from('suggestions').update({ status }).eq('id', id);
-            globalHubChannel.send({
-                type: 'broadcast',
-                event: 'entity_sync',
-                payload: { entity: 'suggestions', action: 'UPDATE', id, data: { status }, timestamp: Date.now() }
-            });
-            loadAdminTicketsView();
-        } catch(e) {
-            alert('Erro ao atualizar status do ticket: ' + e.message);
-        }
-    };
-
-    window.deleteAdminTicket = async function(id) {
-        if (confirm('Tem certeza que deseja excluir permanentemente este ticket?')) {
-            try {
-                await supabaseClient.from('suggestions').delete().eq('id', id);
-                globalHubChannel.send({
-                    type: 'broadcast',
-                    event: 'entity_sync',
-                    payload: { entity: 'suggestions', action: 'DELETE', id, timestamp: Date.now() }
-                });
-                loadAdminTicketsView();
-            } catch(e) {
-                alert('Erro ao excluir ticket: ' + e.message);
-            }
-        }
-    };
-
     // Helper: Check if user is authenticated with a valid profile
     function isUserLoggedIn() {
         const stored = localStorage.getItem('malaca_user_profile');
@@ -1597,7 +1476,8 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                              target.classList.contains('system-access-btn') ||
                              target.classList.contains('hub-city-card-btn');
 
-        const isSystemTarget = href.includes('/mapa') ||
+        const isSystemTarget = href.includes('/sistemas') ||
+                               href.includes('/mapa') ||
                                href.includes('/lockpick') ||
                                href.includes('/caixinha') ||
                                href.includes('/hacking') ||
@@ -1612,12 +1492,15 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         }
     }, true);
 
-    // Authentication Guard for Simulator / Minigame Pages (Direct URL access)
+    // Authentication Guard for Simulator / Minigame / Systems Pages (Direct URL access)
     function checkSystemAuthProtection() {
-        const isSystemPage = window.location.pathname.includes('/lockpick') ||
-                             window.location.pathname.includes('/caixinha') ||
-                             window.location.pathname.includes('/hacking') ||
-                             window.location.pathname.includes('/mapa-interativo');
+        const path = window.location.pathname.toLowerCase();
+        const isSystemPage = path.includes('/sistemas') ||
+                             path.includes('/lockpick') ||
+                             path.includes('/caixinha') ||
+                             path.includes('/hacking') ||
+                             path.includes('/mapa') ||
+                             path.includes('/mapa-interativo');
         if (!isSystemPage) return;
 
         if (!isUserLoggedIn()) {
@@ -1649,7 +1532,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                             AUTENTICAÇÃO NECESSÁRIA
                         </h3>
                         <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.6; margin-bottom: 24px;">
-                            Para utilizar este sistema/simulador e salvar seu histórico, faça login com sua conta do Discord.
+                            Para utilizar este sistema/simulador e acompanhar seus dados em tempo real, faça login com sua conta do Discord.
                         </p>
                         <button onclick="loginWithDiscordGlobal()" style="width: 100%; padding: 14px; border-radius: 12px; background: #5865F2; color: #fff; font-size: 0.85rem; font-weight: 800; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 25px rgba(88,101,242,0.4); transition: all 0.2s ease;">
                             <i class="fa-brands fa-discord" style="font-size: 1.2rem;"></i> ENTRAR COM O DISCORD
