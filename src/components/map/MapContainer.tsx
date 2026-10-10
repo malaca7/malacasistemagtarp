@@ -155,10 +155,21 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       }
     };
 
+    const handleResize = () => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+      updateZoomLimits();
+    };
+
     map.fitBounds(bounds);
     updateZoomLimits();
 
-    map.on('resize', updateZoomLimits);
+    map.on('resize', handleResize);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('orientationchange', handleResize);
+    }
 
     // Track mouse movement for live X/Y GTA coordinates
     map.on('mousemove', (e: L.LeafletMouseEvent) => {
@@ -174,7 +185,11 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     mapRef.current = map;
 
     return () => {
-      map.off('resize', updateZoomLimits);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('orientationchange', handleResize);
+      }
+      map.off('resize', handleResize);
       map.remove();
     };
   }, [mapImageUrl]);
@@ -196,6 +211,15 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       map.off('click', handleMapClick);
     };
   }, [isAdminPinMode, onAdminMapClick]);
+
+  // Invalidate map size when selected location changes or UI toggles
+  useEffect(() => {
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current?.invalidateSize();
+      }, 100);
+    }
+  }, [selectedLocation]);
 
   // Update Markers
   useEffect(() => {
@@ -249,22 +273,22 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       const customIcon = L.divIcon({
         className: 'custom-map-pin-wrapper',
         html: `
-          <div class="relative flex items-center justify-center pointer-events-auto cursor-pointer transition-transform duration-300 ${
+          <div class="relative flex items-center justify-center pointer-events-auto cursor-pointer transition-transform duration-200 ${
             isSelected ? 'scale-125 z-50' : isConfirmedAndarilho ? 'scale-110 z-40' : 'scale-100 active:scale-125 z-20'
-          }" style="width: 32px; height: 32px;">
+          }" style="width: 36px; height: 36px; transform-origin: center center;">
             ${
               isMostConfirmed
-                ? `<div class="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#00d2ff] to-[#38bdf8] text-black font-black text-[9px] px-2 py-0.5 rounded-full border border-white shadow-xl flex items-center gap-0.5 animate-bounce z-30 whitespace-nowrap pointer-events-none">
+                ? `<div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#00d2ff] to-[#38bdf8] text-black font-black text-[9px] px-2 py-0.5 rounded-full border border-white shadow-xl flex items-center gap-0.5 animate-bounce z-30 whitespace-nowrap pointer-events-none">
                     👑 MAIS CONFIRMADO
                    </div>`
                 : ''
             }
             ${
               isUnconfirmedPossivel
-                ? `<div class="absolute inset-0 -m-1 rounded-full border border-[#00d2ff]/40 animate-ping pointer-events-none opacity-40"></div>`
+                ? `<div class="absolute inset-0 rounded-full border-2 border-[#00d2ff]/40 animate-ping pointer-events-none opacity-40"></div>`
                 : ''
             }
-            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all duration-300 ${
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs transition-all duration-300 ${
               isConfirmedAndarilho
                 ? 'bg-gradient-to-tr from-[#0284c7] via-[#00d2ff] to-[#38bdf8] border-2 border-white ring-4 ring-[#00d2ff]/70 shadow-[0_0_20px_#00d2ff] animate-pulse text-white'
                 : isUnconfirmedPossivel
@@ -286,20 +310,25 @@ export const MapContainer: React.FC<MapContainerProps> = ({
                 : ''
             }
 
-            <div class="absolute top-9 left-1/2 -translate-x-1/2 hidden md:group-hover:block bg-[#030712]/95 text-white text-[10px] font-semibold px-2 py-1 rounded-lg border border-[#00d2ff]/40 whitespace-nowrap shadow-2xl z-50 pointer-events-none">
+            <div class="absolute top-10 left-1/2 -translate-x-1/2 hidden md:group-hover:block bg-[#030712]/95 text-white text-[10px] font-semibold px-2 py-1 rounded-lg border border-[#00d2ff]/40 whitespace-nowrap shadow-2xl z-50 pointer-events-none">
               ${loc.name} ${loc.confirmations_count ? `(${loc.confirmations_count} confirmações)` : isUnconfirmedPossivel ? '(Possível Local)' : ''}
             </div>
           </div>
         `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
       });
 
       const marker = L.marker([loc.y, loc.x], { icon: customIcon, riseOnHover: true });
 
-      const handleSelect = (e: L.LeafletEvent) => {
-        L.DomEvent.stopPropagation(e as any);
+      const handleSelect = (e: any) => {
+        if (e && e.originalEvent) {
+          L.DomEvent.stopPropagation(e.originalEvent);
+        }
         onSelectLocation(loc);
+        if (mapRef.current) {
+          mapRef.current.setView([loc.y, loc.x], Math.max(mapRef.current.getZoom(), 2), { animate: true });
+        }
       };
 
       marker.on('click', handleSelect);

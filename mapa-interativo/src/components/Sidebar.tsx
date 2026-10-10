@@ -94,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Panel */}
       <aside
-        className={`fixed md:static top-0 left-0 h-full w-80 md:w-84 bg-[#060d1a] backdrop-blur-xl border-r border-[#00d2ff]/20 z-40 flex flex-col transition-transform duration-300 ${
+        className={`fixed md:static top-0 left-0 h-full w-80 md:w-84 max-w-[85vw] bg-[#060d1a] backdrop-blur-xl border-r border-[#00d2ff]/20 z-40 flex flex-col transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
