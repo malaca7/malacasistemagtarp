@@ -30,24 +30,72 @@ export const DEFAULT_ADMIN_DISCORD_IDS = [
   '917826984778797087', // malaca7
 ];
 
+export const extractDiscordId = (u: any): string => {
+  if (!u) return '';
+  // 1. Direct discord_id property (UserProfile object)
+  if (u.discord_id && typeof u.discord_id === 'string' && u.discord_id.trim()) {
+    return u.discord_id.trim();
+  }
+  // 2. Supabase identities array (most reliable in Supabase Auth!)
+  if (Array.isArray(u.identities) && u.identities.length > 0) {
+    const discordIdentity = u.identities.find((i: any) => i.provider === 'discord') || u.identities[0];
+    if (discordIdentity?.id) return String(discordIdentity.id).trim();
+    if (discordIdentity?.identity_data?.provider_id) return String(discordIdentity.identity_data.provider_id).trim();
+    if (discordIdentity?.identity_data?.sub) return String(discordIdentity.identity_data.sub).trim();
+  }
+  // 3. User metadata fields
+  const meta = u.user_metadata || u.raw_user_meta_data || {};
+  if (meta.provider_id) return String(meta.provider_id).trim();
+  if (meta.sub && !String(meta.sub).includes('-')) return String(meta.sub).trim();
+  if (meta.id && !String(meta.id).includes('-')) return String(meta.id).trim();
+
+  // 4. If u.id itself is a numeric Discord snowflake (15-22 digits, not a UUID)
+  if (u.id && typeof u.id === 'string' && /^\d{15,22}$/.test(u.id.trim())) {
+    return u.id.trim();
+  }
+  // 5. If u.sub is numeric Discord snowflake
+  if (u.sub && typeof u.sub === 'string' && /^\d{15,22}$/.test(u.sub.trim())) {
+    return u.sub.trim();
+  }
+
+  return '';
+};
+
 export const checkAdminPermission = (userOrProfile: any): boolean => {
   if (!userOrProfile) return false;
 
-  // Extrair ID do Discord garantindo tipagem consistente
-  const discordId = String(
-    userOrProfile.discord_id ||
-    userOrProfile.id ||
-    userOrProfile.user_metadata?.provider_id ||
-    userOrProfile.user_metadata?.sub ||
-    ''
-  ).trim();
+  // 1. Extrair ID do Discord garantindo tipagem consistente e sem falsos UUIDs
+  const discordId = extractDiscordId(userOrProfile);
 
-  // Apenas IDs oficiais e explicitamente designados possuem privilégio administrativo
+  // 2. Apenas IDs oficiais e explicitamente designados possuem privilégio administrativo
   if (discordId && DEFAULT_ADMIN_DISCORD_IDS.includes(discordId)) {
     return true;
   }
 
-  // Lista personalizada configurada pelo administrador no painel
+  // 3. Cargo explícito vindo do banco de dados (se foi promovido no painel)
+  if (userOrProfile.is_admin === true || userOrProfile.role === 'admin') {
+    return true;
+  }
+
+  // 4. E-mails administrativos autorizados
+  const email = String(userOrProfile.email || userOrProfile.user_metadata?.email || '').trim().toLowerCase();
+  if (email && DEFAULT_ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(email)) {
+    return true;
+  }
+
+  // 5. Usernames administrativos autorizados
+  const username = String(
+    userOrProfile.username ||
+    userOrProfile.user_metadata?.preferred_username ||
+    userOrProfile.user_metadata?.user_name ||
+    userOrProfile.user_metadata?.name ||
+    ''
+  ).trim().toLowerCase();
+  if (username && DEFAULT_ADMIN_USERNAMES.map((u) => u.toLowerCase()).includes(username)) {
+    return true;
+  }
+
+  // 6. Lista personalizada configurada pelo administrador no painel
   try {
     const customAdminsRaw = localStorage.getItem('malaca_admin_discord_accounts');
     if (customAdminsRaw) {
@@ -58,7 +106,6 @@ export const checkAdminPermission = (userOrProfile: any): boolean => {
     }
   } catch (e) {}
 
-  // Todos os novos usuários cadastrados são comuns por padrão
   return false;
 };
 
@@ -106,6 +153,12 @@ export const AuthService = {
               return null;
             }
             if (parsed.id && parsed.discord_id) {
+              const dId = extractDiscordId(parsed);
+              if (DEFAULT_ADMIN_DISCORD_IDS.includes(dId) || checkAdminPermission(parsed)) {
+                parsed.is_admin = true;
+                parsed.role = 'admin';
+                localStorage.setItem('malaca_user_profile', JSON.stringify(parsed));
+              }
               return parsed;
             }
           } catch (e) {}
@@ -115,12 +168,13 @@ export const AuthService = {
 
       const user = session.user;
       const metadata = user.user_metadata || {};
-      const discordId = metadata.provider_id || metadata.sub || user.id;
+      const discordId = extractDiscordId(user) || metadata.provider_id || metadata.sub || user.id;
       const username = metadata.preferred_username || metadata.user_name || metadata.name || metadata.full_name || 'Discord User';
       const fullName = metadata.full_name || metadata.global_name || metadata.name || username;
       const avatarUrl = metadata.avatar_url || metadata.picture || 'https://cdn.discordapp.com/embed/avatars/0.png';
       const email = user.email || metadata.email || '';
-      const isAdmin = checkAdminPermission(user);
+      const isOfficialAdmin = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId));
+      const isAdmin = isOfficialAdmin || checkAdminPermission(user);
       const now = new Date().toISOString();
 
       const profileData = {
@@ -230,6 +284,15 @@ export const AuthService = {
       if (parsed.id && String(parsed.id).startsWith('mock-')) {
         localStorage.removeItem('malaca_user_profile');
         return null;
+      }
+      // Guarantee instant admin elevation for official admins
+      const discordId = extractDiscordId(parsed);
+      if (DEFAULT_ADMIN_DISCORD_IDS.includes(discordId) || checkAdminPermission(parsed)) {
+        if (!parsed.is_admin || parsed.role !== 'admin') {
+          parsed.is_admin = true;
+          parsed.role = 'admin';
+          localStorage.setItem('malaca_user_profile', JSON.stringify(parsed));
+        }
       }
       return parsed;
     } catch (e) {

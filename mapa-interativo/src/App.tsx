@@ -618,6 +618,7 @@ export const App: React.FC = () => {
       <AdminModal
         isOpen={adminOpen}
         onClose={() => setAdminOpen(false)}
+        user={user}
         servers={servers}
         locations={locations}
         suggestions={suggestions}

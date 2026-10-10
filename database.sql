@@ -421,3 +421,8 @@ DO $$ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.access_logs;
 EXCEPTION WHEN others THEN null; END $$;
 
+-- 16. GARANTIR CARGO DE ADMINISTRADOR PARA DISCORD IDS OFICIAIS
+UPDATE public.profiles
+SET is_admin = true, role = 'admin'
+WHERE discord_id IN ('722320491767136346', '917826984778797087');
+
