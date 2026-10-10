@@ -1,23 +1,27 @@
 import React from 'react';
-import { UserProfile, AuthService } from '../services/auth';
-import { LogOut, Calendar, ShieldCheck, UserCheck, Clock, Hash } from 'lucide-react';
+import { UserProfile, AuthService, checkAdminPermission } from '../services/auth';
+import { LogOut, Calendar, ShieldCheck, Clock, Hash, Shield, Sparkles } from 'lucide-react';
 
 interface DiscordAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserProfile | null;
+  onOpenAdmin?: () => void;
 }
 
 export const DiscordAuthModal: React.FC<DiscordAuthModalProps> = ({
   isOpen,
   onClose,
   user,
+  onOpenAdmin,
 }) => {
   if (!isOpen) return null;
 
+  const isAdmin = user ? (user.is_admin === true || user.role === 'admin' || checkAdminPermission(user)) : false;
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-md bg-[#060d1a] border border-[#00d2ff]/40 rounded-2xl p-6 shadow-[0_20px_60px_rgba(0,0,0,0.95),0_0_40px_rgba(250,118,8,0.2)] text-white overflow-hidden font-sans">
+      <div className="relative w-full max-w-md bg-[#060d1a] border border-[#00d2ff]/40 rounded-2xl p-6 shadow-[0_20px_60px_rgba(0,0,0,0.95),0_0_40px_rgba(0,210,255,0.2)] text-white overflow-hidden font-sans">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[#00d2ff]/20">
@@ -58,9 +62,16 @@ export const DiscordAuthModal: React.FC<DiscordAuthModalProps> = ({
                   <span className="text-base font-extrabold text-white truncate font-header">
                     {user.full_name || user.username}
                   </span>
-                  <span className="px-2 py-0.5 text-[9px] font-black bg-[#5865F2]/20 text-[#5865F2] border border-[#5865F2]/40 rounded-md">
-                    VERIFICADO
-                  </span>
+                  {isAdmin ? (
+                    <span className="px-2 py-0.5 text-[9px] font-black bg-gradient-to-r from-amber-500/20 to-purple-500/20 text-amber-300 border border-amber-500/40 rounded-md flex items-center gap-1 shadow-sm">
+                      <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                      ADMIN
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 text-[9px] font-black bg-[#5865F2]/20 text-[#5865F2] border border-[#5865F2]/40 rounded-md">
+                      VERIFICADO
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-[#38bdf8] font-medium truncate mt-0.5">
                   @{user.username}
@@ -71,6 +82,36 @@ export const DiscordAuthModal: React.FC<DiscordAuthModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Admin Management Section for Admins */}
+            {isAdmin && (
+              <div className="p-4 rounded-xl bg-gradient-to-r from-[#5865F2]/20 via-[#00d2ff]/10 to-transparent border border-[#5865F2]/40 shadow-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-[#818cf8]" />
+                    <span className="font-header font-extrabold text-xs text-white uppercase tracking-wider">
+                      Painel Administrativo
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 text-[9px] font-black bg-[#5865F2]/30 text-[#c7d2fe] border border-[#5865F2]/50 rounded-md">
+                    ADMINISTRADOR
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Você possui privilégios de administrador. Acesse o painel para gerenciar pontos do mapa, andarilho, servidores, sistemas e usuários.
+                </p>
+                <button
+                  onClick={() => {
+                    onClose();
+                    if (onOpenAdmin) onOpenAdmin();
+                  }}
+                  className="w-full py-2.5 rounded-xl font-header font-black text-xs bg-gradient-to-r from-[#5865F2] to-[#2563eb] hover:from-[#4752C4] hover:to-[#1d4ed8] text-white flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-[#5865F2]/40 active:scale-[0.98]"
+                >
+                  <ShieldCheck className="w-4 h-4 text-[#38bdf8]" />
+                  <span>ACESSAR PAINEL ADMINISTRATIVO</span>
+                </button>
+              </div>
+            )}
 
             {/* Dashboard Stats */}
             <div className="grid grid-cols-2 gap-3">

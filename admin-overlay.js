@@ -116,6 +116,21 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         document.getElementById('global-discord-modal').classList.remove('active');
     };
 
+    window.openGlobalAdminModal = function () {
+        const modal = document.getElementById('global-admin-modal');
+        if (modal) {
+            modal.classList.add('active');
+            renderAdminContent();
+        }
+    };
+
+    window.closeGlobalAdminModal = function () {
+        const modal = document.getElementById('global-admin-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    };
+
     window.loginWithDiscordGlobal = async function () {
         const btn = document.querySelector('#discord-modal-body button');
         const originalContent = btn ? btn.innerHTML : '';
@@ -162,24 +177,41 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
 
         const stored = localStorage.getItem('malaca_user_profile');
         const user = stored ? JSON.parse(stored) : null;
+        const isAdmin = user ? (user.is_admin === true || user.role === 'admin' || (typeof checkAdminPermission === 'function' && checkAdminPermission(user))) : false;
 
         if (user) {
             title.textContent = 'Dashboard do Usuário';
             subtitle.textContent = 'Perfil e Registro de Acesso';
             body.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 16px; padding: 16px; background: linear-gradient(135deg, #18181b 0%, #000000 100%); border-radius: 14px; border: 1px solid rgba(0,210,255,0.3); margin-bottom: 20px;">
-                    <img src="${user.avatar_url}" style="width: 56px; height: 56px; border-radius: 50%; border: 2px solid #38bdf8;" />
+                <div style="display: flex; align-items: center; gap: 16px; padding: 16px; background: linear-gradient(135deg, #18181b 0%, #000000 100%); border-radius: 14px; border: 1px solid rgba(0,210,255,0.3); margin-bottom: 16px;">
+                    <img src="${user.avatar_url}" style="width: 56px; height: 56px; border-radius: 50%; border: 2px solid ${isAdmin ? '#f59e0b' : '#38bdf8'}; object-fit: cover;" />
                     <div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <h4 style="font-size: 16px; font-weight: 900; color: #fff;">${user.full_name || user.username}</h4>
-                            <span style="font-size: 9px; font-weight: 800; background: rgba(88,101,242,0.2); color: #5865F2; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(88,101,242,0.4);">VERIFICADO</span>
+                            <span style="font-size: 9px; font-weight: 800; background: ${isAdmin ? 'rgba(245,158,11,0.2)' : 'rgba(88,101,242,0.2)'}; color: ${isAdmin ? '#fde68a' : '#5865F2'}; padding: 2px 6px; border-radius: 4px; border: 1px solid ${isAdmin ? 'rgba(245,158,11,0.4)' : 'rgba(88,101,242,0.4)'};">${isAdmin ? 'ADMIN' : 'VERIFICADO'}</span>
                         </div>
                         <span style="font-size: 12px; color: #38bdf8; font-weight: 700;">@${user.username}</span>
                         <div style="font-size: 10px; color: #94a3b8; margin-top: 2px; font-family: monospace;">ID: ${user.discord_id}</div>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                ${isAdmin ? `
+                    <div style="background: linear-gradient(135deg, rgba(88,101,242,0.18) 0%, rgba(0,210,255,0.12) 100%); border: 1px solid rgba(88,101,242,0.4); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-shield-halved" style="color: #818cf8; font-size: 1rem;"></i>
+                                <span style="font-size: 12px; font-weight: 800; color: #fff; text-transform: uppercase;">Acesso Administrativo</span>
+                            </div>
+                            <span style="font-size: 9px; font-weight: 900; background: rgba(88,101,242,0.3); color: #c7d2fe; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(88,101,242,0.5);">ADMINISTRADOR</span>
+                        </div>
+                        <p style="font-size: 11px; color: #94a3b8; line-height: 1.4; margin-bottom: 12px;">Sua conta possui acesso administrativo para gerenciar cidades, sistemas, usuários e configurações da plataforma.</p>
+                        <button onclick="closeDiscordModal(); openGlobalAdminModal();" style="width: 100%; padding: 10px; border-radius: 8px; background: linear-gradient(135deg, #5865F2 0%, #2563eb 100%); color: #fff; font-size: 12px; font-weight: 900; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(88,101,242,0.35); transition: all 0.2s ease;">
+                            <i class="fa-solid fa-gauge-high"></i> ACESSAR PAINEL ADMINISTRATIVO
+                        </button>
+                    </div>
+                ` : ''}
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
                     <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);">
                         <span style="font-size: 10px; color: #94a3b8; display: block; font-weight: 700;">DATA DE CADASTRO</span>
                         <span style="font-size: 12px; font-weight: 800; color: #fff; font-family: monospace;">${new Date(user.created_at).toLocaleDateString('pt-BR')}</span>
@@ -190,7 +222,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                     </div>
                 </div>
 
-                <div style="padding: 12px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,210,255,0.2); border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div style="padding: 12px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,210,255,0.2); border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <span style="font-size: 11px; font-weight: 700; color: #cbd5e1;"><i class="fa-solid fa-shield-halved" style="color: #22c55e;"></i> Sessões Registradas</span>
                     <span style="font-size: 12px; font-weight: 900; color: #38bdf8; background: rgba(0,210,255,0.2); padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(0,210,255,0.3);">${user.access_count || 1} acessos</span>
                 </div>

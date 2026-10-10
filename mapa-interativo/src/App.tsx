@@ -526,6 +526,7 @@ export const App: React.FC = () => {
         isOpen={discordAuthOpen}
         onClose={() => setDiscordAuthOpen(false)}
         user={user}
+        onOpenAdmin={() => setAdminOpen(true)}
       />
     </div>
   );
