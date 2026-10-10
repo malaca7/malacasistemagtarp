@@ -1,4 +1,4 @@
-import { fileURLToPath, URL } from "node:url"
+import { resolve } from "path"
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
 
@@ -7,17 +7,40 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@": resolve(__dirname, "src"),
     },
   },
   build: {
     rollupOptions: {
       input: {
-        main: fileURLToPath(new URL("./index.html", import.meta.url)),
-        mapa: fileURLToPath(new URL("./mapa-interativo/index.html", import.meta.url)),
-        lockpick: fileURLToPath(new URL("./lockpick/index.html", import.meta.url)),
-        caixinha: fileURLToPath(new URL("./caixinha/index.html", import.meta.url)),
-        hacking: fileURLToPath(new URL("./hacking/index.html", import.meta.url)),
+        main: resolve(__dirname, "index.html"),
+        cidades: resolve(__dirname, "cidades/index.html"),
+        sistemas: resolve(__dirname, "sistemas/index.html"),
+        plataforma_index: resolve(__dirname, "plataforma/index.html"),
+        plataforma_fallback: resolve(__dirname, "plataforma.html"),
+        cidade_fallback: resolve(__dirname, "cidade.html"),
+        cda_city: resolve(__dirname, "cidades/cda/index.html"),
+        cda_mapa: resolve(__dirname, "cidades/cda/mapa/index.html"),
+        cda_mapa_interativo: resolve(__dirname, "cidades/cda/mapa-interativo/index.html"),
+        cda_lockpick: resolve(__dirname, "cidades/cda/lockpick/index.html"),
+        cda_caixinha: resolve(__dirname, "cidades/cda/caixinha/index.html"),
+        cda_hacking: resolve(__dirname, "cidades/cda/hacking/index.html"),
+        valley_city: resolve(__dirname, "cidades/valley/index.html"),
+        valley_mapa: resolve(__dirname, "cidades/valley/mapa/index.html"),
+        valley_mapa_interativo: resolve(__dirname, "cidades/valley/mapa-interativo/index.html"),
+        valley_lockpick: resolve(__dirname, "cidades/valley/lockpick/index.html"),
+        valley_caixinha: resolve(__dirname, "cidades/valley/caixinha/index.html"),
+        valley_hacking: resolve(__dirname, "cidades/valley/hacking/index.html"),
+        los_santos_city: resolve(__dirname, "cidades/los-santos/index.html"),
+        los_santos_mapa: resolve(__dirname, "cidades/los-santos/mapa/index.html"),
+        los_santos_mapa_interativo: resolve(__dirname, "cidades/los-santos/mapa-interativo/index.html"),
+        los_santos_lockpick: resolve(__dirname, "cidades/los-santos/lockpick/index.html"),
+        los_santos_caixinha: resolve(__dirname, "cidades/los-santos/caixinha/index.html"),
+        los_santos_hacking: resolve(__dirname, "cidades/los-santos/hacking/index.html"),
+        mapa: resolve(__dirname, "mapa-interativo/index.html"),
+        lockpick: resolve(__dirname, "lockpick/index.html"),
+        caixinha: resolve(__dirname, "caixinha/index.html"),
+        hacking: resolve(__dirname, "hacking/index.html"),
       },
     },
   },

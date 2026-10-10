@@ -103,3 +103,39 @@ export interface Suggestion {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface UserProfile {
+  id: string;
+  discord_id: string;
+  username: string;
+  full_name?: string;
+  avatar_url?: string;
+  email?: string;
+  is_admin?: boolean;
+  role?: 'admin' | 'moderator' | 'user' | 'vip';
+  is_banned?: boolean;
+  created_at?: string;
+  last_login_at?: string;
+  access_count?: number;
+}
+
+export interface AccessLog {
+  id: string;
+  user_id?: string;
+  discord_id?: string;
+  username?: string;
+  logged_at: string;
+  user_agent?: string;
+  page_path?: string;
+}
+
+export interface PlatformSettings {
+  maintenance_mode: boolean;
+  maintenance_message: string;
+  global_announcement: string;
+  announcement_active: boolean;
+  announcement_type?: 'info' | 'warning' | 'alert' | 'success';
+  disabled_systems: string[];
+  require_auth_for_interactive_map?: boolean;
+}
+

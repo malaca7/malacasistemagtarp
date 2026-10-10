@@ -1,4 +1,4 @@
-// Simulador de Hacking e Decodificação
+// --- SIMULADOR DE HACKING & DECODIFICAÇÃO (MALACA SYSTEM GTARP) ---
 const state = {
     gameState: 'waiting', // waiting, playing, won, lost
     timer: 0,
@@ -6,85 +6,110 @@ const state = {
     timerInterval: null,
     scrambleInterval: null,
     startTime: 0,
-    
+
     charSet: 'all',
     targetLength: 4,
-    gridSize: 80, // 8 rows x 10 cols
-    
+    gridRows: 8,
+    gridCols: 10,
+    gridSize: 80, // 8 x 10 = 80 células
+
     gridChars: [],
     targetChars: [],
     correctPos: 0,
-    cursorPos: 43,
-    
+    cursorPos: 34,
+
     streak: 0,
     maxStreak: 0,
-    soundEnabled: true
+    soundEnabled: true,
+    audioCtx: null,
 };
 
 const CHARACTER_SETS = {
-    numeric: "0123456789",
-    alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-    alphanumeric: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-    greek: "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ",
-    braille: "⡀⡁⡂⡃⡄⡅⡆⡇⡈⡉⡊⡋⡌⡍⡎⡏⡐⡑⡒⡓⡔⡕⡖⡗⡘⡙⡚⡛⡜⡝⡞⡟⡠⡡⡢⡣⡤⡥⡦⡧⡨⡩⡪⡫⡬⡭⡮⡯⡰⡱⡲⡳⡴⡵⡶⡷⡸⡹⡺⡻⡼⡽⡾⡿",
-    runes: "ᚠᚥᚧᚨᚩᚬᚭᚻᛐᛑᛒᛓᛔᛕᛖᛗᛘᛙᛚᛛᛜᛝᛞᛟᛤ",
-    symbols: "☎☚☛☜☞☟☠☢☣☮☯♨♩♪♫♬Ψ♆✂✄෧✆✉✦✧✿❀"
+    numeric: '0123456789',
+    alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    alphanumeric: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+    greek: 'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ',
+    braille: '⡀⡁⡂⡃⡄⡅⡆⡇⡈⡉⡊⡋⡌⡍⡎⡏⡐⡑⡒⡓⡔⡕⡖⡗⡘⡙⡚⡛⡜⡝⡞⡟⡠⡡⡢⡣⡤⡥⡦⡧⡨⡩⡪⡫⡬⡭⡮⡯⡰⡱⡲⡳⡴⡵⡶⡷⡸⡹⡺⡻⡼⡽⡾⡿',
+    runes: 'ᚠᚥᚧᚨᚩᚬᚭᚻᛐᛑᛒᛓᛔᛕᛖᛗᛘᛙᛚᛛᛜᛝᛞᛟᛤ',
+    symbols: '☎☚☛☜☞☟☠☢☣☮☯♨♩♪♫♬Ψ♆✂✄෧✆✉✦✧✿❀',
 };
 
-const ALL_CHARS_COMBINED = Object.values(CHARACTER_SETS).join('');
-
-// Web Audio API Sound Generator
-const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-function playSound(type) {
-    if (!state.soundEnabled || !audioContext) return;
-    if (audioContext.state === 'suspended') {
-        audioContext.resume();
-    }
-    const osc = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    osc.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    if (type === 'move') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(600, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.04, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.05);
-        osc.start();
-        osc.stop(audioContext.currentTime + 0.05);
-    } else if (type === 'error') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(140, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.35);
-        osc.start();
-        osc.stop(audioContext.currentTime + 0.35);
-    } else if (type === 'success') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(520, audioContext.currentTime);
-        osc.frequency.setValueAtTime(880, audioContext.currentTime + 0.1);
-        gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-        osc.start();
-        osc.stop(audioContext.currentTime + 0.4);
-    }
+// Web Audio API Sound Generator Seguro
+function initAudio() {
+    try {
+        if (!state.audioCtx) {
+            state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (state.audioCtx && state.audioCtx.state === 'suspended') {
+            state.audioCtx.resume();
+        }
+    } catch {}
 }
 
-let activeSetChars = "";
+function playSound(type) {
+    if (!state.soundEnabled) return;
+    initAudio();
+    if (!state.audioCtx) return;
+
+    try {
+        const now = state.audioCtx.currentTime;
+        const osc = state.audioCtx.createOscillator();
+        const gainNode = state.audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(state.audioCtx.destination);
+
+        if (type === 'move') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, now);
+            gainNode.gain.setValueAtTime(0.04, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.start(now);
+            osc.stop(now + 0.05);
+        } else if (type === 'error') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(140, now);
+            gainNode.gain.setValueAtTime(0.18, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        } else if (type === 'success') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(520, now);
+            osc.frequency.setValueAtTime(880, now + 0.08);
+            gainNode.gain.setValueAtTime(0.12, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+            osc.start(now);
+            osc.stop(now + 0.35);
+        }
+    } catch {}
+}
+
+let activeSetChars = '';
 
 function getRandomChar() {
     return activeSetChars.charAt(Math.floor(Math.random() * activeSetChars.length));
 }
 
+// Gera uma posição inicial válida para que a sequência não quebre entre linhas
+function getRandomValidRowPos(length) {
+    const row = Math.floor(Math.random() * state.gridRows);
+    const maxCol = state.gridCols - length;
+    const col = Math.floor(Math.random() * (maxCol + 1));
+    return row * state.gridCols + col;
+}
+
 function initGame() {
+    stopTimer();
+    stopScrambler();
+
     state.gameState = 'playing';
     state.timer = state.timeLimit;
     state.startTime = Date.now();
-    
-    document.getElementById('success-overlay').classList.remove('show');
-    document.getElementById('fail-overlay').classList.remove('show');
-    
-    // Se 'all' (Misto) estiver selecionado, escolhe 1 conjunto aleatório para este teste
+
+    document.getElementById('success-overlay')?.classList.remove('show');
+    document.getElementById('fail-overlay')?.classList.remove('show');
+
+    // Seleciona conjunto de caracteres
     if (state.charSet === 'all') {
         const keys = Object.keys(CHARACTER_SETS);
         const randomKey = keys[Math.floor(Math.random() * keys.length)];
@@ -92,92 +117,126 @@ function initGame() {
     } else {
         activeSetChars = CHARACTER_SETS[state.charSet] || CHARACTER_SETS.numeric;
     }
-    
-    // Gerar target string
+
+    // Gera sequência alvo
     state.targetChars = [];
     for (let i = 0; i < state.targetLength; i++) {
         state.targetChars.push(getRandomChar());
     }
-    document.getElementById('target-code').textContent = state.targetChars.join(' ');
-    
-    // Gerar grid de 80 caracteres aleatórios
+    const targetCodeEl = document.getElementById('target-code');
+    if (targetCodeEl) {
+        targetCodeEl.textContent = state.targetChars.join(' ');
+    }
+
+    // Gera grid completo de 80 caracteres
     state.gridChars = [];
     for (let i = 0; i < state.gridSize; i++) {
         state.gridChars.push(getRandomChar());
     }
-    
-    // Escolher posição correta de início (garantir espaço para a sequência sem estourar 80)
-    const maxStartPos = state.gridSize - state.targetLength;
-    state.correctPos = Math.floor(Math.random() * (maxStartPos + 1));
-    
-    // Inserir a sequência exatamente a partir de correctPos
+
+    // Posiciona a sequência gabarito
+    state.correctPos = getRandomValidRowPos(state.targetLength);
     for (let i = 0; i < state.targetLength; i++) {
         state.gridChars[state.correctPos + i] = state.targetChars[i];
     }
-    
-    // Posicionar o cursor inicial
+
+    // Posiciona o cursor do jogador
     state.cursorPos = Math.floor(state.gridSize / 2) - 5;
-    
+
     renderGrid();
     startTimer();
     startScrambler();
+    updateHUD();
 }
 
 function renderGrid() {
     const gridEl = document.getElementById('character-soup-grid');
+    if (!gridEl) return;
     gridEl.innerHTML = '';
-    
+
     for (let i = 0; i < state.gridSize; i++) {
         const cell = document.createElement('div');
         cell.className = 'char-cell';
         cell.textContent = state.gridChars[i];
         cell.dataset.index = i;
-        
-        // Destacar o range do cursor selecionado (cursorPos ate cursorPos + targetLength - 1)
+
+        // Destaque do cursor
         if (i >= state.cursorPos && i < state.cursorPos + state.targetLength) {
             cell.classList.add('selected-cursor');
             if (i === state.cursorPos) {
                 cell.classList.add('selected-cursor-head');
             }
         }
-        
+
+        // Clique interativo na célula do grid
+        cell.addEventListener('click', () => {
+            initAudio();
+            if (state.gameState !== 'playing') return;
+
+            if (state.cursorPos === i) {
+                // Segundo clique na mesma célula -> envia o código
+                submitSelection();
+            } else {
+                // Primeiro clique -> move cursor para cá
+                state.cursorPos = i;
+                playSound('move');
+                updateCursorHighlight();
+            }
+        });
+
         gridEl.appendChild(cell);
     }
 }
 
+// Scrambler dinâmico: a cada 1.3 segundos, os dígitos e a sequência correm para a ESQUERDA
 function startScrambler() {
-    clearInterval(state.scrambleInterval);
+    stopScrambler();
+
     state.scrambleInterval = setInterval(() => {
         if (state.gameState !== 'playing') return;
-        
-        // 1. Mover a sequência correta 1 por 1 para a esquerda (subindo a linha ao estourar)
-        const maxStartPos = state.gridSize - state.targetLength;
-        state.correctPos--;
-        if (state.correctPos < 0) {
-            state.correctPos = maxStartPos;
+
+        // 1. Desloca todas as linhas de caracteres para a ESQUERDA
+        for (let r = 0; r < state.gridRows; r++) {
+            const rowStart = r * state.gridCols;
+            for (let c = 0; c < state.gridCols - 1; c++) {
+                state.gridChars[rowStart + c] = state.gridChars[rowStart + c + 1];
+            }
+            // Coluna na borda direita recebe novo caractere
+            state.gridChars[rowStart + state.gridCols - 1] = getRandomChar();
         }
-        
-        // 2. Deslocar toda a malha em ordem: o primeiro símbolo vai exatamente para o final
-        const firstChar = state.gridChars.shift();
-        state.gridChars.push(firstChar);
-        
-        // 3. Garantir a sequência gabarito na posição exata
+
+        // 2. Calcula nova posição do gabarito correndo para a ESQUERDA (-1)
+        let currentRow = Math.floor(state.correctPos / state.gridCols);
+        let currentCol = (state.correctPos % state.gridCols) - 1;
+
+        if (currentCol < 0) {
+            // Saiu pela borda esquerda: reaparece na borda direita da próxima linha
+            currentCol = state.gridCols - state.targetLength;
+            currentRow = (currentRow + 1) % state.gridRows;
+        }
+
+        state.correctPos = currentRow * state.gridCols + currentCol;
+
+        // 3. Garante que os caracteres da sequência alvo permaneçam na nova posição
         for (let i = 0; i < state.targetLength; i++) {
             state.gridChars[state.correctPos + i] = state.targetChars[i];
         }
-        
-        // 4. Atualizar os textos das células no DOM
+
+        // 4. Atualiza células no DOM
         const cells = document.querySelectorAll('.char-cell');
         for (let i = 0; i < state.gridSize; i++) {
             if (cells[i]) {
                 cells[i].textContent = state.gridChars[i];
             }
         }
-    }, 1500); // Passo ordenado a cada 1.5s
+    }, 1300);
 }
 
 function stopScrambler() {
-    clearInterval(state.scrambleInterval);
+    if (state.scrambleInterval) {
+        clearInterval(state.scrambleInterval);
+        state.scrambleInterval = null;
+    }
 }
 
 function updateCursorHighlight() {
@@ -195,27 +254,30 @@ function updateCursorHighlight() {
 
 function moveCursor(delta) {
     if (state.gameState !== 'playing') return;
+    initAudio();
+
     state.cursorPos += delta;
-    
+
     // Wrap around 0..79
     if (state.cursorPos < 0) {
         state.cursorPos += state.gridSize;
     } else if (state.cursorPos >= state.gridSize) {
         state.cursorPos -= state.gridSize;
     }
-    
+
     playSound('move');
     updateCursorHighlight();
 }
 
 function submitSelection() {
     if (state.gameState !== 'playing') return;
-    
+    initAudio();
+
     const elapsedTime = ((Date.now() - state.startTime) / 1000).toFixed(2);
-    
-    // Verificar se acertou a posição inicial ou se os caracteres batem exatamente
-    let isCorrect = (state.cursorPos === state.correctPos);
-    
+
+    // Checa se acertou a posição ou se a sequência de caracteres bate exatamente
+    let isCorrect = state.cursorPos === state.correctPos;
+
     if (!isCorrect) {
         let match = true;
         for (let i = 0; i < state.targetLength; i++) {
@@ -226,111 +288,121 @@ function submitSelection() {
         }
         if (match) isCorrect = true;
     }
-    
+
     if (isCorrect) {
-        // Vitória!
+        // Sucesso / Hack Concluído
         state.gameState = 'won';
         playSound('success');
         stopTimer();
         stopScrambler();
-        
+
         state.streak++;
         if (state.streak > state.maxStreak) {
             state.maxStreak = state.streak;
         }
         updateHUD();
-        
-        // Visual de acerto no grid
+
+        // Destaque visual verde
         const cells = document.querySelectorAll('.char-cell');
         for (let i = 0; i < state.targetLength; i++) {
             if (cells[state.cursorPos + i]) {
                 cells[state.cursorPos + i].classList.add('success-cell');
             }
         }
-        
-        document.getElementById('succ-time').textContent = `${elapsedTime}s`;
-        document.getElementById('succ-streak').textContent = state.streak;
-        document.getElementById('success-overlay').classList.add('show');
-        
+
+        const succTime = document.getElementById('succ-time');
+        if (succTime) succTime.textContent = `${elapsedTime}s`;
+        const succStreak = document.getElementById('succ-streak');
+        if (succStreak) succStreak.textContent = state.streak;
+
+        document.getElementById('success-overlay')?.classList.add('show');
     } else {
-        // Erro!
+        // Erro
         state.streak = 0;
         updateHUD();
         stopScrambler();
-        
-        // 1. Destacar a seleção errada do jogador em VERMELHO
+
+        // Destaca seleção errada em vermelho
         const cells = document.querySelectorAll('.char-cell');
         for (let i = 0; i < state.targetLength; i++) {
             if (cells[state.cursorPos + i]) {
                 cells[state.cursorPos + i].classList.add('fail-cell');
             }
         }
-        
-        // 2. Destacar a posição CORRETA verdadeira em VERDE
+
+        // Revela onde estava a correta em verde
         for (let i = 0; i < state.targetLength; i++) {
             if (cells[state.correctPos + i]) {
                 cells[state.correctPos + i].classList.add('success-cell');
             }
         }
-        
-        failGame('Sequência incorreta!');
+
+        failGame('Sequência incorreta! Acesso negado.');
     }
 }
 
-function failGame(msg = 'O tempo esgotou ou você errou.') {
-    if (state.gameState !== 'playing' && state.gameState !== 'lost') return;
+function failGame(msg = 'Acesso Negado: tempo esgotado ou código incorreto.') {
     state.gameState = 'lost';
     playSound('error');
     stopTimer();
     stopScrambler();
-    
+
     state.streak = 0;
     updateHUD();
-    
-    // Destacar a posição CORRETA verdadeira em VERDE ao esgotar o tempo
+
+    // Revela a posição correta em verde
     const cells = document.querySelectorAll('.char-cell');
     for (let i = 0; i < state.targetLength; i++) {
         if (cells[state.correctPos + i]) {
             cells[state.correctPos + i].classList.add('success-cell');
         }
     }
-    
-    // Garantir que a mensagem de erro pop-up NÃO apareça por cima
+
     const failOverlay = document.getElementById('fail-overlay');
-    if (failOverlay) failOverlay.classList.remove('show');
+    if (failOverlay) {
+        const failMsg = document.getElementById('fail-message');
+        if (failMsg) failMsg.textContent = msg;
+        failOverlay.classList.add('show');
+    }
 }
 
 function startTimer() {
-    clearInterval(state.timerInterval);
+    stopTimer();
     updateTimerDisplay();
+
     state.timerInterval = setInterval(() => {
         state.timer -= 0.1;
         updateTimerDisplay();
         if (state.timer <= 0) {
-            failGame('Tempo esgotado!');
+            failGame('Tempo esgotado! Acesso expirado.');
         }
     }, 100);
 }
 
 function stopTimer() {
-    clearInterval(state.timerInterval);
+    if (state.timerInterval) {
+        clearInterval(state.timerInterval);
+        state.timerInterval = null;
+    }
 }
 
 function updateTimerDisplay() {
     const t = Math.max(0, state.timer).toFixed(1);
-    document.getElementById('timer-val').textContent = `${t}s`;
+    const timerVal = document.getElementById('timer-val');
+    if (timerVal) timerVal.textContent = `${t}s`;
 }
 
 function updateHUD() {
-    document.getElementById('val-streak').textContent = state.streak;
-    document.getElementById('val-max-streak').textContent = state.maxStreak;
+    const valStreak = document.getElementById('val-streak');
+    if (valStreak) valStreak.textContent = state.streak;
+    const valMaxStreak = document.getElementById('val-max-streak');
+    if (valMaxStreak) valMaxStreak.textContent = state.maxStreak;
 }
 
-// Teclas de Atalho (WASD, Setas e Enter)
+// Atalhos de Teclado (WASD, Setas, Enter, Espaço)
 window.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
-    
-    // Quando perdeu ou ganhou, só inicia novamente se apertar ESPAÇO ou ENTER
+
     if (state.gameState === 'lost' || state.gameState === 'won') {
         if (key === 'enter' || key === ' ') {
             e.preventDefault();
@@ -338,7 +410,7 @@ window.addEventListener('keydown', (e) => {
         }
         return;
     }
-    
+
     if (state.gameState === 'playing') {
         if (key === 'w' || key === 'arrowup') {
             e.preventDefault();
@@ -355,65 +427,53 @@ window.addEventListener('keydown', (e) => {
         } else if (key === 'enter') {
             e.preventDefault();
             submitSelection();
-        } else if (key === ' ') {
+        } else if (key === 'escape') {
             e.preventDefault();
-            failGame('Hack interrompido pelo usuário.');
+            initGame();
         }
     }
 });
 
-// Event Listeners do Jogo
-const btnStop = document.getElementById('btn-stop-game');
-if (btnStop) {
-    btnStop.addEventListener('click', () => {
-        if (state.gameState === 'playing') failGame('Hack interrompido.');
-    });
-}
+// Botões interativos
+document.getElementById('btn-submit')?.addEventListener('click', submitSelection);
+document.getElementById('btn-next-puzzle')?.addEventListener('click', initGame);
+document.getElementById('btn-retry-puzzle')?.addEventListener('click', initGame);
 
-const btnSubmit = document.getElementById('btn-submit');
-if (btnSubmit) {
-    btnSubmit.addEventListener('click', () => {
-        if (state.gameState === 'playing') submitSelection();
-    });
-}
+// D-Pad Virtual para Celular e Mouse
+document.getElementById('dpad-up')?.addEventListener('click', () => moveCursor(-10));
+document.getElementById('dpad-down')?.addEventListener('click', () => moveCursor(10));
+document.getElementById('dpad-left')?.addEventListener('click', () => moveCursor(-1));
+document.getElementById('dpad-right')?.addEventListener('click', () => moveCursor(1));
 
-document.getElementById('btn-next-puzzle').addEventListener('click', initGame);
-document.getElementById('btn-retry-puzzle').addEventListener('click', initGame);
-
-// Configuração: Tipo de Caracteres (incluindo 'all' Misto)
-document.querySelectorAll('.charset-btn').forEach(btn => {
+// Seletores de Configuração
+document.querySelectorAll('.charset-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.charset-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        state.charSet = e.target.getAttribute('data-set');
+        document.querySelectorAll('.charset-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.charSet = btn.getAttribute('data-set') || 'all';
         initGame();
     });
 });
 
-// Configuração: Tamanho da Sequência
-document.querySelectorAll('.length-btn').forEach(btn => {
+document.querySelectorAll('.length-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.length-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        state.targetLength = parseInt(e.target.getAttribute('data-length'), 10);
+        document.querySelectorAll('.length-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.targetLength = parseInt(btn.getAttribute('data-length') || '4', 10);
         initGame();
     });
 });
 
-// Configuração: Tempo Limite
-document.querySelectorAll('.time-btn').forEach(btn => {
+document.querySelectorAll('.time-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        state.timeLimit = parseInt(e.target.getAttribute('data-time'), 10);
+        document.querySelectorAll('.time-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.timeLimit = parseInt(btn.getAttribute('data-time') || '20', 10);
         initGame();
     });
 });
 
-// Iniciar o jogo no carregamento
-initGame();
-
-// --- ANIMAÇÃO DE ESTRELAS NO FUNDO (PADRÃO IDÊNTICO À HOME) ---
+// Estrelas de Fundo
 const bgCanvas = document.getElementById('starfield-bg');
 if (bgCanvas) {
     const bgCtx = bgCanvas.getContext('2d');
@@ -434,17 +494,17 @@ if (bgCanvas) {
                 y: Math.random() * bgCanvas.height,
                 size: Math.random() * 1.5 + 0.5,
                 twinkleSpeed: Math.random() * 0.02 + 0.005,
-                phase: Math.random() * Math.PI
+                phase: Math.random() * Math.PI,
             });
         }
     }
 
     function animateStars() {
         bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-        stars.forEach(star => {
+        stars.forEach((star) => {
             star.phase += star.twinkleSpeed;
-            const opacity = (Math.sin(star.phase) + 1) / 2 * 0.7 + 0.3;
-            bgCtx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.65})`;
+            const opacity = ((Math.sin(star.phase) + 1) / 2) * 0.7 + 0.3;
+            bgCtx.fillStyle = `rgba(0, 210, 255, ${opacity * 0.55})`;
             bgCtx.beginPath();
             bgCtx.arc(star.x, star.y, star.size, 0, 2 * Math.PI);
             bgCtx.fill();
@@ -452,9 +512,12 @@ if (bgCanvas) {
         requestAnimationFrame(animateStars);
     }
 
-    window.addEventListener('load', () => {
-        resizeBgCanvas();
-        window.addEventListener('resize', resizeBgCanvas);
-        requestAnimationFrame(animateStars);
-    });
+    resizeBgCanvas();
+    window.addEventListener('resize', resizeBgCanvas);
+    requestAnimationFrame(animateStars);
 }
+
+// Inicia o jogo no carregamento
+window.addEventListener('DOMContentLoaded', () => {
+    initGame();
+});

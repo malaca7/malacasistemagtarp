@@ -289,7 +289,9 @@
                     const targetCityId = cityData.id || citySlug;
                     const filtered = customSystems.filter(sys => 
                         sys.is_active !== false && 
-                        (!sys.city_ids || sys.city_ids.length === 0 || sys.city_ids.includes(targetCityId) || sys.city_ids.includes(citySlug))
+                        sys.city_ids && 
+                        sys.city_ids.length > 0 &&
+                        (sys.city_ids.includes(targetCityId) || sys.city_ids.includes(citySlug))
                     );
                     if (filtered.length > 0) {
                         cityData.sistemas = filtered.map(s => ({
@@ -335,25 +337,20 @@
 
             cityData.sistemas.forEach(sys => {
                 const card = document.createElement('a');
-                const systemUrl = sys.link.includes('?') 
-                    ? `${sys.link}&cidade=${encodeURIComponent(citySlug)}` 
-                    : `${sys.link}?cidade=${encodeURIComponent(citySlug)}`;
+                const sysSlug = sys.id || 'mapa';
+                const systemUrl = `/cidades/${citySlug}/${sysSlug}/`;
                 card.href = systemUrl;
                 card.className = 'hub-city-card';
 
                 card.innerHTML = `
-                    <div class="hub-city-card-img">
-                        <img src="${sys.imagem}" alt="${sys.titulo}">
-                        <div class="hub-city-card-img-overlay"></div>
+                    <div class="hub-city-card-header-clean">
+                        <div class="hub-city-card-icon">
+                            <i class="fa-solid ${sys.icone}"></i>
+                        </div>
                         <span class="hub-city-card-tag"><i class="fa-solid ${sys.icone}"></i> ${sys.tag}</span>
                     </div>
                     <div class="hub-city-card-body">
-                        <div class="hub-city-card-title-row">
-                            <div class="hub-city-card-icon">
-                                <i class="fa-solid ${sys.icone}"></i>
-                            </div>
-                            <h3 class="hub-city-card-title">${sys.titulo}</h3>
-                        </div>
+                        <h3 class="hub-city-card-title">${sys.titulo}</h3>
                         <p class="hub-city-card-desc">${sys.descricao}</p>
                         <div class="hub-city-card-btn">
                             <span>${sys.btnTexto}</span>

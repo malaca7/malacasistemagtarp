@@ -1,36 +1,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800;900&display=swap');
 
-/* VARIABLES AND THEME CONFIGURATION (MALACA SISTEMAS - 100% LARANJA & DEGRADÊS FOGO) */
+/* VARIABLES AND THEME CONFIGURATION (MALACA SISTEMAS - TEMA CIBERNÉTICO AZUL & CIANO ELÉTRICO) */
 :root {
-    --bg-primary: #05070c;
-    --bg-secondary: #0a0d14;
-    --bg-panel: rgba(18, 22, 34, 0.8);
-    --bg-panel-hover: rgba(30, 36, 54, 0.9);
+    --bg-primary: #030712;
+    --bg-secondary: #060d1a;
+    --bg-panel: rgba(6, 13, 26, 0.85);
+    --bg-panel-hover: rgba(11, 21, 40, 0.95);
     
-    --border-color: rgba(255, 102, 0, 0.25);
-    --border-color-active: rgba(255, 119, 0, 0.8);
-    --border-color-success: rgba(255, 102, 0, 0.5);
+    --border-color: rgba(0, 210, 255, 0.28);
+    --border-color-active: rgba(0, 210, 255, 0.85);
+    --border-color-success: rgba(0, 230, 118, 0.6);
     
-    --color-orange: #ff6600;
-    --color-red: #ff3300;
-    --color-gold: #ffaa00;
-    --color-cyan: #ff6600;
-    --color-blue: #ff7700;
+    --color-orange: #00d2ff;
+    --color-red: #2563eb;
+    --color-gold: #38bdf8;
+    --color-cyan: #00d2ff;
+    --color-blue: #0284c7;
     --color-inactive: #475569;
-    --color-success: #ffaa00;
+    --color-success: #00e676;
     --color-error: #ef4444;
-    --color-warning: #ffaa00;
+    --color-warning: #38bdf8;
     
     --text-primary: #ffffff;
-    --text-secondary: #ffb880;
+    --text-secondary: #7dd3fc;
     --text-muted: #94a3b8;
     
-    --glow-orange: 0 0 22px rgba(255, 102, 0, 0.65);
-    --glow-gold: 0 0 20px rgba(255, 170, 0, 0.6);
-    --glow-red: 0 0 16px rgba(255, 51, 0, 0.6);
-    --glow-cyan: 0 0 16px rgba(255, 102, 0, 0.65);
+    --glow-orange: 0 0 22px rgba(0, 210, 255, 0.65);
+    --glow-gold: 0 0 20px rgba(56, 189, 248, 0.6);
+    --glow-red: 0 0 18px rgba(37, 99, 235, 0.65);
+    --glow-cyan: 0 0 22px rgba(0, 210, 255, 0.7);
     
-    --gradient-brand: linear-gradient(135deg, #ff6600 0%, #ff3300 50%, #ffaa00 100%);
+    --gradient-brand: linear-gradient(135deg, #00d2ff 0%, #2563eb 50%, #38bdf8 100%);
     
     --transition-speed: 0.25s;
     --font-header: 'Bebas Neue', sans-serif;
@@ -167,19 +167,19 @@ body.light-theme .char-cell.selected {
     display: flex;
     gap: 10px;
     align-items: center;
-    background: rgba(13, 13, 13, 0.92);
+    background: rgba(6, 13, 26, 0.92);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     padding: 8px 12px;
     border-radius: 30px;
-    border: 1px solid rgba(250, 118, 8, 0.35);
+    border: 1px solid rgba(0, 210, 255, 0.35);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
     transition: transform 0.3s ease, border-color 0.3s ease;
 }
 
 body.light-theme .floating-controls {
     background: rgba(255, 255, 255, 0.9);
-    border-color: rgba(250, 118, 8, 0.3);
+    border-color: rgba(0, 210, 255, 0.3);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
 
@@ -204,13 +204,13 @@ body.light-theme .floating-controls {
 }
 
 .floating-btn:hover {
-    background: rgba(250, 118, 8, 0.18);
+    background: rgba(0, 210, 255, 0.18);
     color: var(--color-orange);
 }
 
 body.light-theme .floating-btn:hover {
-    background: rgba(250, 118, 8, 0.15);
-    color: #FA7608;
+    background: rgba(0, 210, 255, 0.15);
+    color: #00d2ff;
 }
 
 .lang-btn {
@@ -238,10 +238,10 @@ body.light-theme .floating-btn:hover {
 }
 
 body {
-    background-color: #000000 !important;
+    background-color: #030712 !important;
     background-image: 
-        radial-gradient(ellipse at 50% 0%, rgba(250, 118, 8, 0.28) 0%, rgba(13, 13, 13, 0.95) 55%, #000000 100%),
-        linear-gradient(180deg, rgba(250, 118, 8, 0.18) 0%, rgba(13, 13, 13, 0.95) 50%, #000000 100%) !important;
+        radial-gradient(ellipse at 50% 0%, rgba(0, 210, 255, 0.22) 0%, rgba(6, 13, 26, 0.95) 55%, #030712 100%),
+        linear-gradient(180deg, rgba(37, 99, 235, 0.15) 0%, rgba(6, 13, 26, 0.95) 50%, #030712 100%) !important;
     background-size: cover !important;
     background-position: center !important;
     background-attachment: fixed !important;
@@ -2425,27 +2425,52 @@ body {
     gap: 6px;
 }
 
-/* --- OTIMIZAÇÃO RESPONSIVA E ELIMINAÇÃO DE BARRAS DE ROLAGEM INTERNAS --- */
+/* ==========================================================================
+   MINIGAMES PERFECT VIEWPORT FIT (LOCKPICK, HACKING, CAIXINHA)
+   NUNCA TER BARRA DE ROLAGEM - AJUSTA 100% NA TELA DO NAVEGADOR
+   ========================================================================== */
 html, body, .hacking-page-body {
-    min-height: 100vh;
-    height: auto !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important; /* Se precisar de barra de rolagem, é a da página completa */
+    height: 100% !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .app-container {
-    min-height: 100vh;
-    height: auto !important;
-    max-height: none !important;
-    padding: 20px 15px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    overflow: visible !important;
+    height: 100% !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    width: 100% !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow: hidden !important;
+    padding: clamp(4px, 1vh, 12px) clamp(6px, 1.5vw, 16px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
 }
 
-/* Remover barra de rolagem de todos os containers de sistemas internos */
+.hud-container {
+    width: 100% !important;
+    max-width: min(600px, 96vw) !important;
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    overflow: hidden !important;
+    margin: 0 auto !important;
+}
+
+/* Remover absolutamente qualquer barra de rolagem dos minijogos */
 .hud-container,
 .lockpick-device-wrapper,
 .caixinha-device-wrapper,
@@ -2454,8 +2479,6 @@ html, body, .hacking-page-body {
 .typing-sequence-container,
 .on-screen-settings-panel,
 .hud-bottom-panel {
-    max-height: none !important;
-    overflow: visible !important;
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
 }
@@ -2468,55 +2491,71 @@ html, body, .hacking-page-body {
     display: none !important;
 }
 
-.hud-container {
-    width: 100%;
-    max-width: 620px;
-    justify-content: center;
-}
-
 /* ==========================================================================
-   GTARP HACKING TELEMETRY & SPY CARD STYLING (EXACT MATCH TO SCREENSHOT)
+   GTARP HACKING TELEMETRY & SPY CARD STYLING (PERFECT FIT)
    ========================================================================== */
 
-/* Telemetry Banner - Platform Theme Match */
+/* Telemetry Banner */
 .green-telemetry-banner {
-    width: 100%;
-    max-width: 600px;
-    background: rgba(10, 15, 26, 0.88);
-    border: 1px solid rgba(0, 229, 255, 0.25);
-    border-radius: 14px;
-    padding: 14px 28px;
-    margin: 0 auto 16px auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 0 20px rgba(0, 229, 255, 0.05);
+    width: 100% !important;
+    max-width: 580px !important;
+    background: rgba(10, 15, 26, 0.88) !important;
+    border: 1px solid rgba(0, 229, 255, 0.25) !important;
+    border-radius: 10px !important;
+    padding: clamp(4px, 0.8vh, 8px) clamp(10px, 1.8vw, 18px) !important;
+    margin: 0 auto clamp(3px, 0.6vh, 6px) auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: clamp(1px, 0.3vh, 4px) !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 0 20px rgba(0, 229, 255, 0.05) !important;
 }
 
 .telemetry-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-family: var(--font-header);
-    font-size: clamp(1.15rem, 2.5vw, 1.55rem);
-    font-weight: 900;
-    letter-spacing: 1.8px;
-    color: #ffffff;
-    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-family: var(--font-header) !important;
+    font-size: clamp(0.82rem, 1.5vh, 1.1rem) !important;
+    font-weight: 900 !important;
+    letter-spacing: 1.2px !important;
+    color: #ffffff !important;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7) !important;
 }
 
 .telemetry-row span {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
 }
 
 .telemetry-icon {
-    font-size: 1.55rem;
-    color: var(--color-cyan);
-    opacity: 0.95;
-    filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.6));
+    font-size: clamp(0.95rem, 1.7vh, 1.2rem) !important;
+    color: var(--color-cyan) !important;
+    opacity: 0.95 !important;
+    filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.6)) !important;
+}
+
+/* Painel de Configurações */
+.on-screen-settings-panel {
+    width: 100% !important;
+    background: rgba(10, 15, 26, 0.85) !important;
+    border: 1px solid rgba(0, 229, 255, 0.15) !important;
+    border-radius: 8px !important;
+    padding: clamp(4px, 0.7vh, 7px) clamp(8px, 1.2vw, 12px) !important;
+    margin-bottom: clamp(3px, 0.6vh, 6px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: clamp(2px, 0.4vh, 5px) !important;
+}
+
+.setting-label {
+    font-size: clamp(0.62rem, 1vh, 0.72rem) !important;
+}
+
+.charset-btn, .length-btn, .time-btn, .diff-btn {
+    padding: clamp(2px, 0.4vh, 5px) clamp(5px, 0.7vw, 9px) !important;
+    font-size: clamp(0.62rem, 1vh, 0.72rem) !important;
 }
 
 /* Hacking Device Main Card Container */
@@ -2527,11 +2566,11 @@ html, body, .hacking-page-body {
     justify-content: center !important;
     text-align: center !important;
     width: 100% !important;
-    max-width: 600px !important;
+    max-width: 580px !important;
     background: #171d26 !important;
     border: 1px solid rgba(255, 255, 255, 0.05) !important;
     border-radius: 12px !important;
-    padding: 35px 20px 30px 20px !important;
+    padding: clamp(6px, 1.2vh, 14px) clamp(8px, 1.2vw, 16px) !important;
     position: relative !important;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
     margin: 0 auto !important;
@@ -2539,28 +2578,27 @@ html, body, .hacking-page-body {
 
 /* Spy Silhouette Icon */
 .spy-icon-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 12px;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin-bottom: clamp(1px, 0.3vh, 4px) !important;
 }
 
 .spy-icon {
-    font-size: clamp(3.8rem, 8vw, 4.6rem);
-    color: #c5cedb;
-    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+    font-size: clamp(1.6rem, 3.4vh, 2.4rem) !important;
+    color: #c5cedb !important;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5)) !important;
 }
 
 /* Host Connecting Title */
 .host-connecting-title {
-    font-family: var(--font-header);
-    font-size: clamp(1.05rem, 2.2vw, 1.25rem);
-    font-weight: 800;
-    letter-spacing: 2px;
-    color: #ffffff;
-    margin-bottom: 16px;
-    text-transform: uppercase;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    font-family: var(--font-header) !important;
+    font-size: clamp(0.6rem, 1vh, 0.72rem) !important;
+    font-weight: 800 !important;
+    letter-spacing: 1.5px !important;
+    color: #ffffff !important;
+    margin-bottom: clamp(2px, 0.4vh, 5px) !important;
+    text-transform: uppercase !important;
 }
 
 /* Target Code Display */
@@ -2568,7 +2606,7 @@ html, body, .hacking-page-body {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    margin-bottom: 18px !important;
+    margin-bottom: clamp(2px, 0.4vh, 6px) !important;
     padding: 0 !important;
     width: 100% !important;
     display: flex !important;
@@ -2577,11 +2615,11 @@ html, body, .hacking-page-body {
 
 .target-code-display {
     font-family: 'Inter', monospace, sans-serif !important;
-    font-size: clamp(2rem, 4.5vw, 2.6rem) !important;
+    font-size: clamp(1rem, 2vh, 1.4rem) !important;
     font-weight: 700 !important;
     color: #ffffff !important;
-    letter-spacing: 12px !important;
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.5) !important;
+    letter-spacing: clamp(4px, 0.7vw, 8px) !important;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.5) !important;
     text-align: center !important;
 }
 
@@ -2589,11 +2627,11 @@ html, body, .hacking-page-body {
 .character-soup-grid {
     display: grid !important;
     grid-template-columns: repeat(10, 1fr) !important;
-    gap: 8px 6px !important;
+    gap: clamp(1px, 0.3vh, 3px) clamp(2px, 0.3vw, 4px) !important;
     width: 100% !important;
-    max-width: 520px !important;
+    max-width: 480px !important;
     margin: 0 auto !important;
-    padding: 10px 0 !important;
+    padding: clamp(2px, 0.3vh, 4px) 0 !important;
     background: transparent !important;
     border: none !important;
     justify-content: center !important;
@@ -2603,6 +2641,7 @@ html, body, .hacking-page-body {
 
 .char-cell {
     aspect-ratio: 1 / 1 !important;
+    max-height: clamp(18px, 2.9vh, 26px) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -2610,7 +2649,7 @@ html, body, .hacking-page-body {
     border: 1px solid transparent !important;
     color: #cbd5e1 !important;
     font-family: monospace, 'Courier New', sans-serif !important;
-    font-size: clamp(1.3rem, 2.8vw, 1.65rem) !important;
+    font-size: clamp(0.7rem, 1.3vh, 0.92rem) !important;
     font-weight: bold !important;
     cursor: pointer !important;
     border-radius: 4px !important;
@@ -2628,6 +2667,120 @@ html, body, .hacking-page-body {
     background: rgba(0, 229, 255, 0.45) !important;
     border-color: #00e5ff !important;
     color: #ffffff !important;
+}
+
+/* Action Bar */
+.hacking-action-bar {
+    margin-top: clamp(4px, 0.8vh, 8px) !important;
+    gap: clamp(4px, 0.7vw, 8px) !important;
+}
+
+.hacking-action-bar .btn-primary {
+    padding: clamp(4px, 0.8vh, 8px) clamp(10px, 1.5vw, 18px) !important;
+    font-size: clamp(0.68rem, 1.1vh, 0.8rem) !important;
+}
+
+.dpad-btn {
+    padding: clamp(3px, 0.5vh, 5px) clamp(6px, 0.9vw, 9px) !important;
+    font-size: clamp(0.65rem, 1vh, 0.75rem) !important;
+}
+
+/* ==========================================================================
+   LOCKPICK & CAIXINHA RESPONSIVE FIT
+   ========================================================================== */
+.lockpick-device-wrapper {
+    width: clamp(220px, 38vh, 380px) !important;
+    height: clamp(220px, 38vh, 380px) !important;
+    max-width: 86vw !important;
+    max-height: 86vw !important;
+    margin: 0 auto !important;
+}
+
+.hud-bottom-panel {
+    padding: clamp(5px, 1vh, 10px) clamp(8px, 1.2vw, 14px) !important;
+    gap: clamp(3px, 0.5vh, 6px) !important;
+    margin-top: clamp(3px, 0.5vh, 6px) !important;
+}
+
+.hud-panel-header {
+    padding-bottom: clamp(3px, 0.5vh, 6px) !important;
+}
+
+.hud-title {
+    font-size: clamp(0.75rem, 1.4vh, 0.95rem) !important;
+}
+
+.hud-keys-grid {
+    gap: clamp(3px, 0.5vh, 6px) !important;
+}
+
+.hud-key-btn {
+    width: clamp(34px, 5.8vh, 48px) !important;
+    height: clamp(34px, 5.8vh, 48px) !important;
+}
+
+/* Caixinha Fit */
+.caixinha-eletronico-container {
+    max-width: min(580px, 96vw) !important;
+}
+
+.caixinha-device-wrapper {
+    padding: clamp(8px, 1.4vh, 16px) clamp(10px, 1.5vw, 18px) !important;
+}
+
+.caixinha-card-header {
+    padding-bottom: clamp(3px, 0.6vh, 8px) !important;
+    margin-bottom: clamp(5px, 0.8vh, 10px) !important;
+}
+
+.caixinha-card-header h2 {
+    font-size: clamp(0.9rem, 1.5vh, 1.15rem) !important;
+}
+
+.caixinha-counter {
+    font-size: clamp(0.8rem, 1.3vh, 0.95rem) !important;
+    margin-bottom: clamp(2px, 0.4vh, 5px) !important;
+}
+
+.caixinha-timer-bar {
+    height: clamp(6px, 1vh, 10px) !important;
+    margin-bottom: clamp(6px, 1vh, 12px) !important;
+}
+
+.typing-sequence {
+    gap: clamp(3px, 0.6vw, 6px) !important;
+    margin-bottom: clamp(5px, 0.8vh, 10px) !important;
+}
+
+.typing-square {
+    width: clamp(32px, 5.4vh, 48px) !important;
+    height: clamp(32px, 5.4vh, 48px) !important;
+    font-size: clamp(1rem, 2vh, 1.45rem) !important;
+}
+
+.virtual-keypad {
+    gap: clamp(3px, 0.5vh, 6px) !important;
+    margin-top: clamp(4px, 0.7vh, 8px) !important;
+}
+
+.vkey-btn {
+    padding: clamp(3px, 0.6vh, 6px) clamp(7px, 1.1vw, 12px) !important;
+    font-size: clamp(0.7rem, 1.1vh, 0.82rem) !important;
+}
+
+/* Escalamento suave para telas ultra-compactas */
+@media (max-height: 660px) {
+    .hud-container {
+        transform: scale(0.9);
+        transform-origin: center center;
+    }
+}
+
+@media (max-height: 560px) {
+    .hud-container {
+        transform: scale(0.8);
+        transform-origin: center center;
+    }
 }
 
 /* ==========================================================================
@@ -2960,13 +3113,13 @@ html, body, .hacking-page-body {
 }
 
 .hub-navbar.scrolled {
-    background: rgba(13, 13, 13, 0.92);
+    background: rgba(6, 13, 26, 0.94);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.9);
     margin: 0 -24px;
     padding: 14px 24px;
-    border-bottom: 1px solid rgba(250, 118, 8, 0.2);
+    border-bottom: 1px solid rgba(0, 210, 255, 0.25);
 }
 
 .hub-nav-left {
@@ -2988,18 +3141,18 @@ html, body, .hacking-page-body {
     max-height: 34px;
     width: auto;
     object-fit: contain;
-    filter: drop-shadow(0 0 10px rgba(250, 118, 8, 0.6));
+    filter: drop-shadow(0 0 10px rgba(0, 210, 255, 0.6));
     transition: transform 0.25s ease, filter 0.25s ease;
 }
 
 .hub-brand:hover .hub-logo-img {
     transform: scale(1.04);
-    filter: drop-shadow(0 0 16px rgba(255, 181, 46, 0.85));
+    filter: drop-shadow(0 0 16px rgba(0, 210, 255, 0.85));
 }
 
 .hub-accent {
-    color: #FFB52E;
-    text-shadow: 0 0 8px rgba(255, 181, 46, 0.5);
+    color: #00d2ff;
+    text-shadow: 0 0 8px rgba(0, 210, 255, 0.5);
 }
 
 .hub-nav-links {
@@ -3031,9 +3184,9 @@ html, body, .hacking-page-body {
     left: 0;
     width: 100%;
     height: 2px;
-    background: linear-gradient(90deg, #FA7608, #FFB52E);
+    background: linear-gradient(90deg, #00d2ff, #2563eb);
     border-radius: 2px;
-    box-shadow: 0 0 12px rgba(250, 118, 8, 0.8);
+    box-shadow: 0 0 12px rgba(0, 210, 255, 0.8);
 }
 
 .hub-nav-right {
@@ -3045,28 +3198,28 @@ html, body, .hacking-page-body {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255, 181, 46, 0.08);
-    border: 1px solid rgba(255, 181, 46, 0.3);
+    background: rgba(0, 210, 255, 0.08);
+    border: 1px solid rgba(0, 210, 255, 0.3);
     padding: 6px 14px;
     border-radius: 20px;
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 1px;
-    color: #FFB52E;
+    color: #38bdf8;
 }
 
 .hub-pulse-dot {
     width: 7px;
     height: 7px;
-    background: #FFB52E;
+    background: #00d2ff;
     border-radius: 50%;
-    box-shadow: 0 0 8px #FFB52E;
+    box-shadow: 0 0 8px #00d2ff;
     animation: hubPulse 2s infinite;
 }
 
 @keyframes hubPulse {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 181, 46, 0.6); }
-    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(255, 181, 46, 0); }
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 210, 255, 0.6); }
+    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(0, 210, 255, 0); }
     100% { transform: scale(0.95); }
 }
 
@@ -3090,8 +3243,8 @@ html, body, .hacking-page-body {
     font-size: 0.82rem;
     font-weight: 700;
     letter-spacing: 4px;
-    color: #FFB52E;
-    text-shadow: 0 0 15px rgba(255, 181, 46, 0.45);
+    color: #38bdf8;
+    text-shadow: 0 0 15px rgba(0, 210, 255, 0.45);
 }
 
 .hub-hero-title {
@@ -3219,8 +3372,8 @@ html, body, .hacking-page-body {
 }
 
 .hub-card {
-    background: #0D0D0D;
-    border: 1px solid rgba(250, 118, 8, 0.22);
+    background: #060d1a;
+    border: 1px solid rgba(0, 210, 255, 0.22);
     border-radius: 16px;
     padding: 22px 24px;
     display: flex;
@@ -3240,16 +3393,16 @@ html, body, .hacking-page-body {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent 0%, #FA7608 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, #00d2ff 50%, transparent 100%);
     opacity: 0;
     transition: opacity 0.35s ease;
 }
 
 .hub-card:hover {
-    border-color: rgba(255, 181, 46, 0.5);
-    background: #0D0D0D;
+    border-color: rgba(0, 210, 255, 0.6);
+    background: #0b1528;
     transform: translateY(-3px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.95), 0 0 25px rgba(250, 118, 8, 0.25);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.95), 0 0 25px rgba(0, 210, 255, 0.25);
 }
 
 .hub-card:hover::before {
@@ -3266,13 +3419,13 @@ html, body, .hacking-page-body {
     width: 48px;
     height: 48px;
     border-radius: 12px;
-    background: rgba(250, 118, 8, 0.12);
-    border: 1px solid rgba(255, 181, 46, 0.35);
+    background: rgba(0, 210, 255, 0.12);
+    border: 1px solid rgba(0, 210, 255, 0.35);
     display: flex;
     justify-content: center;
     align-items: center;
     font-size: 1.2rem;
-    color: #FFB52E;
+    color: #38bdf8;
     flex-shrink: 0;
     transition: transform 0.3s ease;
 }
@@ -3292,7 +3445,7 @@ html, body, .hacking-page-body {
     font-size: 0.65rem;
     font-weight: 700;
     letter-spacing: 1.5px;
-    color: #FA7608;
+    color: #00d2ff;
 }
 
 .hub-card-title {
@@ -3318,7 +3471,7 @@ html, body, .hacking-page-body {
     display: flex;
     align-items: center;
     gap: 3px;
-    color: #fbbf24;
+    color: #38bdf8;
     font-size: 0.78rem;
 }
 
@@ -3344,9 +3497,9 @@ html, body, .hacking-page-body {
     gap: 8px;
     padding: 11px 20px;
     border-radius: 10px;
-    background: linear-gradient(135deg, rgba(250, 118, 8, 0.15) 0%, rgba(231, 55, 1, 0.1) 100%);
-    border: 1px solid rgba(255, 181, 46, 0.3);
-    color: #FFB52E;
+    background: linear-gradient(135deg, rgba(0, 210, 255, 0.15) 0%, rgba(37, 99, 235, 0.1) 100%);
+    border: 1px solid rgba(0, 210, 255, 0.3);
+    color: #38bdf8;
     font-family: var(--font-header);
     font-size: 0.75rem;
     font-weight: 700;
@@ -3355,10 +3508,10 @@ html, body, .hacking-page-body {
 }
 
 .hub-card:hover .hub-card-btn {
-    background: linear-gradient(135deg, #FA7608 0%, #E73701 50%, #FFB52E 100%);
-    color: #FFFFFF;
-    border-color: #FA7608;
-    box-shadow: 0 4px 20px rgba(250, 118, 8, 0.45);
+    background: linear-gradient(135deg, #00d2ff 0%, #2563eb 50%, #38bdf8 100%);
+    color: #030712;
+    border-color: #00d2ff;
+    box-shadow: 0 4px 20px rgba(0, 210, 255, 0.45);
 }
 
 .hub-card-btn i {
@@ -3470,9 +3623,9 @@ html, body, .hacking-page-body {
 }
 
 .hub-tab.active {
-    background: rgba(250, 118, 8, 0.15);
-    border-color: rgba(255, 181, 46, 0.4);
-    color: #FA7608;
+    background: rgba(0, 210, 255, 0.15);
+    border-color: rgba(56, 189, 248, 0.4);
+    color: #00d2ff;
 }
 
 .hub-explore-grid {
@@ -3482,8 +3635,8 @@ html, body, .hacking-page-body {
 }
 
 .hub-explore-card {
-    background: #0D0D0D;
-    border: 1px solid rgba(250, 118, 8, 0.18);
+    background: #060d1a;
+    border: 1px solid rgba(0, 210, 255, 0.2);
     border-radius: 14px;
     overflow: hidden;
     text-decoration: none;
@@ -3492,9 +3645,9 @@ html, body, .hacking-page-body {
 }
 
 .hub-explore-card:hover {
-    border-color: rgba(255, 181, 46, 0.5);
+    border-color: rgba(56, 189, 248, 0.5);
     transform: translateY(-3px);
-    box-shadow: 0 8px 30px rgba(250, 118, 8, 0.2);
+    box-shadow: 0 8px 30px rgba(0, 210, 255, 0.2);
 }
 
 .hub-explore-thumb {
@@ -3583,7 +3736,7 @@ html, body, .hacking-page-body {
 }
 
 .hub-footer-links a:hover {
-    color: #FA7608;
+    color: #00d2ff;
 }
 
 .hub-footer-social {
@@ -3599,7 +3752,7 @@ html, body, .hacking-page-body {
 }
 
 .hub-footer-social a:hover {
-    color: #FFB52E;
+    color: #38bdf8;
     transform: translateY(-2px);
 }
 
@@ -3704,69 +3857,50 @@ html, body, .hacking-page-body {
 
 /* Reuse hub-card styles for city system cards */
 .hub-city-card {
-    background: rgba(12, 20, 40, 0.65);
-    border: 1px solid rgba(0, 180, 255, 0.12);
+    background: rgba(6, 13, 26, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 210, 255, 0.25);
     border-radius: 16px;
     overflow: hidden;
     text-decoration: none;
     color: inherit;
     display: flex;
     flex-direction: column;
-    transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+    padding: 22px;
+    gap: 14px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
 .hub-city-card:hover {
-    border-color: rgba(0, 180, 255, 0.35);
+    border-color: #00d2ff;
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 180, 255, 0.1);
+    box-shadow: 0 12px 30px rgba(0, 210, 255, 0.25);
+    background: rgba(11, 21, 40, 0.95);
 }
 
-.hub-city-card-img {
-    position: relative;
-    width: 100%;
-    height: 140px;
-    overflow: hidden;
-}
-
-.hub-city-card-img img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s ease;
-}
-
-.hub-city-card:hover .hub-city-card-img img {
-    transform: scale(1.08);
-}
-
-.hub-city-card-img-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to bottom, rgba(10, 14, 26, 0.15) 0%, rgba(10, 14, 26, 0.9) 100%);
+.hub-city-card-header-clean {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .hub-city-card-tag {
-    position: absolute;
-    top: 12px;
-    left: 14px;
-    z-index: 5;
-    background: rgba(10, 14, 26, 0.8);
-    backdrop-filter: blur(10px);
-    padding: 4px 12px;
-    border-radius: 16px;
-    border: 1px solid rgba(0, 212, 255, 0.2);
+    background: rgba(0, 210, 255, 0.15);
+    border: 1px solid rgba(0, 210, 255, 0.35);
+    padding: 4px 10px;
+    border-radius: 12px;
     font-family: var(--font-header);
     font-size: 0.65rem;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: 1px;
-    color: #00d4ff;
+    color: #38bdf8;
 }
 
 .hub-city-card-body {
-    padding: 18px 20px;
+    padding: 0;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -3780,30 +3914,38 @@ html, body, .hacking-page-body {
 }
 
 .hub-city-card-icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
-    background: rgba(0, 212, 255, 0.08);
-    border: 1px solid rgba(0, 212, 255, 0.2);
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(0, 210, 255, 0.15);
+    border: 1px solid rgba(0, 210, 255, 0.35);
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.1rem;
-    color: #00d4ff;
+    font-size: 1.2rem;
+    color: #38bdf8;
     flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.hub-city-card:hover .hub-city-card-icon {
+    background: #00d2ff;
+    color: #030712;
+    border-color: #38bdf8;
+    box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
 }
 
 .hub-city-card-title {
     font-family: var(--font-header);
-    font-size: 1rem;
-    font-weight: 800;
+    font-size: 1.05rem;
+    font-weight: 900;
     letter-spacing: 1px;
     color: #ffffff;
 }
 
 .hub-city-card-desc {
-    font-size: 0.84rem;
-    color: #8b9cb5;
+    font-size: 0.82rem;
+    color: #94a3b8;
     line-height: 1.5;
     flex: 1;
 }
@@ -3815,22 +3957,22 @@ html, body, .hacking-page-body {
     gap: 8px;
     padding: 10px 16px;
     border-radius: 10px;
-    background: rgba(0, 212, 255, 0.08);
-    border: 1px solid rgba(0, 212, 255, 0.2);
-    color: #00d4ff;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
     font-family: var(--font-header);
     font-size: 0.72rem;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: 1.5px;
     transition: all 0.3s ease;
     margin-top: 4px;
 }
 
 .hub-city-card:hover .hub-city-card-btn {
-    background: linear-gradient(135deg, #00d4ff 0%, #0088cc 100%);
-    color: #000;
-    border-color: #00d4ff;
-    box-shadow: 0 4px 16px rgba(0, 212, 255, 0.3);
+    background: linear-gradient(135deg, #00d2ff 0%, #2563eb 100%);
+    color: #030712;
+    border-color: #38bdf8;
+    box-shadow: 0 4px 16px rgba(0, 210, 255, 0.35);
 }
 
 /* Back button for city page */
@@ -4523,4 +4665,31 @@ html, body, .hacking-page-body {
         padding: 0 16px;
     }
 }
+
+/* Interactive Map Dark/Light Theme */
+.map-dark-theme .leaflet-image-layer,
+.map-dark-theme .gta-map-image-layer,
+.map-dark-theme .leaflet-overlay-pane img,
+.map-dark-theme .leaflet-pane img {
+    filter: brightness(0.32) contrast(1.55) saturate(0.65) invert(0.06) !important;
+    transition: filter 0.35s ease !important;
+}
+
+.map-dark-theme .leaflet-container {
+    background-color: #060913 !important;
+}
+
+.map-light-theme .leaflet-image-layer,
+.map-light-theme .gta-map-image-layer,
+.map-light-theme .leaflet-overlay-pane img,
+.map-light-theme .leaflet-pane img {
+    filter: none !important;
+    transition: filter 0.35s ease !important;
+}
+
+.map-light-theme .leaflet-container {
+    background-color: #1e293b !important;
+}
+
+
 

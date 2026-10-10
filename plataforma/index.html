@@ -36,9 +36,12 @@
                 <a href="/sistemas/" class="hub-nav-link">SISTEMAS</a>
                 <a href="/plataforma/" class="hub-nav-link active">PLATAFORMA</a>
             </div>
-            <div class="hub-nav-right">
-                <button onclick="openAppearanceModal()" class="hub-nav-link" style="background: rgba(250,118,8,0.15); color: #FFB52E; border: 1px solid rgba(250,118,8,0.3); padding: 6px 14px; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; items-center; gap: 6px;">
-                    <i class="fa-solid fa-sliders" style="color: #FA7608;"></i> APARÊNCIA
+            <div class="hub-nav-right" style="display: flex; gap: 8px;">
+                <button onclick="openDiscordModal()" class="hub-discord-btn" style="background: #5865F2; color: #fff; border: 1px solid #5865F2; padding: 6px 14px; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-brands fa-discord"></i> ENTRAR
+                </button>
+                <button onclick="openAppearanceModal()" class="hub-nav-link" style="background: rgba(0,210,255,0.15); color: #38bdf8; border: 1px solid rgba(0,210,255,0.3); padding: 6px 14px; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; items-center; gap: 6px;">
+                    <i class="fa-solid fa-sliders" style="color: #00d2ff;"></i> APARÊNCIA
                 </button>
             </div>
         </nav>
@@ -54,14 +57,14 @@
 
         <!-- DEVELOPER CARD & PLATFORM DETAILS -->
         <main class="hub-main" style="grid-template-columns: 1fr; max-width: 900px; margin: 0 auto; gap: 24px;">
-            <section class="hub-dev-card" style="background: #0D0D0D; border: 1px solid rgba(250, 118, 8, 0.35); border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8); position: relative; overflow: hidden;">
-                <div style="position: absolute; top: -60px; right: -60px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(250, 118, 8, 0.25) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
+            <section class="hub-dev-card" style="background: #0D0D0D; border: 1px solid rgba(0, 210, 255, 0.35); border-radius: 24px; padding: 40px; text-align: center; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8); position: relative; overflow: hidden;">
+                <div style="position: absolute; top: -60px; right: -60px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(0, 210, 255, 0.25) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
                 
-                <div style="width: 84px; height: 84px; border-radius: 24px; background: linear-gradient(135deg, #FA7608 0%, #E73701 50%, #FFB52E 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 2.2rem; color: #FFFFFF; box-shadow: 0 10px 30px rgba(250, 118, 8, 0.4);">
+                <div style="width: 84px; height: 84px; border-radius: 24px; background: linear-gradient(135deg, #00d2ff 0%, #2563eb 50%, #38bdf8 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 2.2rem; color: #FFFFFF; box-shadow: 0 10px 30px rgba(0, 210, 255, 0.4);">
                     <i class="fa-solid fa-code"></i>
                 </div>
 
-                <span style="font-family: var(--font-header); font-size: 0.75rem; font-weight: 800; letter-spacing: 2px; color: #FFB52E; text-transform: uppercase; background: rgba(250, 118, 8, 0.15); padding: 6px 18px; border-radius: 20px; border: 1px solid rgba(250, 118, 8, 0.4);">
+                <span style="font-family: var(--font-header); font-size: 0.75rem; font-weight: 800; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; background: rgba(0, 210, 255, 0.15); padding: 6px 18px; border-radius: 20px; border: 1px solid rgba(0, 210, 255, 0.4);">
                     DESENVOLVEDOR OFICIAL
                 </span>
 
@@ -74,12 +77,12 @@
                 </p>
 
                 <!-- DISCORD HIGHLIGHT BADGE & ACTIONS -->
-                <div style="display: inline-flex; flex-direction: column; align-items: center; gap: 14px; background: rgba(250, 118, 8, 0.08); border: 1px solid rgba(250, 118, 8, 0.3); border-radius: 20px; padding: 24px 36px;">
-                    <div style="display: flex; align-items: center; gap: 12px; color: #FFB52E; font-family: var(--font-header); font-size: 1.15rem; font-weight: 800;">
-                        <i class="fa-brands fa-discord" style="font-size: 1.6rem; color: #FA7608;"></i>
+                <div style="display: inline-flex; flex-direction: column; align-items: center; gap: 14px; background: rgba(0, 210, 255, 0.08); border: 1px solid rgba(0, 210, 255, 0.3); border-radius: 20px; padding: 24px 36px;">
+                    <div style="display: flex; align-items: center; gap: 12px; color: #38bdf8; font-family: var(--font-header); font-size: 1.15rem; font-weight: 800;">
+                        <i class="fa-brands fa-discord" style="font-size: 1.6rem; color: #00d2ff;"></i>
                         <span>DISCORD: <strong style="color: #FFFFFF; font-family: monospace; font-size: 1.3rem;">malaca7</strong></span>
                     </div>
-                    <button onclick="navigator.clipboard.writeText('malaca7'); alert('Tag do Discord malaca7 copiada com sucesso!')" style="background: linear-gradient(135deg, #FA7608 0%, #E73701 50%, #FFB52E 100%); color: #FFFFFF; border: none; padding: 12px 24px; border-radius: 12px; font-family: var(--font-header); font-size: 0.85rem; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 10px; box-shadow: 0 6px 20px rgba(250, 118, 8, 0.35);">
+                    <button onclick="navigator.clipboard.writeText('malaca7'); alert('Tag do Discord malaca7 copiada com sucesso!')" style="background: linear-gradient(135deg, #00d2ff 0%, #2563eb 50%, #38bdf8 100%); color: #FFFFFF; border: none; padding: 12px 24px; border-radius: 12px; font-family: var(--font-header); font-size: 0.85rem; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 10px; box-shadow: 0 6px 20px rgba(0, 210, 255, 0.35);">
                         <i class="fa-solid fa-copy"></i> COPIAR DISCORD (malaca7)
                     </button>
                 </div>

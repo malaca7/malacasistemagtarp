@@ -3,26 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Hacking | Portal de Treinamento</title>
+    <title>Hacking Device | Malaca System GTARP</title>
     <meta name="description" content="Simulador de hacking e decodificação de sistema. Encontre a sequência alvo na malha de caracteres.">
     
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     
-    <!-- Link para a folha de estilo -->
-    <link rel="stylesheet" href="../styles.css">
-    
-    <!-- FontAwesome para ícones -->
+    <link rel="icon" type="image/png" href="/images/platform_icon.png">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/admin-overlay.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- Canvas de Fundo Estrelado -->
     <canvas id="starfield-bg"></canvas>
 
-    <!-- Botão de voltar para a Cidade/Home -->
-    <a href="../" class="home-back-btn" title="Voltar" id="back-btn">
+    <a href="/cidades/cda/" class="home-back-btn" title="Voltar" id="back-btn">
         <i class="fa-solid fa-arrow-left"></i>
     </a>
     <script>
@@ -30,15 +26,17 @@
         const city = params.get('cidade') || params.get('server');
         const backBtn = document.getElementById('back-btn');
         if (backBtn) {
-            backBtn.href = city ? `/cidades/${encodeURIComponent(city)}/` : '/cidades/cda/';
+            const currentPath = window.location.pathname;
+            if (currentPath.includes('/valley/')) backBtn.href = '/cidades/valley/';
+            else if (currentPath.includes('/los-santos/')) backBtn.href = '/cidades/los-santos/';
+            else if (currentPath.includes('/cda/')) backBtn.href = '/cidades/cda/';
+            else if (city) backBtn.href = `/cidades/${encodeURIComponent(city)}/`;
+            else backBtn.href = '/cidades/cda/';
         }
     </script>
 
     <div class="app-container">
-        <!-- HUD Centralizado -->
         <main class="hud-container hacking-hud-container">
-            
-            <!-- BANNER SUPERIOR DE TELEMETRIA (ESTILO EXATO GTARP) -->
             <div class="green-telemetry-banner">
                 <div class="telemetry-row">
                     <span><span data-i18n="telemetry_streak">ACERTOS:</span> <strong id="val-streak">0</strong></span>
@@ -52,7 +50,6 @@
                 </div>
             </div>
 
-            <!-- 1. BARRA DE CONFIGURAÇÕES NA TELA (NO MEIO) -->
             <div class="on-screen-settings-panel">
                 <div class="setting-row-center">
                     <span class="setting-label"><i class="fa-solid fa-font"></i> <span data-i18n="type_label">TIPO:</span></span>
@@ -91,9 +88,7 @@
                 </div>
             </div>
 
-            <!-- 2. BANNER DE MENSAGENS ACIMA DO SISTEMA -->
             <div class="top-status-banner" id="status-banner">
-                <!-- Mensagem de Sucesso -->
                 <div class="success-overlay" id="success-overlay">
                     <div class="banner-box success-box-top">
                         <div class="banner-text">
@@ -105,7 +100,6 @@
                     </div>
                 </div>
                 
-                <!-- Mensagem de Falha -->
                 <div class="success-overlay" id="fail-overlay">
                     <div class="banner-box fail-box-top">
                         <div class="banner-text">
@@ -117,33 +111,43 @@
                 </div>
             </div>
 
-            <!-- 3. DISPOSITIVO CENTRAL DE HACKING (ESTILO GTARP IDENTICO AO PRINT) -->
             <div class="hacking-device-wrapper">
-                <!-- Ícone de Espião (Spy Silhouette Icon) -->
                 <div class="spy-icon-wrapper">
                     <i class="fa-solid fa-user-secret spy-icon"></i>
                 </div>
 
-                <!-- Título Status do Host -->
                 <div class="host-connecting-title" data-i18n="connecting_host_text">
                     CONECTANDO AO SERVIDOR
                 </div>
 
-                <!-- Sequência Alvo -->
                 <div class="hacking-target-panel">
                     <div class="target-code-display" id="target-code">LOADING...</div>
                 </div>
 
-                <!-- Malha de Caracteres (8x10 Grid = 80 Células) -->
                 <div class="character-soup-grid" id="character-soup-grid">
                     <!-- Gerado dinamicamente via JS -->
+                </div>
+
+                <div class="hacking-action-bar" style="margin-top: 18px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px;">
+                    <button class="btn btn-primary" id="btn-submit" style="padding: 11px 26px; font-size: 14px; font-weight: 800; border-radius: 10px; cursor: pointer;">
+                        <i class="fa-solid fa-terminal"></i> ENVIAR CÓDIGO (ENTER)
+                    </button>
+
+                    <div class="dpad-controls" style="display: flex; gap: 6px; align-items: center;">
+                        <button class="btn btn-secondary dpad-btn" id="dpad-left" title="Esquerda (A)" style="padding: 8px 14px;">◀</button>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <button class="btn btn-secondary dpad-btn" id="dpad-up" title="Cima (W)" style="padding: 6px 14px;">▲</button>
+                            <button class="btn btn-secondary dpad-btn" id="dpad-down" title="Baixo (S)" style="padding: 6px 14px;">▼</button>
+                        </div>
+                        <button class="btn btn-secondary dpad-btn" id="dpad-right" title="Direita (D)" style="padding: 8px 14px;">▶</button>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Script de Hacking -->
-    <script type="module" src="../i18n.js"></script>
-    <script type="module" src="../hacking.js"></script>
+    <script type="module" src="/i18n.js"></script>
+    <script type="module" src="/hacking.js"></script>
+    <script type="module" src="/admin-overlay.js"></script>
 </body>
 </html>

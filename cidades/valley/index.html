@@ -77,9 +77,10 @@
             <div class="hub-city-grid" id="city-systems-grid">
                 <!-- Sistema 1: Mapa -->
                 <a href="/cidades/valley/mapa/" class="hub-city-card">
-                    <div class="hub-city-card-img">
-                        <img src="/images/gta_map_bg.webp" alt="MAPA INTERATIVO">
-                        <div class="hub-city-card-img-overlay"></div>
+                    <div class="hub-city-card-header-clean">
+                        <div class="hub-city-card-icon">
+                            <i class="fa-solid fa-compass"></i>
+                        </div>
                         <span class="hub-city-card-tag"><i class="fa-solid fa-compass"></i> REALTIME MAP</span>
                     </div>
                     <div class="hub-city-card-body">
@@ -94,9 +95,10 @@
 
                 <!-- Sistema 2: Lockpick -->
                 <a href="/cidades/valley/lockpick/" class="hub-city-card">
-                    <div class="hub-city-card-img">
-                        <img src="/images/lockpick.jpg" alt="LOCKPICK SIMULATOR">
-                        <div class="hub-city-card-img-overlay"></div>
+                    <div class="hub-city-card-header-clean">
+                        <div class="hub-city-card-icon">
+                            <i class="fa-solid fa-key"></i>
+                        </div>
                         <span class="hub-city-card-tag"><i class="fa-solid fa-key"></i> LOCKPICK KIT</span>
                     </div>
                     <div class="hub-city-card-body">
@@ -111,9 +113,10 @@
 
                 <!-- Sistema 3: Caixinha -->
                 <a href="/cidades/valley/caixinha/" class="hub-city-card">
-                    <div class="hub-city-card-img">
-                        <img src="/images/caixinha.jpg" alt="CAIXINHA ELETRÔNICO">
-                        <div class="hub-city-card-img-overlay"></div>
+                    <div class="hub-city-card-header-clean">
+                        <div class="hub-city-card-icon">
+                            <i class="fa-solid fa-vault"></i>
+                        </div>
                         <span class="hub-city-card-tag"><i class="fa-solid fa-vault"></i> ATM HACK</span>
                     </div>
                     <div class="hub-city-card-body">
@@ -128,9 +131,10 @@
 
                 <!-- Sistema 4: Hacking -->
                 <a href="/cidades/valley/hacking/" class="hub-city-card">
-                    <div class="hub-city-card-img">
-                        <img src="/images/hacking.jpg" alt="HACKING DEVICE">
-                        <div class="hub-city-card-img-overlay"></div>
+                    <div class="hub-city-card-header-clean">
+                        <div class="hub-city-card-icon">
+                            <i class="fa-solid fa-microchip"></i>
+                        </div>
                         <span class="hub-city-card-tag"><i class="fa-solid fa-microchip"></i> CYBER TERMINAL</span>
                     </div>
                     <div class="hub-city-card-body">
@@ -162,5 +166,10 @@
     </div>
 
     <script type="module" src="/admin-overlay.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.loadCitySystems) window.loadCitySystems('valley');
+        });
+    </script>
 </body>
 </html>

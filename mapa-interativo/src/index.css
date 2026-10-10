@@ -17,8 +17,14 @@
 .leaflet-container {
   width: 100% !important;
   height: 100% !important;
-  background-color: #0D0D0D !important;
+  background-color: #060d1a !important;
   outline: none;
+}
+
+.leaflet-div-icon,
+.custom-map-pin-wrapper {
+  background: transparent !important;
+  border: none !important;
 }
  
 @layer base {
@@ -93,3 +99,30 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Interactive Map Dark/Light Theme */
+.map-dark-theme .leaflet-image-layer,
+.map-dark-theme .gta-map-image-layer,
+.map-dark-theme .leaflet-overlay-pane img,
+.map-dark-theme .leaflet-pane img {
+  filter: brightness(0.32) contrast(1.55) saturate(0.65) invert(0.06) !important;
+  transition: filter 0.35s ease !important;
+}
+
+.map-dark-theme .leaflet-container {
+  background-color: #060913 !important;
+}
+
+.map-light-theme .leaflet-image-layer,
+.map-light-theme .gta-map-image-layer,
+.map-light-theme .leaflet-overlay-pane img,
+.map-light-theme .leaflet-pane img {
+  filter: none !important;
+  transition: filter 0.35s ease !important;
+}
+
+.map-light-theme .leaflet-container {
+  background-color: #1e293b !important;
+}
+
+

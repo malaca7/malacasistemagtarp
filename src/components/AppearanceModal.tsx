@@ -63,12 +63,12 @@ export const AppearanceModal: React.FC<AppearanceModalProps> = ({ isOpen, onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-[#0D0D0D] border border-[#FA7608]/40 rounded-2xl shadow-2xl overflow-hidden p-6 space-y-6">
+      <div className="relative w-full max-w-md bg-[#060d1a] border border-[#00d2ff]/40 rounded-2xl shadow-2xl overflow-hidden p-6 space-y-6">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-[#FA7608]/20 border border-[#FA7608]/30 text-[#FFB52E]">
+            <div className="p-2 rounded-xl bg-[#00d2ff]/20 border border-[#00d2ff]/30 text-[#38bdf8]">
               <Sliders className="w-5 h-5" />
             </div>
             <div>
@@ -86,18 +86,18 @@ export const AppearanceModal: React.FC<AppearanceModalProps> = ({ isOpen, onClos
 
         {/* 1. SELEÇÃO DE TEMAS */}
         <div className="space-y-3">
-          <label className="text-xs font-extrabold text-[#FFB52E] uppercase tracking-wider flex items-center gap-2">
-            <Palette className="w-4 h-4 text-[#FA7608]" />
+          <label className="text-xs font-extrabold text-[#38bdf8] uppercase tracking-wider flex items-center gap-2">
+            <Palette className="w-4 h-4 text-[#00d2ff]" />
             Tema Visual
           </label>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { id: 'escuro', name: 'Escuro', bg: 'bg-[#0D0D0D]', border: 'border-[#FA7608]' },
-              { id: 'oled', name: 'OLED (Pitch)', bg: 'bg-black', border: 'border-amber-400' },
+              { id: 'escuro', name: 'Malaca Cyber', bg: 'bg-[#060d1a]', border: 'border-[#00d2ff]' },
+              { id: 'oled', name: 'OLED (Pitch)', bg: 'bg-black', border: 'border-cyan-400' },
               { id: 'dracula', name: 'Dracula', bg: 'bg-[#282a36]', border: 'border-pink-500' },
-              { id: 'cinza_escuro', name: 'Cinza (Escuro)', bg: 'bg-zinc-900', border: 'border-orange-500' },
+              { id: 'cinza_escuro', name: 'Cinza (Escuro)', bg: 'bg-zinc-900', border: 'border-blue-500' },
               { id: 'cinza_claro', name: 'Cinza (Claro)', bg: 'bg-zinc-300 text-zinc-900', border: 'border-zinc-500' },
-              { id: 'claro', name: 'Claro', bg: 'bg-white text-slate-900', border: 'border-amber-600' },
+              { id: 'claro', name: 'Claro', bg: 'bg-white text-slate-900', border: 'border-sky-600' },
             ].map((item) => {
               const isSelected = theme === item.id;
               return (
@@ -106,12 +106,12 @@ export const AppearanceModal: React.FC<AppearanceModalProps> = ({ isOpen, onClos
                   onClick={() => handleThemeChange(item.id as ThemeType)}
                   className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border flex flex-col items-center justify-center gap-1 ${item.bg} ${
                     isSelected
-                      ? `${item.border} ring-2 ring-[#FA7608]/50 shadow-lg scale-105`
+                      ? `${item.border} ring-2 ring-[#00d2ff]/50 shadow-lg scale-105`
                       : 'border-slate-800 opacity-70 hover:opacity-100'
                   }`}
                 >
                   <span className="truncate">{item.name}</span>
-                  {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#FFB52E]" />}
+                  {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8]" />}
                 </button>
               );
             })}
@@ -119,18 +119,18 @@ export const AppearanceModal: React.FC<AppearanceModalProps> = ({ isOpen, onClos
         </div>
 
         {/* 2. REGULAGEM DE BRILHO (0% a 150%) */}
-        <div className="space-y-3 bg-[#000000]/60 p-4 rounded-xl border border-slate-800">
+        <div className="space-y-3 bg-[#030712]/60 p-4 rounded-xl border border-slate-800">
           <div className="flex items-center justify-between">
             <label className="text-xs font-extrabold text-slate-200 flex items-center gap-2">
-              <Sun className="w-4 h-4 text-[#FA7608]" />
-              Brilho da Tela: <span className="text-[#FFB52E] font-mono font-bold text-sm">{brightness}%</span>
+              <Sun className="w-4 h-4 text-[#00d2ff]" />
+              Brilho da Tela: <span className="text-[#38bdf8] font-mono font-bold text-sm">{brightness}%</span>
             </label>
             <button
               onClick={handleBrightnessReset}
               className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700 transition-all"
               title="Dar 2 cliques ou clicar aqui para voltar ao padrão (100%)"
             >
-              <RotateCcw className="w-3 h-3 text-[#FA7608]" />
+              <RotateCcw className="w-3 h-3 text-[#00d2ff]" />
               Reset (100%)
             </button>
           </div>
@@ -142,7 +142,7 @@ export const AppearanceModal: React.FC<AppearanceModalProps> = ({ isOpen, onClos
             value={brightness}
             onChange={handleBrightnessChange}
             onDoubleClick={handleBrightnessReset}
-            className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#FA7608]"
+            className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#00d2ff]"
             title="Dê dois cliques para restaurar o brilho padrão (100%)"
           />
           <p className="text-[10px] text-slate-400 italic text-center">
@@ -153,7 +153,7 @@ export const AppearanceModal: React.FC<AppearanceModalProps> = ({ isOpen, onClos
         {/* 3. SELEÇÃO DE IDIOMA */}
         <div className="space-y-3">
           <label className="text-xs font-extrabold text-slate-200 flex items-center gap-2">
-            <Globe className="w-4 h-4 text-[#FA7608]" />
+            <Globe className="w-4 h-4 text-[#00d2ff]" />
             Idioma da Plataforma
           </label>
           <div className="grid grid-cols-2 gap-3">
@@ -168,8 +168,8 @@ export const AppearanceModal: React.FC<AppearanceModalProps> = ({ isOpen, onClos
                   onClick={() => handleLanguageChange(lang.id as LanguageType)}
                   className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-2 ${
                     isSelected
-                      ? 'bg-[#FA7608]/20 border-[#FA7608] text-white shadow-md'
-                      : 'bg-[#000000]/60 border-slate-800 text-slate-400 hover:text-white'
+                      ? 'bg-[#00d2ff]/20 border-[#00d2ff] text-white shadow-md'
+                      : 'bg-[#030712]/60 border-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >
                   <span className="text-base">{lang.flag}</span>
@@ -184,7 +184,7 @@ export const AppearanceModal: React.FC<AppearanceModalProps> = ({ isOpen, onClos
         <div className="pt-2">
           <button
             onClick={onClose}
-            className="w-full py-2.5 bg-gradient-to-r from-[#F95A01] via-[#FA7608] to-[#FFB52E] hover:brightness-110 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-[#FA7608]/25"
+            className="w-full py-2.5 bg-gradient-to-r from-[#00d2ff] via-[#2563eb] to-[#38bdf8] hover:brightness-110 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-[#00d2ff]/25"
           >
             Salvar e Fechar
           </button>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { MapLocation, LocationCategory } from '../../types';
-import { ZoomIn, ZoomOut, Maximize2, LocateFixed, Compass, Search, Copy, Check, Crosshair } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, LocateFixed, Compass, Search, Copy, Check, Crosshair, Sun, Moon } from 'lucide-react';
 
 interface MapContainerProps {
   mapImageUrl: string;
@@ -46,11 +46,58 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
+  const overlayRef = useRef<L.ImageOverlay | null>(null);
 
   const [hoverCoords, setHoverCoords] = useState<{ x: number; y: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Map Theme: default is Dark ('dark')
+  const [mapTheme, setMapTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('malaca_map_theme');
+    return saved === 'light' ? 'light' : 'dark';
+  });
+
+  const applyThemeToMapOverlay = (theme: 'dark' | 'light') => {
+    // Authentic dark tactical GTA radar filter (deep charcoal terrain, dark navy ocean, crisp roads)
+    const filterValue =
+      theme === 'dark'
+        ? 'brightness(0.32) contrast(1.55) saturate(0.65) invert(0.06)'
+        : 'none';
+
+    // 1. Direct overlay element styling
+    const directEl = overlayRef.current?.getElement();
+    if (directEl) {
+      directEl.style.setProperty('filter', filterValue, 'important');
+      directEl.style.setProperty('transition', 'filter 0.35s ease', 'important');
+    }
+
+    // 2. Query all raster image elements in container to guarantee styling
+    if (containerRef.current) {
+      const imgs = containerRef.current.querySelectorAll<HTMLImageElement>(
+        '.leaflet-image-layer, .gta-map-image-layer, .leaflet-overlay-pane img'
+      );
+      imgs.forEach((img) => {
+        img.style.setProperty('filter', filterValue, 'important');
+        img.style.setProperty('transition', 'filter 0.35s ease', 'important');
+      });
+    }
+  };
+
+  const handleToggleTheme = () => {
+    setMapTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('malaca_map_theme', next);
+      showToast(next === 'dark' ? '🌙 Modo Mapa Escuro ativado' : '☀️ Modo Mapa Claro ativado');
+      return next;
+    });
+  };
+
+  // Sync theme to DOM elements whenever theme changes
+  useEffect(() => {
+    applyThemeToMapOverlay(mapTheme);
+  }, [mapTheme]);
 
   const bounds: L.LatLngBoundsExpression = [
     [0, 0],
@@ -75,7 +122,16 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       bounceAtZoomLimits: false,
     });
 
-    L.imageOverlay(mapImageUrl, bounds).addTo(map);
+    const overlay = L.imageOverlay(mapImageUrl, bounds, {
+      className: 'gta-map-image-layer',
+    }).addTo(map);
+    overlayRef.current = overlay;
+
+    overlay.on('load', () => {
+      applyThemeToMapOverlay(mapTheme);
+    });
+    // Immediately apply in case already in DOM
+    applyThemeToMapOverlay(mapTheme);
 
     const updateZoomLimits = () => {
       const minZoom = map.getBoundsZoom(bounds, true);
@@ -141,62 +197,80 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       );
     }
 
-    const filteredLocations = locations.filter((loc) =>
-      selectedCategories.includes(loc.category)
-    );
+    // Filtro inteligente para locais do Andarilho e demais categorias
+    const filteredLocations = locations.filter((loc) => {
+      const isWandererPoint = loc.category === 'andarilho' || loc.category === 'local_possivel';
+      if (isWandererPoint) {
+        const hasConfirmations = (loc.confirmations_count || 0) > 0 || (loc as any).user_confirmed;
+        const wantPossivel = selectedCategories.includes('local_possivel');
+        const wantConfirmado = selectedCategories.includes('andarilho');
+
+        // Se marcou "Possíveis Locais", exibe todos os pontos do ciclo
+        if (wantPossivel) return true;
+        // Se marcou apenas "Andarilho (Confirmado)", exibe somente os com confirmação
+        if (wantConfirmado && hasConfirmations) return true;
+        return false;
+      }
+      return selectedCategories.includes(loc.category);
+    });
 
     filteredLocations.forEach((loc) => {
       const isSelected = selectedLocation?.id === loc.id;
-      const color = getCategoryColor(loc.category);
-      const iconSymbol = getCategoryIcon(loc.category);
+      const color = loc.color || CATEGORY_COLORS[loc.category] || '#00d2ff';
       const isAndarilho = loc.category === 'andarilho' || loc.category === 'local_possivel';
-      const isMostConfirmed = isAndarilho && mostConfirmedLocation?.id === loc.id && (loc.confirmations_count || 0) > 0;
+      const isMostConfirmed = isAndarilho && loc.id === mostConfirmedId && (loc.confirmations_count || 0) > 0;
       const hasConfirmations = (loc.confirmations_count || 0) > 0 || (loc as any).user_confirmed;
       const isUnconfirmedPossivel = isAndarilho && !hasConfirmations;
       const isConfirmedAndarilho = isAndarilho && hasConfirmations;
+      const iconSymbol = isUnconfirmedPossivel ? '❓' : CATEGORY_ICONS[loc.category] || '📍';
 
       const customIcon = L.divIcon({
         className: 'custom-map-pin-wrapper',
         html: `
-          <div class="relative group cursor-pointer transition-all duration-300 ${
-            isUnconfirmedPossivel ? 'opacity-40 scale-90 hover:opacity-100 hover:scale-110 z-10' : isSelected ? 'scale-130 z-50' : 'scale-105 z-20'
+          <div class="relative group cursor-pointer transition-all duration-300 flex items-center justify-center ${
+            isSelected ? 'scale-125 z-50' : isConfirmedAndarilho ? 'scale-110 z-40' : 'scale-100 hover:scale-125 z-20'
           }">
             ${
               isMostConfirmed
-                ? `<div class="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#FA7608] to-[#FFB52E] text-black font-black text-[9px] px-2 py-0.5 rounded-full border border-white shadow-xl flex items-center gap-0.5 animate-bounce z-30 whitespace-nowrap pointer-events-none">
+                ? `<div class="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#00d2ff] to-[#38bdf8] text-black font-black text-[9px] px-2 py-0.5 rounded-full border border-white shadow-xl flex items-center gap-0.5 animate-bounce z-30 whitespace-nowrap pointer-events-none">
                     👑 MAIS CONFIRMADO
                    </div>`
                 : ''
             }
-            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] shadow-md transition-all duration-300 ${
+            ${
+              isUnconfirmedPossivel
+                ? `<div class="absolute inset-0 -m-1 rounded-full border border-[#00d2ff]/40 animate-ping pointer-events-none opacity-40"></div>`
+                : ''
+            }
+            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all duration-300 ${
               isConfirmedAndarilho
-                ? 'border border-[#FFB52E] ring-2 ring-[#FA7608]/70 shadow-[0_0_12px_#FA7608] animate-pulse scale-105'
+                ? 'bg-gradient-to-tr from-[#0284c7] via-[#00d2ff] to-[#38bdf8] border-2 border-white ring-4 ring-[#00d2ff]/70 shadow-[0_0_20px_#00d2ff] animate-pulse text-white'
                 : isUnconfirmedPossivel
-                ? 'border border-dashed border-[#FA7608]/50 shadow-none'
+                ? 'bg-[#060d1a] border-2 border-[#00d2ff] shadow-[0_0_14px_rgba(0,210,255,0.75)] text-[#38bdf8] hover:border-white'
                 : isSelected
-                ? 'border border-white shadow-[#FA7608]/80 animate-bounce ring-1 ring-[#FFB52E]'
-                : 'border border-black/80 shadow-black/80'
-            }" style="background-color: ${color}">
-              <span class="drop-shadow-sm text-[10px] leading-none ${isConfirmedAndarilho ? 'filter drop-shadow-[0_0_6px_#FFB52E]' : ''}">${iconSymbol}</span>
+                ? 'border-2 border-white shadow-[0_0_15px_#00d2ff] animate-bounce ring-2 ring-[#38bdf8]'
+                : 'border-2 border-black/80 shadow-black/80'
+            }" style="${!isConfirmedAndarilho && !isUnconfirmedPossivel ? `background-color: ${color};` : ''}">
+              <span class="drop-shadow-md text-xs leading-none select-none">${iconSymbol}</span>
             </div>
             
             ${
               hasConfirmations
                 ? `<div class="absolute -bottom-1 -right-1 ${
-                    isMostConfirmed ? 'bg-[#FFB52E] text-black font-black' : 'bg-[#FA7608] text-white'
-                  } text-[8px] font-extrabold px-1 py-0.2 rounded-full border border-white shadow-md leading-none pointer-events-none">
+                    isMostConfirmed ? 'bg-[#38bdf8] text-black font-black' : 'bg-[#00d2ff] text-black font-black'
+                  } text-[8px] font-extrabold px-1.5 py-0.2 rounded-full border border-white shadow-md leading-none pointer-events-none">
                     ${loc.confirmations_count || 1}
                    </div>`
                 : ''
             }
 
-            <div class="absolute top-7 left-1/2 -translate-x-1/2 hidden group-hover:block bg-black/95 text-white text-[10px] font-semibold px-2 py-1 rounded-lg border border-[#FA7608]/40 whitespace-nowrap shadow-2xl z-50 pointer-events-none">
-              ${loc.name} ${loc.confirmations_count ? `(${loc.confirmations_count} confirmações)` : isUnconfirmedPossivel ? '(Não confirmado)' : ''}
+            <div class="absolute top-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#030712]/95 text-white text-[10px] font-semibold px-2 py-1 rounded-lg border border-[#00d2ff]/40 whitespace-nowrap shadow-2xl z-50 pointer-events-none">
+              ${loc.name} ${loc.confirmations_count ? `(${loc.confirmations_count} confirmações)` : isUnconfirmedPossivel ? '(Possível Local)' : ''}
             </div>
           </div>
         `,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
       });
 
       const marker = L.marker([loc.y, loc.x], { icon: customIcon });
@@ -250,10 +324,34 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   };
 
   return (
-    <div className="relative w-full h-full bg-slate-950 overflow-hidden select-none">
+    <div className={`relative w-full h-full bg-slate-950 overflow-hidden select-none ${mapTheme === 'dark' ? 'map-dark-theme' : 'map-light-theme'}`}>
+      {/* Scoped style to guarantee map dark/light filter across all browsers and bundlers */}
+      <style>{`
+        .map-dark-theme .leaflet-image-layer,
+        .map-dark-theme .gta-map-image-layer,
+        .map-dark-theme .leaflet-overlay-pane img,
+        .map-dark-theme .leaflet-pane img {
+          filter: brightness(0.32) contrast(1.55) saturate(0.65) invert(0.06) !important;
+          transition: filter 0.35s ease !important;
+        }
+        .map-dark-theme .leaflet-container {
+          background-color: #060913 !important;
+        }
+        .map-light-theme .leaflet-image-layer,
+        .map-light-theme .gta-map-image-layer,
+        .map-light-theme .leaflet-overlay-pane img,
+        .map-light-theme .leaflet-pane img {
+          filter: none !important;
+          transition: filter 0.35s ease !important;
+        }
+        .map-light-theme .leaflet-container {
+          background-color: #1e293b !important;
+        }
+      `}</style>
+
       {/* Toast Feedback */}
       {toastMessage && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#FA7608] text-white font-bold text-xs px-4 py-2 rounded-full shadow-2xl border border-[#FFB52E] z-30 animate-in fade-in duration-200">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-[#00d2ff] text-white font-bold text-xs px-4 py-2 rounded-full shadow-2xl border border-[#38bdf8] z-30 animate-in fade-in duration-200">
           {toastMessage}
         </div>
       )}
@@ -263,7 +361,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
 
       {/* Admin Mode Overlay Banner */}
       {isAdminPinMode && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#FA7608] to-[#E73701] text-white text-xs font-bold px-4 py-2 rounded-full border border-[#FFB52E] shadow-2xl z-20 flex items-center gap-2 animate-pulse">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#00d2ff] to-[#2563eb] text-white text-xs font-bold px-4 py-2 rounded-full border border-[#38bdf8] shadow-2xl z-20 flex items-center gap-2 animate-pulse">
           <LocateFixed className="w-4 h-4" />
           <span>Modo de Seleção de Coordenada Ativo. Clique em qualquer lugar no mapa!</span>
         </div>
@@ -282,23 +380,23 @@ export const MapContainer: React.FC<MapContainerProps> = ({
               setSearchOpen(true);
             }}
             onFocus={() => setSearchOpen(true)}
-            className="w-full bg-[#000000]/90 backdrop-blur-md border border-[#FA7608]/25 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#FA7608] shadow-2xl transition-all"
+            className="w-full bg-[#000000]/90 backdrop-blur-md border border-[#00d2ff]/25 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00d2ff] shadow-2xl transition-all"
           />
 
           {/* Search Dropdown Results */}
           {searchOpen && searchResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 bg-[#0D0D0D] backdrop-blur-xl border border-[#FA7608]/30 rounded-xl overflow-hidden shadow-2xl max-h-60 overflow-y-auto z-30">
+            <div className="absolute top-full left-0 right-0 mt-1.5 bg-[#060d1a] backdrop-blur-xl border border-[#00d2ff]/30 rounded-xl overflow-hidden shadow-2xl max-h-60 overflow-y-auto z-30">
               {searchResults.map((loc) => (
                 <button
                   key={loc.id}
                   onClick={() => handleSelectSearchResult(loc)}
-                  className="w-full px-3 py-2 text-left hover:bg-[#FA7608]/15 border-b border-slate-900/60 last:border-0 flex items-center justify-between transition-colors"
+                  className="w-full px-3 py-2 text-left hover:bg-[#00d2ff]/15 border-b border-slate-900/60 last:border-0 flex items-center justify-between transition-colors"
                 >
                   <div className="flex items-center gap-2 truncate">
                     <span className="text-sm">{CATEGORY_ICONS[loc.category] || '📍'}</span>
                     <span className="text-xs font-bold text-slate-200 truncate">{loc.name}</span>
                   </div>
-                  <span className="text-[10px] font-mono text-[#FFB52E] font-semibold whitespace-nowrap ml-2">
+                  <span className="text-[10px] font-mono text-[#38bdf8] font-semibold whitespace-nowrap ml-2">
                     X: {loc.x} Y: {loc.y}
                   </span>
                 </button>
@@ -312,17 +410,28 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       {hoverCoords && (
         <div
           onClick={handleCopyHoverCoords}
-          className="absolute top-4 right-4 z-20 bg-[#000000]/90 backdrop-blur-md border border-[#FA7608]/30 px-3.5 py-1.5 rounded-xl shadow-2xl flex items-center gap-2 cursor-pointer hover:border-[#FA7608] transition-all text-xs font-mono text-slate-300 group"
+          className="absolute top-4 right-4 z-20 bg-[#000000]/90 backdrop-blur-md border border-[#00d2ff]/30 px-3.5 py-1.5 rounded-xl shadow-2xl flex items-center gap-2 cursor-pointer hover:border-[#00d2ff] transition-all text-xs font-mono text-slate-300 group"
           title="Clique para copiar coordenadas GTA"
         >
-          <Crosshair className="w-3.5 h-3.5 text-[#FA7608] group-hover:animate-spin" />
+          <Crosshair className="w-3.5 h-3.5 text-[#00d2ff] group-hover:animate-spin" />
           <span>X: <strong className="text-white">{hoverCoords.x}</strong> | Y: <strong className="text-white">{hoverCoords.y}</strong></span>
-          <Copy className="w-3 h-3 text-slate-500 group-hover:text-[#FFB52E] transition-colors ml-1" />
+          <Copy className="w-3 h-3 text-slate-500 group-hover:text-[#38bdf8] transition-colors ml-1" />
         </div>
       )}
 
       {/* Map Interactive Control Panel */}
       <div className="absolute bottom-6 right-4 z-20 flex flex-col gap-2">
+        <button
+          onClick={handleToggleTheme}
+          className="w-10 h-10 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 text-slate-200 hover:text-white hover:bg-cyan-600/20 hover:border-cyan-500/50 flex items-center justify-center shadow-xl transition-all group"
+          title={mapTheme === 'dark' ? 'Mudar para Mapa Claro' : 'Mudar para Mapa Escuro (Padrão)'}
+        >
+          {mapTheme === 'dark' ? (
+            <Moon className="w-5 h-5 text-[#00d2ff] group-hover:scale-110 transition-transform" />
+          ) : (
+            <Sun className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
+          )}
+        </button>
         <button
           onClick={handleZoomIn}
           className="w-10 h-10 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 text-slate-200 hover:text-white hover:bg-cyan-600/20 hover:border-cyan-500/50 flex items-center justify-center shadow-xl transition-all"
@@ -379,6 +488,30 @@ export const MapContainer: React.FC<MapContainerProps> = ({
               <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
               <span className="truncate">Andarilho</span>
             </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#00d2ff] border border-white" />
+              <span className="truncate">Possíveis</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 mt-1">
+            <span className="text-[10px] text-slate-400 font-semibold">Tema:</span>
+            <button
+              onClick={handleToggleTheme}
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-700 hover:border-[#00d2ff] text-[10px] font-bold text-slate-200 hover:text-white transition-all"
+              title="Alternar entre modo escuro e claro"
+            >
+              {mapTheme === 'dark' ? (
+                <>
+                  <Moon className="w-3 h-3 text-[#00d2ff]" />
+                  <span>Escuro (Padrão)</span>
+                </>
+              ) : (
+                <>
+                  <Sun className="w-3 h-3 text-amber-400" />
+                  <span>Claro</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>

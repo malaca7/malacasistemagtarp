@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import type { Server, MapLocation, LocationCategory, Comment, Suggestion, SuggestionType } from './types';
 import { ApiService } from './services/api';
+import { RealtimeSync } from './services/realtimeSync';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { MapContainer } from './components/map/MapContainer';
 import { LocationDrawer } from './components/map/LocationDrawer';
 import { AdminModal } from './components/admin/AdminModal';
 import { AppearanceModal } from './components/AppearanceModal';
+import { DiscordAuthModal } from './components/DiscordAuthModal';
+import { AuthService, UserProfile } from './services/auth';
+import { supabase } from './lib/supabase';
 
 export const App: React.FC = () => {
   const [servers, setServers] = useState<Server[]>([]);
@@ -31,6 +35,36 @@ export const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const [discordAuthOpen, setDiscordAuthOpen] = useState(false);
+  const [user, setUser] = useState<UserProfile | null>(AuthService.getSavedProfile());
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    AuthService.syncDiscordUser().then((u) => {
+      setUser(u);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const u = session.user;
+        const meta = u.user_metadata || {};
+        const discordId = meta.provider_id || meta.sub || u.id;
+        const username = meta.preferred_username || meta.user_name || meta.name || meta.full_name || 'Discord User';
+        AuthService.logAccessSession(u.id, String(discordId), String(username));
+      }
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
+        const synced = await AuthService.syncDiscordUser();
+        setUser(synced);
+      } else if (event === 'SIGNED_OUT') {
+        localStorage.removeItem('malaca_user_profile');
+        setUser(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Admin Pin Mode
   const [isAdminPinMode, setIsAdminPinMode] = useState(false);
@@ -103,12 +137,69 @@ export const App: React.FC = () => {
       if (currentServer) {
         const locs = await ApiService.fetchLocations(currentServer.id);
         setLocations(locs);
+        setSelectedLocation((prev) => {
+          if (!prev) return null;
+          const fresh = locs.find((l) => l.id === prev.id);
+          return fresh || prev;
+        });
       }
+    });
+
+    // Escuta alterações em tempo real de locais/pins
+    const unsubLocs = RealtimeSync.onLocationsChange(async (payload) => {
+      if (currentServer && (!payload.serverId || payload.serverId === currentServer.id)) {
+        const locs = await ApiService.fetchLocations(currentServer.id);
+        setLocations(locs);
+        setSelectedLocation((prev) => {
+          if (!prev) return null;
+          const fresh = locs.find((l) => l.id === prev.id);
+          return fresh || null;
+        });
+      }
+    });
+
+    // Escuta alterações em tempo real de sugestões
+    const unsubSugs = RealtimeSync.onSuggestionsChange(async () => {
+      if (currentServer) {
+        const fresh = await ApiService.fetchSuggestions(currentServer.id);
+        setSuggestions(fresh);
+      }
+    });
+
+    // Escuta alterações em tempo real de servidores/cidades
+    const unsubServers = RealtimeSync.onServersChange(async () => {
+      const fresh = await ApiService.fetchServers();
+      setServers(fresh);
+    });
+
+    // Escuta viradas de ciclo (às 06:00 e 18:00 ou reset administrativo)
+    const unsubCycle = RealtimeSync.onCycleReset(async (info, reason) => {
+      const message =
+        reason === 'automatic_rotation_06_18'
+          ? `🔄 Virada do Andarilho (${info.cycleLabel})! As marcações foram resetadas às ${info.formattedStartTime}.`
+          : '🔄 Ciclo do Andarilho reiniciado em tempo real para todos os membros!';
+
+      setToastMessage(message);
+      setTimeout(() => setToastMessage(null), 6000);
+
+      if (currentServer) {
+        const fresh = await ApiService.fetchLocations(currentServer.id);
+        setLocations(fresh);
+      }
+      setSelectedLocation((prev) =>
+        prev && (prev.category === 'andarilho' || prev.category === 'local_possivel')
+          ? { ...prev, confirmations_count: 0, user_confirmed: false }
+          : prev
+      );
     });
 
     return () => {
       sub.unsubscribe();
       subConf.unsubscribe();
+      unsubLocs();
+      unsubSugs();
+      unsubServers();
+      unsubCycle();
     };
   }, [currentServer]);
 
@@ -119,8 +210,31 @@ export const App: React.FC = () => {
     );
   };
 
+  const handleSelectOnlyCategory = (category: LocationCategory) => {
+    setSelectedCategories([category]);
+  };
+
+  const handleSelectAllCategories = () => {
+    setSelectedCategories([
+      'hospital_ilegal',
+      'mercado_ilegal',
+      'lavanderia_ilegal',
+      'desmanche',
+      'andarilho',
+      'local_possivel',
+      'outros',
+    ]);
+  };
+
   const handleConfirmLocation = async (locationId: string) => {
-    const ok = await ApiService.addWandererConfirmation(locationId);
+    if (!user) {
+      setToastMessage('🔒 Faça login com o Discord para marcar o Andarilho!');
+      setDiscordAuthOpen(true);
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
+    }
+    if (!currentServer) return;
+    const ok = await ApiService.addWandererConfirmation(locationId, currentServer.id);
     if (ok) {
       setLocations((prev) =>
         prev.map((loc) =>
@@ -148,7 +262,14 @@ export const App: React.FC = () => {
   };
 
   const handleUnconfirmLocation = async (locationId: string) => {
-    const ok = await ApiService.removeWandererConfirmation(locationId);
+    if (!user) {
+      setToastMessage('🔒 Faça login com o Discord para interagir!');
+      setDiscordAuthOpen(true);
+      setTimeout(() => setToastMessage(null), 4000);
+      return;
+    }
+    if (!currentServer) return;
+    const ok = await ApiService.removeWandererConfirmation(locationId, currentServer.id);
     if (ok) {
       setLocations((prev) =>
         prev.map((loc) =>
@@ -176,11 +297,17 @@ export const App: React.FC = () => {
   };
 
   const handleAddComment = async (nickname: string, content: string) => {
+    if (!user) {
+      setToastMessage('🔒 Faça login com o Discord para enviar comentários!');
+      setDiscordAuthOpen(true);
+      setTimeout(() => setToastMessage(null), 4000);
+      return false;
+    }
     if (!currentServer) return false;
     const ok = await ApiService.addComment({
       server_id: currentServer.id,
       location_id: selectedLocation?.id,
-      nickname,
+      nickname: nickname || user.username,
       content,
     });
     if (ok) {
@@ -191,11 +318,17 @@ export const App: React.FC = () => {
   };
 
   const handleAddSuggestion = async (nickname: string, type: SuggestionType, content: string) => {
+    if (!user) {
+      setToastMessage('🔒 Faça login com o Discord para enviar sugestões!');
+      setDiscordAuthOpen(true);
+      setTimeout(() => setToastMessage(null), 4000);
+      return false;
+    }
     if (!currentServer) return false;
     const ok = await ApiService.addSuggestion({
       server_id: currentServer.id,
       location_id: selectedLocation?.id,
-      nickname,
+      nickname: nickname || user.username,
       type,
       content,
     });
@@ -242,7 +375,14 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans relative">
+      {/* Toast Banner de Notificações em Tempo Real / Virada do Ciclo */}
+      {toastMessage && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#00d2ff] via-[#38bdf8] to-[#2563eb] text-slate-950 font-black text-xs px-5 py-3 rounded-full shadow-[0_0_25px_rgba(0,210,255,0.6)] border border-white z-50 animate-in fade-in duration-300 flex items-center gap-2">
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Header Bar */}
       <Header
         servers={servers}
@@ -254,6 +394,8 @@ export const App: React.FC = () => {
         onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
         onOpenAdmin={() => setAdminOpen(true)}
         onOpenAppearance={() => setAppearanceOpen(true)}
+        user={user}
+        onOpenDiscordAuth={() => setDiscordAuthOpen(true)}
       />
 
       <div className="flex-1 flex overflow-hidden relative">
@@ -263,6 +405,8 @@ export const App: React.FC = () => {
           onClose={() => setSidebarOpen(false)}
           selectedCategories={selectedCategories}
           onToggleCategory={handleToggleCategory}
+          onSelectOnlyCategory={handleSelectOnlyCategory}
+          onSelectAllCategories={handleSelectAllCategories}
           comments={comments}
           onAddComment={handleAddComment}
           onAddSuggestion={handleAddSuggestion}
@@ -289,7 +433,10 @@ export const App: React.FC = () => {
             onClose={() => setSelectedLocation(null)}
             onConfirm={handleConfirmLocation}
             onUnconfirm={handleUnconfirmLocation}
+            user={user}
+            onRequireAuth={() => setDiscordAuthOpen(true)}
           />
+
         </main>
       </div>
 
@@ -312,6 +459,13 @@ export const App: React.FC = () => {
       <AppearanceModal
         isOpen={appearanceOpen}
         onClose={() => setAppearanceOpen(false)}
+      />
+
+      {/* Discord OAuth2 Auth & User Dashboard Modal */}
+      <DiscordAuthModal
+        isOpen={discordAuthOpen}
+        onClose={() => setDiscordAuthOpen(false)}
+        user={user}
       />
     </div>
   );

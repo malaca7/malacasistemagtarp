@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { MapLocation } from '../../types';
+import type { MapLocation, UserProfile } from '../../types';
 import {
   X,
   MapPin,
@@ -11,6 +11,7 @@ import {
   Clock,
   Sparkles,
   Layers,
+  Lock,
 } from 'lucide-react';
 
 interface LocationDrawerProps {
@@ -18,6 +19,8 @@ interface LocationDrawerProps {
   onClose: () => void;
   onConfirm: (locationId: string) => Promise<void>;
   onUnconfirm: (locationId: string) => Promise<void>;
+  user?: UserProfile | null;
+  onRequireAuth?: () => void;
 }
 
 export const LocationDrawer: React.FC<LocationDrawerProps> = ({
@@ -25,6 +28,8 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
   onClose,
   onConfirm,
   onUnconfirm,
+  user,
+  onRequireAuth,
 }) => {
   const [loading, setLoading] = useState(false);
 
@@ -42,10 +47,14 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
     reliabilityColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
   } else if (confirmations >= 5) {
     reliabilityText = 'Confirmado pela Comunidade';
-    reliabilityColor = 'text-[#FFB52E] bg-[#FA7608]/10 border-[#FA7608]/20';
+    reliabilityColor = 'text-[#38bdf8] bg-[#00d2ff]/10 border-[#00d2ff]/20';
   }
 
   const handleToggleConfirm = async () => {
+    if (!user) {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
     setLoading(true);
     if (location.user_confirmed) {
       await onUnconfirm(location.id);
@@ -55,21 +64,22 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
     setLoading(false);
   };
 
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 md:left-auto md:top-20 md:right-6 md:bottom-auto w-full md:w-96 bg-[#0D0D0D]/95 backdrop-blur-xl border border-[#FA7608]/30 rounded-t-3xl md:rounded-2xl shadow-2xl z-40 p-5 space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+    <div className="fixed bottom-0 left-0 right-0 md:left-auto md:top-20 md:right-6 md:bottom-auto w-full md:w-96 bg-[#060d1a]/95 backdrop-blur-xl border border-[#00d2ff]/30 rounded-t-3xl md:rounded-2xl shadow-2xl z-40 p-5 space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
       {/* Mobile Drag Handle */}
       <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto -mt-1 mb-1 md:hidden" />
 
       {/* Header */}
       <div className="flex items-start justify-between border-b border-slate-800/80 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-[#FA7608]/20 border border-[#FA7608]/30 flex items-center justify-center text-lg shadow-inner">
-            {location.category === 'andarilho' ? '🚶‍♂️' : location.category === 'desmanche' ? '🔧' : location.category === 'hospital_ilegal' ? '🏥' : location.category === 'mercado_ilegal' ? '🛒' : '📍'}
+          <div className="w-10 h-10 rounded-xl bg-[#00d2ff]/20 border border-[#00d2ff]/30 flex items-center justify-center text-lg shadow-inner">
+            {location.category === 'andarilho' || location.category === 'local_possivel' ? (location.confirmations_count ? '🚶‍♂️' : '❓') : location.category === 'desmanche' ? '🔧' : location.category === 'hospital_ilegal' ? '🏥' : location.category === 'mercado_ilegal' ? '🛒' : '📍'}
           </div>
           <div>
             <h3 className="font-extrabold text-white text-base leading-tight">{location.name}</h3>
-            <span className="text-[11px] text-[#FFB52E] font-semibold uppercase tracking-wider">
-              {location.category.replace('_', ' ')}
+            <span className="text-[11px] text-[#38bdf8] font-semibold uppercase tracking-wider">
+              {location.category === 'local_possivel' ? 'Possível Local do Andarilho' : location.category.replace('_', ' ')}
             </span>
           </div>
         </div>
@@ -94,16 +104,16 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
 
       {/* Coordinates & Status */}
       <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="bg-[#000000]/60 p-2.5 rounded-xl border border-[#FA7608]/20 flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-[#FA7608]" />
+        <div className="bg-[#030712]/60 p-2.5 rounded-xl border border-[#00d2ff]/20 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-[#00d2ff]" />
           <div>
             <span className="text-[10px] text-slate-400 block font-semibold">COORDENADAS</span>
             <span className="font-mono font-bold text-slate-200">X: {location.x} | Y: {location.y}</span>
           </div>
         </div>
 
-        <div className="bg-[#000000]/60 p-2.5 rounded-xl border border-[#FA7608]/20 flex items-center gap-2">
-          <Clock className="w-4 h-4 text-[#FA7608]" />
+        <div className="bg-[#030712]/60 p-2.5 rounded-xl border border-[#00d2ff]/20 flex items-center gap-2">
+          <Clock className="w-4 h-4 text-[#00d2ff]" />
           <div>
             <span className="text-[10px] text-slate-400 block font-semibold">ATUALIZADO</span>
             <span className="text-slate-200 font-semibold">Hoje</span>
@@ -113,22 +123,27 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
 
       {/* Description */}
       {location.description && (
-        <div className="bg-[#000000]/40 p-3 rounded-xl border border-slate-800/60">
+        <div className="bg-[#030712]/40 p-3 rounded-xl border border-slate-800/60">
           <p className="text-xs text-slate-300 leading-relaxed">{location.description}</p>
         </div>
       )}
 
       {/* Andarilho Special Confirmation System */}
       {isAndarilho && (
-        <div className="bg-gradient-to-br from-[#FA7608]/20 to-[#0D0D0D]/90 p-4 rounded-xl border border-[#FA7608]/30 space-y-3">
+        <div className="bg-gradient-to-br from-[#00d2ff]/20 to-[#060d1a]/90 p-4 rounded-xl border border-[#00d2ff]/30 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-[#FFB52E]" />
+              <ShieldCheck className="w-4 h-4 text-[#38bdf8]" />
               Confirmações da Comunidade
             </span>
-            <span className="text-sm font-black text-[#FFB52E] font-mono">
+            <span className="text-sm font-black text-[#38bdf8] font-mono">
               {confirmations} votos
             </span>
+          </div>
+
+          <div className="flex items-center justify-between text-[10px] text-slate-400 bg-black/40 px-2.5 py-1.5 rounded-lg border border-slate-800">
+            <span>Ciclo Diário</span>
+            <span className="text-[#7dd3fc] font-semibold">Reseta às 06:00 e 18:00</span>
           </div>
 
           {/* Reliability Badge */}
@@ -138,27 +153,38 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
           </div>
 
           {/* Action Button */}
-          <button
-            onClick={handleToggleConfirm}
-            disabled={loading}
-            className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg ${
-              location.user_confirmed
-                ? 'bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40'
-                : 'bg-gradient-to-r from-[#FA7608] via-[#E73701] to-[#FFB52E] hover:from-[#FA7608] hover:to-[#FFB52E] text-white shadow-[#FA7608]/25'
-            }`}
-          >
-            {location.user_confirmed ? (
-              <>
-                <RotateCcw className="w-4 h-4" />
-                <span>Retirar Minha Confirmação</span>
-              </>
-            ) : (
-              <>
-                <ThumbsUp className="w-4 h-4" />
-                <span>Marcar Andarilho Aqui</span>
-              </>
-            )}
-          </button>
+          {!user ? (
+            <button
+              onClick={() => onRequireAuth && onRequireAuth()}
+              className="w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg bg-[#5865F2] hover:bg-[#4752C4] text-white shadow-[#5865F2]/25"
+            >
+              <i className="fa-brands fa-discord text-sm"></i>
+              <span>Entrar com Discord para Votar</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleToggleConfirm}
+              disabled={loading}
+              className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg ${
+                location.user_confirmed
+                  ? 'bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40'
+                  : 'bg-gradient-to-r from-[#00d2ff] via-[#2563eb] to-[#38bdf8] hover:from-[#38bdf8] hover:to-[#00d2ff] text-slate-950 font-black shadow-[#00d2ff]/25'
+              }`}
+            >
+              {location.user_confirmed ? (
+                <>
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Retirar Minha Confirmação</span>
+                </>
+              ) : (
+                <>
+                  <ThumbsUp className="w-4 h-4" />
+                  <span>Marcar Andarilho Aqui</span>
+                </>
+              )}
+            </button>
+          )}
+
         </div>
       )}
     </div>

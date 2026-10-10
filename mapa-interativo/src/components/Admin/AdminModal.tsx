@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import type { Server, System, MapLocation, Suggestion, Comment, LocationCategory, SuggestionStatus } from '../../types';
+import type { Server, System, MapLocation, Suggestion, Comment, LocationCategory, SuggestionStatus, UserProfile, AccessLog, PlatformSettings } from '../../types';
 import { ApiService } from '../../services/api';
+import { AuthService, checkAdminPermission } from '../../services/auth';
+import { calculateWandererCycle } from '../../utils/wandererCycle';
+import { RealtimeSync } from '../../services/realtimeSync';
 import {
   X,
   Lock,
@@ -25,37 +28,49 @@ import {
   ArrowUp,
   ArrowDown,
   Edit2,
+  Users,
+  Settings,
+  Activity,
+  Search,
+  ShieldCheck,
+  ShieldAlert,
+  Ban,
+  Megaphone,
+  ToggleLeft,
+  ToggleRight,
+  Radio,
+  Bell,
 } from 'lucide-react';
 
 interface AdminModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialServers: Server[];
-  locations: MapLocation[];
-  initialComments: Comment[];
-  suggestions: Suggestion[];
-  onAddLocation: (location: Omit<MapLocation, 'id' | 'created_at'>) => void;
-  onDeleteLocation: (id: string) => void;
-  onToggleLocationActive: (id: string, active: boolean) => void;
-  onResetWandererCycle: () => void;
-  onDeleteComment: (id: string) => void;
-  onUpdateSuggestionStatus: (id: string, status: SuggestionStatus) => void;
-  onStartPinMode: () => void;
-  pendingPinCoords: { x: number; y: number } | null;
+  servers?: Server[];
+  initialServers?: Server[];
+  locations?: MapLocation[];
+  suggestions?: Suggestion[];
+  comments?: Comment[];
+  initialComments?: Comment[];
+  onSaveLocation?: (location: Omit<MapLocation, 'id'>) => Promise<boolean> | void;
+  onAddLocation?: (location: Omit<MapLocation, 'id' | 'created_at'>) => void;
+  onDeleteLocation?: (id: string) => Promise<boolean> | void;
+  onUpdateSuggestionStatus?: (id: string, status: SuggestionStatus) => Promise<boolean> | void;
+  onStartPinMode?: () => void;
+  pendingPinCoords?: { x: number; y: number } | null;
 }
 
 export const AdminModal: React.FC<AdminModalProps> = ({
   isOpen,
   onClose,
+  servers,
   initialServers,
-  locations,
+  locations = [],
+  suggestions = [],
+  comments,
   initialComments,
-  suggestions,
+  onSaveLocation,
   onAddLocation,
   onDeleteLocation,
-  onToggleLocationActive,
-  onResetWandererCycle,
-  onDeleteComment,
   onUpdateSuggestionStatus,
   onStartPinMode,
   pendingPinCoords,
@@ -65,12 +80,34 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'cities' | 'systems' | 'locations' | 'wanderer' | 'comments' | 'suggestions'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'cities' | 'systems' | 'locations' | 'wanderer' | 'comments' | 'suggestions' | 'users' | 'access_logs' | 'settings'>('dashboard');
 
-  const [serversList, setServersList] = useState<Server[]>(initialServers);
+  // Safe Array Guarantees
+  const rawServers = servers || initialServers || [];
+  const rawComments = comments || initialComments || [];
+  const safeInitialServers = Array.isArray(rawServers) ? rawServers : [];
+  const safeLocations = Array.isArray(locations) ? locations : [];
+  const safeSuggestions = Array.isArray(suggestions) ? suggestions : [];
+  const safeInitialComments = Array.isArray(rawComments) ? rawComments : [];
+
+  // Dynamic Data State
+  const [serversList, setServersList] = useState<Server[]>(safeInitialServers);
   const [systemsList, setSystemsList] = useState<System[]>([]);
-  const [commentsList, setCommentsList] = useState<Comment[]>(initialComments);
+  const [commentsList, setCommentsList] = useState<Comment[]>(safeInitialComments);
+  const [profilesList, setProfilesList] = useState<UserProfile[]>([]);
+  const [accessLogsList, setAccessLogsList] = useState<AccessLog[]>([]);
+  const [platformSettings, setPlatformSettings] = useState<PlatformSettings>({
+    maintenance_mode: false,
+    maintenance_message: 'Plataforma em manutenção para melhorias no servidor.',
+    global_announcement: '',
+    announcement_active: false,
+    announcement_type: 'info',
+    disabled_systems: [],
+    require_auth_for_interactive_map: false,
+  });
+  const [userSearchQuery, setUserSearchQuery] = useState('');
 
+  // City Creation Form State
   const [cityName, setCityName] = useState('');
   const [citySlug, setCitySlug] = useState('');
   const [citySubtitle, setCitySubtitle] = useState('');
@@ -79,6 +116,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [cityMapUrl, setCityMapUrl] = useState('/images/mapa_cda_optimized.webp');
   const [cityActive, setCityActive] = useState(true);
 
+  // System Creation Form State
   const [sysName, setSysName] = useState('');
   const [sysSlug, setSysSlug] = useState('');
   const [sysTag, setSysTag] = useState('');
@@ -89,32 +127,91 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [sysCityIds, setSysCityIds] = useState<string[]>([]);
   const [sysActive, setSysActive] = useState(true);
 
+  // New Location Form State
   const [locName, setLocName] = useState('');
   const [locCategory, setLocCategory] = useState<LocationCategory>('hospital_ilegal');
   const [locDescription, setLocDescription] = useState('');
   const [locImageUrl, setLocImageUrl] = useState('');
-  const [locServerId, setLocServerId] = useState(initialServers[0]?.id || '');
+  const [locServerId, setLocServerId] = useState(safeInitialServers[0]?.id || 'cda-server-uuid');
   const [locIsActive, setLocIsActive] = useState(true);
 
+  // Toast Banner
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Edit State
   const [editingCity, setEditingCity] = useState<Server | null>(null);
   const [editingSystem, setEditingSystem] = useState<System | null>(null);
+  const [accessDeniedUser, setAccessDeniedUser] = useState<any | null>(null);
 
   useEffect(() => {
     if (isOpen) {
+      checkDiscordAdminSession();
       loadAdminData();
     }
   }, [isOpen]);
 
-  const loadAdminData = async () => {
-    const s = await ApiService.fetchServers();
-    setServersList(s);
-    const sys = await ApiService.fetchSystems();
-    setSystemsList(sys);
-    const comm = await ApiService.fetchComments();
-    setCommentsList(comm);
+  // Realtime Sync Subscription for Admin Data
+  useEffect(() => {
+    if (!isOpen || !isAuthenticated) return;
+    const unsubProfiles = RealtimeSync.onProfilesChange(() => {
+      ApiService.fetchProfiles().then(setProfilesList);
+    });
+    const unsubSettings = RealtimeSync.onSettingsChange(() => {
+      ApiService.fetchPlatformSettings().then(setPlatformSettings);
+    });
+    return () => {
+      unsubProfiles();
+      unsubSettings();
+    };
+  }, [isOpen, isAuthenticated]);
+
+  const checkDiscordAdminSession = async () => {
+    try {
+      const savedProfile = AuthService.getSavedProfile();
+      if (savedProfile) {
+        if (checkAdminPermission(savedProfile)) {
+          setIsAuthenticated(true);
+          setAccessDeniedUser(null);
+          return;
+        } else {
+          setAccessDeniedUser(savedProfile);
+        }
+      }
+      const synced = await AuthService.syncDiscordUser();
+      if (synced) {
+        if (checkAdminPermission(synced)) {
+          setIsAuthenticated(true);
+          setAccessDeniedUser(null);
+        } else {
+          setAccessDeniedUser(synced);
+        }
+      }
+    } catch (e) {
+      console.error('Error checking Discord Admin session:', e);
+    }
   };
+
+  const loadAdminData = async () => {
+    try {
+      const [s, sys, comm, profs, logs, sets] = await Promise.all([
+        ApiService.fetchServers(),
+        ApiService.fetchSystems(),
+        ApiService.fetchComments(),
+        ApiService.fetchProfiles(),
+        ApiService.fetchAccessLogs(),
+        ApiService.fetchPlatformSettings(),
+      ]);
+      setServersList(Array.isArray(s) ? s : []);
+      setSystemsList(Array.isArray(sys) ? sys : []);
+      setCommentsList(Array.isArray(comm) ? comm : []);
+      setProfilesList(Array.isArray(profs) ? profs : []);
+      setAccessLogsList(Array.isArray(logs) ? logs : []);
+      if (sets) setPlatformSettings(sets);
+    } catch (e) {
+      console.error('Error loading admin data:', e);
+    }
+  };
+
 
   if (!isOpen) return null;
 
@@ -137,6 +234,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
+  // Create City Handler
   const handleCreateCity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cityName.trim() || !citySlug.trim()) {
@@ -165,6 +263,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
+  // Toggle City Active Status
   const handleToggleCityActive = async (city: Server) => {
     const ok = await ApiService.updateCity(city.id, { active: !city.active });
     if (ok) {
@@ -173,6 +272,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
+  // Delete City Handler
   const handleDeleteCity = async (id: string, name: string) => {
     if (confirm(`Tem certeza que deseja excluir a cidade "${name}"?`)) {
       const ok = await ApiService.deleteCity(id);
@@ -183,6 +283,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
+  // Edit City Handlers
   const handleStartEditCity = (city: Server) => {
     setEditingCity(city);
     setCityName(city.name);
@@ -220,6 +321,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
+  // Move City Up/Down Handlers
   const handleMoveCityUp = (index: number) => {
     if (index <= 0) return;
     const list = [...serversList];
@@ -242,34 +344,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     showToast('Ordem das cidades atualizada!');
   };
 
-  const handleCreateSystem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!sysName.trim() || !sysSlug.trim()) {
-      showToast('Preencha o Nome e o Slug do Sistema.');
-      return;
-    }
-    const created = await ApiService.createSystem({
-      name: sysName.trim().toUpperCase(),
-      slug: sysSlug.trim().toLowerCase(),
-      tag: sysTag.trim().toUpperCase() || 'SISTEMA RP',
-      description: sysDescription.trim(),
-      icon: sysIcon.trim() || 'fa-compass',
-      image_url: sysImageUrl.trim() || '/images/gta_map_bg.webp',
-      link: sysLink.trim() || 'mapa-interativo/',
-      city_ids: sysCityIds,
-      is_active: sysActive,
-    });
-
-    if (created) {
-      showToast(`Sistema "${created.name}" criado com sucesso!`);
-      setSysName('');
-      setSysSlug('');
-      setSysTag('');
-      setSysDescription('');
-      loadAdminData();
-    }
-  };
-
+  // Edit System Handlers
   const handleStartEditSystem = (sys: System) => {
     setEditingSystem(sys);
     setSysName(sys.name);
@@ -310,6 +385,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
+  // Move System Up/Down Handlers
   const handleMoveSystemUp = (index: number) => {
     if (index <= 0) return;
     const list = [...systemsList];
@@ -332,6 +408,36 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     showToast('Ordem dos sistemas atualizada!');
   };
 
+  // Create System Handler
+  const handleCreateSystem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sysName.trim() || !sysSlug.trim()) {
+      showToast('Preencha o Nome e o Slug do Sistema.');
+      return;
+    }
+    const created = await ApiService.createSystem({
+      name: sysName.trim().toUpperCase(),
+      slug: sysSlug.trim().toLowerCase(),
+      tag: sysTag.trim().toUpperCase() || 'SISTEMA RP',
+      description: sysDescription.trim(),
+      icon: sysIcon.trim() || 'fa-compass',
+      image_url: sysImageUrl.trim() || '/images/gta_map_bg.webp',
+      link: sysLink.trim() || 'mapa-interativo/',
+      city_ids: sysCityIds,
+      is_active: sysActive,
+    });
+
+    if (created) {
+      showToast(`Sistema "${created.name}" criado com sucesso!`);
+      setSysName('');
+      setSysSlug('');
+      setSysTag('');
+      setSysDescription('');
+      loadAdminData();
+    }
+  };
+
+  // Delete System Handler
   const handleDeleteSystem = async (id: string, name: string) => {
     if (confirm(`Tem certeza que deseja excluir o sistema "${name}"?`)) {
       const ok = await ApiService.deleteSystem(id);
@@ -342,52 +448,192 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
-  const handleCreateLocation = (e: React.FormEvent) => {
+  // Create Map Location Handler
+  const handleCreateLocation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!locName.trim()) {
-      showToast('Nome do Local é obrigatório.');
-      return;
-    }
     if (!pendingPinCoords) {
-      showToast('Clique no botão "SELECIONAR NO MAPA" e marque um ponto!');
+      showToast('Por favor, clique em "Marcar no Mapa" para selecionar a posição X e Y.');
       return;
     }
 
-    onAddLocation({
-      server_id: locServerId || serversList[0]?.id || 'cda-server-uuid',
-      name: locName.trim(),
-      category: locCategory,
-      x: pendingPinCoords.x,
-      y: pendingPinCoords.y,
-      description: locDescription.trim() || undefined,
-      image_url: locImageUrl.trim() || undefined,
-      is_active: locIsActive,
-    });
+    const ok = onSaveLocation
+      ? await onSaveLocation({
+          server_id: locServerId || serversList[0]?.id || 'cda-server-uuid',
+          name: locName,
+          category: locCategory,
+          description: locDescription,
+          image_url: locImageUrl || undefined,
+          x: pendingPinCoords.x,
+          y: pendingPinCoords.y,
+          is_active: locIsActive,
+        })
+      : false;
 
-    showToast(`Local "${locName}" adicionado com sucesso!`);
-    setLocName('');
-    setLocDescription('');
-    setLocImageUrl('');
+    if (ok) {
+      setLocName('');
+      setLocDescription('');
+      setLocImageUrl('');
+      showToast('Novo ponto criado no mapa com sucesso!');
+    } else {
+      showToast('Erro ao criar ponto no banco.');
+    }
   };
+
+  // Delete Comment Handler
+  const handleDeleteComment = async (id: string) => {
+    const ok = await ApiService.deleteComment(id);
+    if (ok) {
+      showToast('Comentário moderado e removido!');
+      setCommentsList((prev) => prev.filter((c) => c.id !== id));
+    } else {
+      showToast('Erro ao excluir comentário.');
+    }
+  };
+
+  // Reset Wanderer Cycle (Zera votos e sincroniza instantaneamente todas as telas abertas)
+  const handleResetCycle = async () => {
+    const ok = await ApiService.resetWandererCycle('admin_manual');
+    if (ok) {
+      showToast('Ciclo do Andarilho reiniciado com sucesso! Todos os votos foram zerados em todas as telas.');
+    } else {
+      showToast('Erro ao reiniciar ciclo do Andarilho.');
+    }
+  };
+
+  // --- Handlers para Usuários & Permissões ---
+  const handleToggleAdmin = async (u: UserProfile) => {
+    const newAdmin = !u.is_admin;
+    const newRole = newAdmin ? 'admin' : 'user';
+    const ok = await ApiService.updateProfile(u.id, {
+      is_admin: newAdmin,
+      role: newRole,
+    });
+    if (ok) {
+      showToast(`Permissão do usuário @${u.username} atualizada para: ${newAdmin ? 'ADMINISTRADOR' : 'USUÁRIO'}`);
+      setProfilesList((prev) =>
+        prev.map((item) => (item.id === u.id ? { ...item, is_admin: newAdmin, role: newRole } : item))
+      );
+    } else {
+      showToast('Falha ao atualizar cargo do usuário.');
+    }
+  };
+
+  const handleToggleBan = async (u: UserProfile) => {
+    const newBanned = !u.is_banned;
+    const ok = await ApiService.updateProfile(u.id, { is_banned: newBanned });
+    if (ok) {
+      showToast(`Usuário @${u.username} ${newBanned ? 'BANIDO' : 'DESBANIDO'} com sucesso.`);
+      setProfilesList((prev) =>
+        prev.map((item) => (item.id === u.id ? { ...item, is_banned: newBanned } : item))
+      );
+    } else {
+      showToast('Falha ao alterar status de banimento.');
+    }
+  };
+
+  const handleChangeRole = async (u: UserProfile, newRole: 'admin' | 'moderator' | 'user' | 'vip') => {
+    const ok = await ApiService.updateProfile(u.id, {
+      role: newRole,
+      is_admin: newRole === 'admin',
+    });
+    if (ok) {
+      showToast(`Cargo de @${u.username} alterado para ${newRole.toUpperCase()}`);
+      setProfilesList((prev) =>
+        prev.map((item) => (item.id === u.id ? { ...item, role: newRole, is_admin: newRole === 'admin' } : item))
+      );
+    } else {
+      showToast('Falha ao alterar cargo.');
+    }
+  };
+
+  const handleDeleteUser = async (u: UserProfile) => {
+    if (confirm(`Excluir permanentemente o perfil do usuário @${u.username}?`)) {
+      const ok = await ApiService.deleteProfile(u.id);
+      if (ok) {
+        showToast(`Perfil de @${u.username} removido.`);
+        setProfilesList((prev) => prev.filter((item) => item.id !== u.id));
+      } else {
+        showToast('Falha ao remover usuário.');
+      }
+    }
+  };
+
+  // --- Handlers para Opções da Plataforma ---
+  const handleSaveAnnouncement = async (announcement: string, active: boolean, type: 'info' | 'warning' | 'alert' | 'success') => {
+    const ok = await ApiService.updatePlatformSettings({
+      global_announcement: announcement,
+      announcement_active: active,
+      announcement_type: type,
+    });
+    if (ok) {
+      showToast('Anúncio global atualizado e sincronizado em tempo real!');
+      setPlatformSettings((prev) => ({
+        ...prev,
+        global_announcement: announcement,
+        announcement_active: active,
+        announcement_type: type,
+      }));
+    } else {
+      showToast('Erro ao atualizar anúncio global.');
+    }
+  };
+
+  const handleToggleMaintenance = async (active: boolean, message: string) => {
+    const ok = await ApiService.updatePlatformSettings({
+      maintenance_mode: active,
+      maintenance_message: message,
+    });
+    if (ok) {
+      showToast(active ? 'Modo de Manutenção ATIVADO em tempo real!' : 'Modo de Manutenção DESATIVADO.');
+      setPlatformSettings((prev) => ({
+        ...prev,
+        maintenance_mode: active,
+        maintenance_message: message,
+      }));
+    } else {
+      showToast('Erro ao atualizar modo de manutenção.');
+    }
+  };
+
+  const handleToggleSystemDisabled = async (slug: string) => {
+    const current = platformSettings.disabled_systems || [];
+    const isCurrentlyDisabled = current.includes(slug);
+    const updated = isCurrentlyDisabled ? current.filter((s) => s !== slug) : [...current, slug];
+    const ok = await ApiService.updatePlatformSettings({ disabled_systems: updated });
+    if (ok) {
+      showToast(`Sistema "${slug}" ${isCurrentlyDisabled ? 'HABILITADO' : 'DESABILITADO'}`);
+      setPlatformSettings((prev) => ({ ...prev, disabled_systems: updated }));
+    }
+  };
+
+  const handleToggleRequireAuth = async (val: boolean) => {
+    const ok = await ApiService.updatePlatformSettings({ require_auth_for_interactive_map: val });
+    if (ok) {
+      showToast(`Exigir Login Discord para usar o mapa: ${val ? 'ATIVADO' : 'DESATIVADO'}`);
+      setPlatformSettings((prev) => ({ ...prev, require_auth_for_interactive_map: val }));
+    }
+  };
+
 
   return (
     <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      {/* Toast Banner */}
       {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-orange-600 text-white font-bold text-xs px-5 py-3 rounded-full shadow-2xl border border-orange-400 z-50 animate-in fade-in duration-200">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-[#00d2ff] text-white font-bold text-xs px-5 py-3 rounded-full shadow-2xl border border-[#38bdf8] z-50 animate-in fade-in duration-200">
           {toastMessage}
         </div>
       )}
 
-      <div className="bg-slate-950 border border-slate-800/90 rounded-2xl w-[90vw] h-[90vh] max-w-[90vw] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl z-50">
+      <div className="bg-[#060d1a] border border-[#00d2ff]/35 rounded-2xl w-[90vw] h-[90vh] max-w-[90vw] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl z-50">
         {/* Top Header Bar */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+        <div className="p-4 border-b border-[#00d2ff]/20 flex items-center justify-between bg-[#000000]/90">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-orange-500 to-amber-600 p-[1.5px] shadow-md flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00d2ff] to-[#38bdf8] p-[1.5px] shadow-md flex items-center justify-center">
               <img src="/images/platform_icon.png" alt="MALACA ICON" className="w-full h-full object-contain p-0.5" />
             </div>
             <div>
               <h2 className="font-extrabold text-white text-sm leading-tight">Painel Administrativo — Malaca System GTARP</h2>
-              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Gestão de Cidades, Sistemas, Mapa & Moderação</p>
+              <p className="text-[10px] text-[#7dd3fc] font-semibold uppercase tracking-wider">Gestão de Cidades, Sistemas, Mapa & Moderação</p>
             </div>
           </div>
 
@@ -395,7 +641,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             {isAuthenticated && (
               <button
                 onClick={() => setIsAuthenticated(false)}
-                className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-[#000000] border border-slate-800 text-slate-400 hover:text-rose-400 text-xs font-semibold flex items-center gap-1.5 transition-colors"
                 title="Sair do Painel"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -411,67 +657,78 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           </div>
         </div>
 
+        {/* Authentication Modal View */}
         {!isAuthenticated ? (
-          <div className="p-10 flex flex-col items-center justify-center space-y-4 max-w-md mx-auto my-auto text-center">
-            <div className="w-14 h-14 rounded-2xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 shadow-xl">
-              <img src="/images/platform_icon.png" alt="MALACA ICON" className="w-10 h-10 object-contain" />
+          <div className="p-8 flex flex-col items-center justify-center max-w-md mx-auto my-auto text-center space-y-5">
+            <div className="w-16 h-16 rounded-2xl bg-[#5865F2]/20 border border-[#5865F2]/40 flex items-center justify-center text-[#5865F2] shadow-xl">
+              <i className="fa-brands fa-discord text-3xl"></i>
             </div>
-            <h3 className="font-extrabold text-xl text-white">Autenticação Administrativa</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Digite a chave máster para gerenciar cidades, criar sistemas, marcadores do mapa e moderação da plataforma.
-            </p>
+            <div>
+              <h3 className="font-extrabold text-xl text-white">Autenticação Administrativa</h3>
+              <p className="text-xs text-slate-400 leading-relaxed mt-1">
+                Acesse o painel de gestão através da sua conta autorizada do Discord.
+              </p>
+            </div>
 
-            <form onSubmit={handleLogin} className="w-full space-y-3 pt-2">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1 text-left">USUÁRIO ADMINISTRATIVO</label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Digite o usuário (ex: malaca)"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-orange-500 transition-colors"
-                  />
+            {accessDeniedUser && (
+              <div className="w-full p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold text-left flex items-start gap-3">
+                <XCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-rose-200">Acesso Negado</div>
+                  A conta <span className="underline font-bold text-white">{accessDeniedUser.username || accessDeniedUser.email || 'Discord'}</span> não possui permissão de Administrador nesta plataforma.
                 </div>
               </div>
+            )}
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1 text-left">SENHA DE ACESSO</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="password"
-                    placeholder="Digite a senha"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-orange-500 transition-colors"
-                  />
-                </div>
-              </div>
+            <button
+              onClick={() => AuthService.loginWithDiscord()}
+              className="w-full py-3.5 px-6 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white font-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-3 transition-all shadow-lg shadow-[#5865F2]/25"
+            >
+              <i className="fa-brands fa-discord text-lg"></i>
+              <span>Entrar com Discord (Admin)</span>
+            </button>
 
-              {authError && (
-                <p className="text-xs text-rose-400 font-semibold bg-rose-500/10 border border-rose-500/20 py-2 px-3 rounded-lg">
-                  Usuário ou senha incorretos. Tente novamente.
-                </p>
-              )}
-
-              <button
-                type="submit"
-                className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-400 hover:to-amber-500 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-orange-500/25 mt-2"
-              >
-                Entrar no Painel Admin
-              </button>
-            </form>
+            <details className="w-full text-left pt-2">
+              <summary className="text-[11px] text-slate-500 hover:text-slate-300 cursor-pointer font-semibold py-1 transition-colors text-center">
+                Opção de emergência (Senha Mestra)
+              </summary>
+              <form onSubmit={handleLogin} className="mt-3 space-y-3 bg-[#000000]/60 p-4 rounded-xl border border-slate-800">
+                <input
+                  type="text"
+                  placeholder="Usuário (ex: malaca)"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full bg-[#000000] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+                />
+                <input
+                  type="password"
+                  placeholder="Senha máster"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-[#000000] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+                />
+                {authError && (
+                  <p className="text-xs text-rose-400 font-semibold">Usuário ou senha incorretos.</p>
+                )}
+                <button
+                  type="submit"
+                  className="w-full py-2 bg-[#00d2ff] hover:bg-[#38bdf8] text-black font-bold rounded-xl text-xs"
+                >
+                  Entrar com Senha
+                </button>
+              </form>
+            </details>
           </div>
         ) : (
+          /* Authenticated Admin Dashboard Layout */
           <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Tab Navigation */}
             <div className="flex border-b border-slate-800 bg-slate-900/40 px-4 gap-1 overflow-x-auto">
               <button
                 onClick={() => setActiveTab('dashboard')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'dashboard'
-                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
+                    ? 'border-[#00d2ff] text-[#38bdf8] bg-[#00d2ff]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -480,38 +737,74 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               </button>
 
               <button
-                onClick={() => setActiveTab('cities')}
+                onClick={() => setActiveTab('users')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-                  activeTab === 'cities'
-                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
+                  activeTab === 'users'
+                    ? 'border-[#5865F2] text-[#818cf8] bg-[#5865F2]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Building2 className="w-4 h-4 text-[#FA7608]" />
-                Gerenciar Cidades ({serversList.length})
+                <Users className="w-4 h-4 text-[#818cf8]" />
+                Usuários & Cargos ({profilesList.length})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('access_logs')}
+                className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'access_logs'
+                    ? 'border-emerald-500 text-emerald-400 bg-emerald-500/15'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Activity className="w-4 h-4 text-emerald-400" />
+                Auditoria de Acessos ({accessLogsList.length})
+              </button>
+
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'settings'
+                    ? 'border-amber-500 text-amber-400 bg-amber-500/15'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Settings className="w-4 h-4 text-amber-400" />
+                Opções da Plataforma
+              </button>
+
+              <button
+                onClick={() => setActiveTab('cities')}
+                className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'cities'
+                    ? 'border-[#00d2ff] text-[#38bdf8] bg-[#00d2ff]/15'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Building2 className="w-4 h-4 text-[#00d2ff]" />
+                Cidades ({serversList.length})
               </button>
 
               <button
                 onClick={() => setActiveTab('systems')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'systems'
-                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
+                    ? 'border-[#00d2ff] text-[#38bdf8] bg-[#00d2ff]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Layers className="w-4 h-4 text-[#FFB52E]" />
-                Gerenciar Sistemas ({systemsList.length})
+                <Layers className="w-4 h-4 text-[#38bdf8]" />
+                Sistemas ({systemsList.length})
               </button>
 
               <button
                 onClick={() => setActiveTab('locations')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'locations'
-                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
+                    ? 'border-[#00d2ff] text-[#38bdf8] bg-[#00d2ff]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <MapPin className="w-4 h-4 text-[#FA7608]" />
+                <MapPin className="w-4 h-4 text-[#00d2ff]" />
                 Locais do Mapa ({locations.length})
               </button>
 
@@ -519,23 +812,23 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('wanderer')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'wanderer'
-                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
+                    ? 'border-[#00d2ff] text-[#38bdf8] bg-[#00d2ff]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Clock className="w-4 h-4 text-[#FFB52E]" />
-                Ciclo do Andarilho
+                <Clock className="w-4 h-4 text-[#38bdf8]" />
+                Andarilho
               </button>
 
               <button
                 onClick={() => setActiveTab('comments')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'comments'
-                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
+                    ? 'border-[#00d2ff] text-[#38bdf8] bg-[#00d2ff]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <MessageSquare className="w-4 h-4 text-[#FA7608]" />
+                <MessageSquare className="w-4 h-4 text-[#00d2ff]" />
                 Comentários ({commentsList.length})
               </button>
 
@@ -543,11 +836,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab('suggestions')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'suggestions'
-                    ? 'border-[#FA7608] text-[#FFB52E] bg-[#FA7608]/15'
+                    ? 'border-[#00d2ff] text-[#38bdf8] bg-[#00d2ff]/15'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Sparkles className="w-4 h-4 text-[#FFB52E]" />
+                <Sparkles className="w-4 h-4 text-[#38bdf8]" />
                 Sugestões ({suggestions.length})
               </button>
             </div>
@@ -557,48 +850,102 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               {/* TAB 1: DASHBOARD OVERVIEW */}
               {activeTab === 'dashboard' && (
                 <div className="space-y-6">
+                  {/* Top Stats */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 space-y-1">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">CIDADES ATIVAS</span>
-                      <span className="text-2xl font-black text-[#FA7608] font-mono">{serversList.length}</span>
-                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">CDA, Valley, Los Santos</p>
+                    <div className="bg-[#060d1a] p-4 rounded-xl border border-[#5865F2]/40 space-y-1 relative overflow-hidden">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">USUÁRIOS DISCORD</span>
+                        <Users className="w-4 h-4 text-[#5865F2]" />
+                      </div>
+                      <span className="text-2xl font-black text-[#818cf8] font-mono">{profilesList.length}</span>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">
+                        {profilesList.filter((p) => p.is_admin || p.role === 'admin').length} Administradores
+                      </p>
                     </div>
 
-                    <div className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 space-y-1">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">SISTEMAS HABILITADOS</span>
-                      <span className="text-2xl font-black text-[#FFB52E] font-mono">{systemsList.length}</span>
-                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Mapa, Minijogos</p>
+                    <div className="bg-[#060d1a] p-4 rounded-xl border border-emerald-500/30 space-y-1 relative overflow-hidden">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">ACESSOS REGISTRADOS</span>
+                        <Activity className="w-4 h-4 text-emerald-400" />
+                      </div>
+                      <span className="text-2xl font-black text-emerald-400 font-mono">{accessLogsList.length}</span>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Sessões gravadas no Supabase</p>
                     </div>
 
-                    <div className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 space-y-1">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">MARCAÇÕES NO MAPA</span>
-                      <span className="text-2xl font-black text-[#FA7608] font-mono">{locations.length}</span>
+                    <div className="bg-[#060d1a] p-4 rounded-xl border border-[#00d2ff]/20 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">CIDADES ATIVAS</span>
+                        <Building2 className="w-4 h-4 text-[#00d2ff]" />
+                      </div>
+                      <span className="text-2xl font-black text-[#00d2ff] font-mono">{serversList.length}</span>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Cidades & Servidores RP</p>
+                    </div>
+
+                    <div className="bg-[#060d1a] p-4 rounded-xl border border-[#00d2ff]/20 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">MARCAÇÕES NO MAPA</span>
+                        <MapPin className="w-4 h-4 text-[#00d2ff]" />
+                      </div>
+                      <span className="text-2xl font-black text-[#00d2ff] font-mono">{locations.length}</span>
                       <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Hospitais, Desmanches, Andarilho</p>
-                    </div>
-
-                    <div className="bg-[#0D0D0D] p-4 rounded-xl border border-[#FA7608]/20 space-y-1">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">COMENTÁRIOS DA COMUNIDADE</span>
-                      <span className="text-2xl font-black text-[#FFB52E] font-mono">{commentsList.length}</span>
-                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Mensagens enviadas</p>
                     </div>
                   </div>
 
-                  <div className="bg-[#0D0D0D] p-5 rounded-xl border border-[#FA7608]/20 space-y-3">
-                    <h4 className="font-extrabold text-white text-sm">Resumo da Plataforma</h4>
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      Use as abas acima para criar e gerenciar **Cidades**, vincular **Sistemas**, gerenciar **Pontos do Andarilho** e moderar **Comentários**.
+                  {/* Secondary Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-[#060d1a] p-4 rounded-xl border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">SISTEMAS HABILITADOS</span>
+                      <span className="text-xl font-black text-white font-mono">{systemsList.length}</span>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Mapa, Lockpick, Caixinha, Hacking</p>
+                    </div>
+
+                    <div className="bg-[#060d1a] p-4 rounded-xl border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">COMENTÁRIOS DA COMUNIDADE</span>
+                      <span className="text-xl font-black text-white font-mono">{commentsList.length}</span>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Mensagens ativas</p>
+                    </div>
+
+                    <div className="bg-[#060d1a] p-4 rounded-xl border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">SUGESTÕES RECEBIDAS</span>
+                      <span className="text-xl font-black text-white font-mono">{suggestions.length}</span>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Feedback dos jogadores</p>
+                    </div>
+
+                    <div className="bg-[#060d1a] p-4 rounded-xl border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">SINCRONIZAÇÃO REALTIME</span>
+                      <span className="text-xl font-black text-emerald-400 font-mono flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" /> ATIVA
+                      </span>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Supabase & Broadcast</p>
+                    </div>
+                  </div>
+
+                  {/* Banner & Platform Status Overview */}
+                  <div className="bg-gradient-to-r from-[#060d1a] via-[#0b1329] to-[#060d1a] p-5 rounded-xl border border-[#00d2ff]/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-[#00d2ff]" />
+                        Status da Infraestrutura & Acesso Administrativo
+                      </h4>
+                      <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold border border-emerald-500/30">
+                        ADMIN MASTER CONECTADO
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Gerencie tudo através das abas de navegação acima: atribua cargos de Administrador a usuários do Discord, acompanhe auditoria de acessos em tempo real, defina avisos e alertas globais para todos os visitantes do site e ative/desative sistemas dinamicamente.
                     </p>
                   </div>
                 </div>
               )}
 
+
               {/* TAB 2: CIDADES (SERVERS) MANAGEMENT */}
               {activeTab === 'cities' && (
                 <div className="space-y-6">
                   {/* Create City Form */}
-                  <form onSubmit={handleCreateCity} className="bg-[#0D0D0D] p-5 rounded-xl border border-[#FA7608]/25 space-y-4">
+                  <form onSubmit={handleCreateCity} className="bg-[#060d1a] p-5 rounded-xl border border-[#00d2ff]/25 space-y-4">
                     <h4 className="font-bold text-white text-sm flex items-center gap-2">
-                      <Plus className="w-4 h-4 text-[#FA7608]" />
+                      <Plus className="w-4 h-4 text-[#00d2ff]" />
                       Criar Nova Cidade na Plataforma
                     </h4>
 
@@ -610,7 +957,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: CIDADE ALTA RP"
                           value={cityName}
                           onChange={(e) => setCityName(e.target.value)}
-                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#FA7608]"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
                           required
                         />
                       </div>
@@ -622,7 +969,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: cda ou los-santos"
                           value={citySlug}
                           onChange={(e) => setCitySlug(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
                           required
                         />
                       </div>
@@ -634,7 +981,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: SERVIDORES CDA & VALLEY"
                           value={citySubtitle}
                           onChange={(e) => setCitySubtitle(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
                         />
                       </div>
 
@@ -645,7 +992,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: /images/hero_banner.jpg"
                           value={cityBannerUrl}
                           onChange={(e) => setCityBannerUrl(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
                         />
                       </div>
 
@@ -656,25 +1003,26 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           value={cityDescription}
                           onChange={(e) => setCityDescription(e.target.value)}
                           rows={2}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-orange-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
                         />
                       </div>
                     </div>
 
                     <button
                       type="submit"
-                      className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 text-white font-bold text-xs rounded-xl shadow-lg hover:from-orange-400 hover:to-amber-500 transition-all flex items-center gap-2"
+                      className="px-5 py-2.5 bg-gradient-to-r from-[#00d2ff] via-[#2563eb] to-[#38bdf8] text-white font-bold text-xs rounded-xl shadow-lg hover:from-[#00d2ff] hover:to-[#38bdf8] transition-all flex items-center gap-2"
                     >
                       <Plus className="w-4 h-4" />
-                      {editingCity ? 'Atualizar Cidade' : 'Salvar Nova Cidade'}
+                      Salvar Nova Cidade
                     </button>
                   </form>
 
+                  {/* List of Existing Cities */}
                   <div className="space-y-3">
                     <h4 className="font-bold text-white text-sm">Cidades Cadastradas ({serversList.length})</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {serversList.map((c, idx) => (
-                        <div key={c.id} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                        <div key={c.id} className="bg-[#060d1a] p-4 rounded-xl border border-[#00d2ff]/20 flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3">
                             <div className="flex flex-col gap-1">
                               <button
@@ -697,7 +1045,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             <img src={c.banner_image_url || '/images/hero_banner.jpg'} alt={c.name} className="w-12 h-12 rounded-lg object-cover border border-slate-700" />
                             <div>
                               <h5 className="font-bold text-white text-xs">{c.name}</h5>
-                              <span className="text-[10px] text-orange-400 font-mono">/{c.slug}</span>
+                              <span className="text-[10px] text-[#38bdf8] font-mono">/{c.slug}</span>
                               <p className="text-[11px] text-slate-400 line-clamp-1">{c.subtitle || c.description}</p>
                             </div>
                           </div>
@@ -705,7 +1053,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleStartEditCity(c)}
-                              className="p-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500/20 transition-colors"
+                              className="p-1.5 rounded-lg bg-[#00d2ff]/15 border border-[#00d2ff]/30 text-[#38bdf8] hover:bg-[#00d2ff]/25 transition-colors"
                               title="Editar Cidade"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -733,19 +1081,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </div>
               )}
 
+              {/* TAB 3: SISTEMAS MANAGEMENT */}
               {activeTab === 'systems' && (
                 <div className="space-y-6">
-                  <form onSubmit={editingSystem ? handleSaveEditSystem : handleCreateSystem} className="bg-slate-900/60 p-5 rounded-xl border border-slate-800 space-y-4">
-                    <h4 className="font-bold text-white text-sm flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <Plus className="w-4 h-4 text-amber-400" />
-                        {editingSystem ? `Editar Sistema "${editingSystem.name}"` : 'Criar Novo Sistema na Plataforma'}
-                      </span>
-                      {editingSystem && (
-                        <button type="button" onClick={handleCancelEditSystem} className="text-xs text-rose-400 hover:underline">
-                          Cancelar Edição
-                        </button>
-                      )}
+                  {/* Create System Form */}
+                  <form onSubmit={handleCreateSystem} className="bg-[#060d1a] p-5 rounded-xl border border-[#00d2ff]/25 space-y-4">
+                    <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                      <Plus className="w-4 h-4 text-[#00d2ff]" />
+                      Criar Novo Sistema na Plataforma
                     </h4>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
@@ -756,7 +1099,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: HACKING DEVICE"
                           value={sysName}
                           onChange={(e) => setSysName(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-amber-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
                           required
                         />
                       </div>
@@ -768,7 +1111,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: hacking"
                           value={sysSlug}
                           onChange={(e) => setSysSlug(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-amber-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
                           required
                         />
                       </div>
@@ -780,7 +1123,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: CYBER TERMINAL"
                           value={sysTag}
                           onChange={(e) => setSysTag(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-amber-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
                         />
                       </div>
 
@@ -791,19 +1134,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           placeholder="Ex: hacking/ ou mapa-interativo/"
                           value={sysLink}
                           onChange={(e) => setSysLink(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-amber-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
                         />
                       </div>
 
                       <div className="md:col-span-2">
                         <label className="block text-slate-400 font-semibold mb-1.5">Vincular a Cidades Específicas</label>
-                        <div className="flex flex-wrap gap-2 bg-slate-950 p-3 rounded-lg border border-slate-800">
+                        <div className="flex flex-wrap gap-2 bg-[#000000] p-3 rounded-lg border border-slate-800">
                           {serversList.map((server) => {
                             const isChecked = sysCityIds.includes(server.id) || sysCityIds.includes(server.slug);
                             return (
                               <label key={server.id} className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-2 ${
                                 isChecked
-                                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                                  ? 'bg-[#00d2ff]/20 border-[#00d2ff]/50 text-[#38bdf8]'
                                   : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300'
                               }`}>
                                 <input
@@ -833,25 +1176,26 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           value={sysDescription}
                           onChange={(e) => setSysDescription(e.target.value)}
                           rows={2}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-amber-500"
+                          className="w-full bg-[#000000] border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-[#00d2ff]"
                         />
                       </div>
                     </div>
 
                     <button
                       type="submit"
-                      className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-xs rounded-xl shadow-lg hover:from-amber-400 hover:to-orange-500 transition-all flex items-center gap-2"
+                      className="px-5 py-2.5 bg-gradient-to-r from-[#00d2ff] via-[#2563eb] to-[#38bdf8] text-white font-bold text-xs rounded-xl shadow-lg hover:from-[#00d2ff] hover:to-[#38bdf8] transition-all flex items-center gap-2"
                     >
                       <Plus className="w-4 h-4" />
-                      {editingSystem ? 'Atualizar Sistema' : 'Salvar Novo Sistema'}
+                      Salvar Novo Sistema
                     </button>
                   </form>
 
+                  {/* Existing Systems List */}
                   <div className="space-y-3">
                     <h4 className="font-bold text-white text-sm">Sistemas Cadastrados ({systemsList.length})</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {systemsList.map((sys, idx) => (
-                        <div key={sys.id} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                        <div key={sys.id} className="bg-[#060d1a] p-4 rounded-xl border border-[#00d2ff]/20 flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3">
                             <div className="flex flex-col gap-1">
                               <button
@@ -871,18 +1215,18 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 <ArrowDown className="w-3 h-3" />
                               </button>
                             </div>
-                            <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold">
+                            <div className="w-10 h-10 rounded-lg bg-[#00d2ff]/15 border border-[#00d2ff]/30 flex items-center justify-center text-[#38bdf8] font-bold">
                               <i className={`fa-solid ${sys.icon}`}></i>
                             </div>
                             <div>
                               <h5 className="font-bold text-white text-xs">{sys.name}</h5>
-                              <span className="text-[10px] text-amber-400 font-mono">{sys.tag}</span>
+                              <span className="text-[10px] text-[#00d2ff] font-mono">{sys.tag}</span>
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {sys.city_ids && sys.city_ids.length > 0 ? (
                                   serversList
                                     .filter((serv) => sys.city_ids.includes(serv.id) || sys.city_ids.includes(serv.slug))
                                     .map((serv) => (
-                                      <span key={serv.id} className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold border border-amber-500/30">
+                                      <span key={serv.id} className="px-1.5 py-0.5 rounded bg-[#00d2ff]/20 text-[#38bdf8] text-[9px] font-bold border border-[#00d2ff]/30">
                                         {serv.name}
                                       </span>
                                     ))
@@ -898,7 +1242,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleStartEditSystem(sys)}
-                              className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-colors"
+                              className="p-1.5 rounded-lg bg-[#00d2ff]/15 border border-[#00d2ff]/30 text-[#38bdf8] hover:bg-[#00d2ff]/25 transition-colors"
                               title="Editar Sistema"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -918,45 +1262,42 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </div>
               )}
 
+              {/* TAB 4: LOCAIS DO MAPA */}
               {activeTab === 'locations' && (
                 <div className="space-y-6">
+                  {/* Pin Mode Bar */}
                   <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                     <div>
-                      <h4 className="font-bold text-white text-xs flex items-center gap-2">
-                        <LocateFixed className="w-4 h-4 text-purple-400" />
+                      <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                        <LocateFixed className="w-4 h-4 text-emerald-400" />
                         Seleção de Coordenada no Mapa
                       </h4>
-                      <p className="text-[11px] text-slate-400">
-                        {pendingPinCoords
-                          ? `Coordenada Selecionada: X: ${pendingPinCoords.x} | Y: ${pendingPinCoords.y}`
-                          : 'Clique no botão ao lado para ativar a seleção visual no mapa!'}
+                      <p className="text-xs text-slate-400">
+                        {pendingPinCoords ? (
+                          <strong className="text-emerald-400">Posição Selecionada: X: {pendingPinCoords.x} | Y: {pendingPinCoords.y}</strong>
+                        ) : (
+                          'Clique no botão abaixo para selecionar a posição exata no mapa.'
+                        )}
                       </p>
                     </div>
                     <button
-                      type="button"
-                      onClick={() => {
-                        onStartPinMode();
-                        onClose();
-                      }}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl transition-all shadow-lg flex items-center gap-2"
+                      onClick={onStartPinMode}
+                      className="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs rounded-xl flex items-center gap-2 transition-all"
                     >
                       <MapPin className="w-4 h-4" />
-                      {pendingPinCoords ? 'Alterar Ponto no Mapa' : 'Marcar Ponto no Mapa'}
+                      Marcar no Mapa
                     </button>
                   </div>
 
+                  {/* Create Location Form */}
                   <form onSubmit={handleCreateLocation} className="bg-slate-900/60 p-5 rounded-xl border border-slate-800 space-y-4">
-                    <h4 className="font-bold text-white text-sm flex items-center gap-2">
-                      <Plus className="w-4 h-4 text-emerald-400" />
-                      Cadastrar Novo Local no Mapa
-                    </h4>
-
+                    <h4 className="font-bold text-white text-sm">Adicionar Novo Ponto no Mapa</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                       <div>
                         <label className="block text-slate-400 font-semibold mb-1">Nome do Local *</label>
                         <input
                           type="text"
-                          placeholder="Ex: Bennys Los Santos"
+                          placeholder="Ex: Hospital Ilegal Norte"
                           value={locName}
                           onChange={(e) => setLocName(e.target.value)}
                           className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
@@ -971,49 +1312,36 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           onChange={(e) => setLocCategory(e.target.value as LocationCategory)}
                           className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
                         >
-                          <option value="hospital_ilegal">🏥 Hospital Ilegal</option>
-                          <option value="mercado_ilegal">🛒 Mercado Ilegal</option>
-                          <option value="lavanderia_ilegal">🧺 Lavanderia Ilegal</option>
-                          <option value="desmanche">🔧 Desmanche</option>
-                          <option value="andarilho">🚶‍♂️ Andarilho</option>
-                          <option value="local_possivel">❓ Local Possível</option>
-                          <option value="outros">📍 Outros</option>
+                          <option value="hospital_ilegal">Hospital Ilegal</option>
+                          <option value="mercado_ilegal">Mercado Ilegal</option>
+                          <option value="lavanderia_ilegal">Lavanderia Ilegal</option>
+                          <option value="desmanche">Desmanche</option>
+                          <option value="andarilho">Andarilho (Confirmado)</option>
+                          <option value="local_possivel">Possível Local do Andarilho</option>
+                          <option value="outros">Outros</option>
                         </select>
                       </div>
 
                       <div>
-                        <label className="block text-slate-400 font-semibold mb-1">Cidade Destino</label>
+                        <label className="block text-slate-400 font-semibold mb-1">Cidade / Servidor</label>
                         <select
                           value={locServerId}
                           onChange={(e) => setLocServerId(e.target.value)}
                           className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
                         >
                           {serversList.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name} ({s.slug})
-                            </option>
+                            <option key={s.id} value={s.id}>{s.name} ({s.slug})</option>
                           ))}
                         </select>
                       </div>
 
                       <div>
-                        <label className="block text-slate-400 font-semibold mb-1">URL da Imagem</label>
+                        <label className="block text-slate-400 font-semibold mb-1">Descrição</label>
                         <input
                           type="text"
-                          placeholder="Ex: https://..."
-                          value={locImageUrl}
-                          onChange={(e) => setLocImageUrl(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <label className="block text-slate-400 font-semibold mb-1">Descrição do Local</label>
-                        <textarea
-                          placeholder="Instruções de acesso ao local..."
+                          placeholder="Descrição opcional..."
                           value={locDescription}
                           onChange={(e) => setLocDescription(e.target.value)}
-                          rows={2}
                           className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
                         />
                       </div>
@@ -1024,89 +1352,96 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xs rounded-xl shadow-lg hover:from-emerald-400 hover:to-teal-500 transition-all flex items-center gap-2"
                     >
                       <Plus className="w-4 h-4" />
-                      Salvar Local no Mapa
+                      Salvar Ponto no Mapa
                     </button>
                   </form>
+                </div>
+              )}
 
-                  <div className="space-y-3">
-                    <h4 className="font-bold text-white text-sm">Locais Cadastrados ({locations.length})</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {locations.map((loc) => (
-                        <div key={loc.id} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
-                          <div>
-                            <h5 className="font-bold text-white text-xs flex items-center gap-2">
-                              <span>{loc.name}</span>
-                              <span className="text-[10px] text-emerald-400 font-mono">
-                                (X: {loc.x} | Y: {loc.y})
-                              </span>
-                            </h5>
-                            <span className="text-[10px] text-slate-400 uppercase font-semibold">{loc.category}</span>
-                          </div>
+              {/* TAB 5: CICLO DO ANDARILHO */}
+              {activeTab === 'wanderer' && (() => {
+                const cycle = calculateWandererCycle();
+                const totalCycleVotes = locations
+                  .filter((l) => l.category === 'andarilho' || l.category === 'local_possivel')
+                  .reduce((sum, l) => sum + (l.confirmations_count || 0), 0);
 
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => onToggleLocationActive(loc.id, !loc.is_active)}
-                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
-                                loc.is_active !== false ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-500'
-                              }`}
-                            >
-                              {loc.is_active !== false ? 'Ativo' : 'Inativo'}
-                            </button>
-                            <button
-                              onClick={() => onDeleteLocation(loc.id)}
-                              className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors"
-                              title="Excluir Ponto"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                return (
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-br from-[#00d2ff]/15 via-slate-900/80 to-black p-5 rounded-xl border border-[#00d2ff]/30 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-[#00d2ff]" />
+                          Controle e Automação do Ciclo do Andarilho
+                        </h4>
+                        <span className="text-[10px] px-2.5 py-1 rounded-full bg-[#00d2ff]/20 text-[#7dd3fc] font-bold border border-[#00d2ff]/40">
+                          Reset Automático às 06:00 e 18:00
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        O Andarilho troca de posição a cada 12 horas (exatamente às <strong>06:00</strong> da manhã e <strong>18:00</strong> da noite).
+                        O sistema apaga e reinicia automaticamente os votos da comunidade nesses horários e sincroniza em tempo real com todos os jogadores ativos.
+                      </p>
+
+                      {/* Status Cards */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        <div className="bg-black/60 p-3.5 rounded-xl border border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Ciclo Atual</span>
+                          <span className="text-sm font-extrabold text-[#38bdf8] mt-0.5 block">{cycle.cycleLabel}</span>
+                          <span className="text-[11px] text-slate-400 mt-0.5 block">Iniciado às {cycle.formattedStartTime}</span>
                         </div>
-                      ))}
+
+                        <div className="bg-black/60 p-3.5 rounded-xl border border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Próxima Virada</span>
+                          <span className="text-sm font-mono font-black text-white mt-0.5 block">{cycle.formattedTimeLeft}</span>
+                          <span className="text-[11px] text-slate-400 mt-0.5 block">Às {cycle.formattedEndTime} (Auto-reset)</span>
+                        </div>
+
+                        <div className="bg-black/60 p-3.5 rounded-xl border border-slate-800">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Votos Registrados</span>
+                          <span className="text-sm font-mono font-black text-emerald-400 mt-0.5 block">{totalCycleVotes} votos</span>
+                          <span className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Sincronização em tempo real ativa
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Manual Reset Action */}
+                      <div className="pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="text-xs text-slate-400">
+                          Precisa forçar um reset fora do horário programado? Clique abaixo para zerar os votos em todas as telas conectadas.
+                        </div>
+
+                        <button
+                          onClick={handleResetCycle}
+                          className="px-4 py-2.5 bg-gradient-to-r from-amber-500/25 to-rose-500/25 hover:from-amber-500/35 hover:to-rose-500/35 text-amber-200 border border-amber-500/40 font-bold text-xs rounded-xl flex items-center gap-2 transition-all whitespace-nowrap shadow-lg shadow-amber-500/10"
+                        >
+                          <RefreshCw className="w-4 h-4 text-amber-400" />
+                          Zerar Votos Agora (Sincronizar Todas as Telas)
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
-              {activeTab === 'wanderer' && (
-                <div className="bg-slate-900/60 p-6 rounded-xl border border-slate-800 space-y-4 text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 mx-auto shadow-xl">
-                    <RefreshCw className="w-7 h-7" />
-                  </div>
-                  <h4 className="font-extrabold text-white text-base">Reset do Ciclo do Andarilho</h4>
-                  <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-                    Zera todas as confirmações comunitárias acumuladas no ciclo atual.
-                  </p>
-                  <button
-                    onClick={() => {
-                      onResetWandererCycle();
-                      showToast('Ciclo do Andarilho resetado com sucesso!');
-                    }}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg transition-all"
-                  >
-                    Confirmar Reset do Ciclo
-                  </button>
-                </div>
-              )}
-
+              {/* TAB 6: COMENTÁRIOS & MODERAÇÃO */}
               {activeTab === 'comments' && (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <h4 className="font-bold text-white text-sm">Moderação de Comentários ({commentsList.length})</h4>
                   <div className="space-y-2">
                     {commentsList.map((comm) => (
-                      <div key={comm.id} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between gap-4">
-                        <div>
+                      <div key={comm.id} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-start justify-between gap-3">
+                        <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <strong className="text-white text-xs">{comm.author_name}</strong>
-                            <span className="text-[10px] text-slate-500">{new Date(comm.created_at).toLocaleDateString('pt-BR')}</span>
+                            <span className="font-bold text-white text-xs">{comm.nickname}</span>
+                            <span className="text-[10px] text-slate-500">{comm.created_at ? new Date(comm.created_at).toLocaleTimeString() : 'recente'}</span>
                           </div>
-                          <p className="text-xs text-slate-300 mt-1">{comm.content}</p>
+                          <p className="text-xs text-slate-300">{comm.content}</p>
                         </div>
+
                         <button
-                          onClick={() => {
-                            onDeleteComment(comm.id);
-                            setCommentsList((prev) => prev.filter((c) => c.id !== comm.id));
-                            showToast('Comentário excluído.');
-                          }}
+                          onClick={() => handleDeleteComment(comm.id)}
                           className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors"
                           title="Excluir Comentário"
                         >
@@ -1118,28 +1453,36 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </div>
               )}
 
+              {/* TAB 7: SUGESTÕES */}
               {activeTab === 'suggestions' && (
-                <div className="space-y-3">
-                  <h4 className="font-bold text-white text-sm">Sugestões Recebidas ({suggestions.length})</h4>
+                <div className="space-y-4">
+                  <h4 className="font-bold text-white text-sm">Sugestões Enviadas ({suggestions.length})</h4>
                   <div className="space-y-2">
                     {suggestions.map((sug) => (
-                      <div key={sug.id} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between gap-4">
-                        <div>
-                          <h5 className="font-bold text-white text-xs">{sug.title}</h5>
-                          <p className="text-xs text-slate-300 mt-0.5">{sug.description}</p>
+                      <div key={sug.id} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white text-xs">{sug.nickname}</span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">{sug.type}</span>
+                            <span className="text-[10px] text-amber-400 font-bold uppercase">{sug.status}</span>
+                          </div>
+                          <p className="text-xs text-slate-300">{sug.content}</p>
                         </div>
-                        <div className="flex items-center gap-1.5">
+
+                        <div className="flex items-center gap-1">
                           <button
-                            onClick={() => onUpdateSuggestionStatus(sug.id, 'aprovado')}
-                            className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold rounded-lg"
+                            onClick={() => onUpdateSuggestionStatus && onUpdateSuggestionStatus(sug.id, 'aceita')}
+                            className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                            title="Aceitar Sugestão"
                           >
-                            Aprovar
+                            <Check className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => onUpdateSuggestionStatus(sug.id, 'rejeitado')}
-                            className="px-2.5 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold rounded-lg"
+                            onClick={() => onUpdateSuggestionStatus && onUpdateSuggestionStatus(sug.id, 'recusada')}
+                            className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors"
+                            title="Recusar Sugestão"
                           >
-                            Rejeitar
+                            <XCircle className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -1147,6 +1490,470 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* TAB 8: GERENCIAMENTO DE USUÁRIOS */}
+              {activeTab === 'users' && (() => {
+                const filteredUsers = profilesList.filter((u) => {
+                  const q = userSearchQuery.toLowerCase();
+                  return (
+                    (u.username && u.username.toLowerCase().includes(q)) ||
+                    (u.full_name && u.full_name.toLowerCase().includes(q)) ||
+                    (u.discord_id && u.discord_id.includes(q)) ||
+                    (u.email && u.email.toLowerCase().includes(q))
+                  );
+                });
+
+                return (
+                  <div className="space-y-6">
+                    {/* Header Controls */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#060d1a] p-4 rounded-xl border border-slate-800">
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Buscar por nome, @username, ID Discord ou e-mail..."
+                          value={userSearchQuery}
+                          onChange={(e) => setUserSearchQuery(e.target.value)}
+                          className="w-full bg-[#000000] border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#5865F2]"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            showToast('Atualizando lista de usuários...');
+                            ApiService.fetchProfiles().then((profs) => {
+                              setProfilesList(profs);
+                              showToast('Lista de usuários atualizada com sucesso!');
+                            });
+                          }}
+                          className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-colors"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>Atualizar</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Users Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {filteredUsers.length === 0 ? (
+                        <div className="col-span-full py-12 text-center text-slate-500 text-xs font-semibold">
+                          Nenhum usuário encontrado para a pesquisa.
+                        </div>
+                      ) : (
+                        filteredUsers.map((u) => {
+                          const isAdmin = u.is_admin || u.role === 'admin';
+                          const isBanned = u.is_banned === true;
+
+                          return (
+                            <div
+                              key={u.id}
+                              className={`p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 ${
+                                isBanned
+                                  ? 'bg-rose-950/20 border-rose-900/40'
+                                  : isAdmin
+                                  ? 'bg-gradient-to-br from-[#5865F2]/10 via-[#060d1a] to-[#000000] border-[#5865F2]/40 shadow-lg shadow-[#5865F2]/5'
+                                  : 'bg-[#060d1a] border-slate-800'
+                              }`}
+                            >
+                              {/* User Header */}
+                              <div className="flex items-start gap-3">
+                                <div className="relative shrink-0">
+                                  <img
+                                    src={u.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}
+                                    alt={u.username}
+                                    className={`w-12 h-12 rounded-full object-cover border-2 ${
+                                      isBanned
+                                        ? 'border-rose-500 opacity-60'
+                                        : isAdmin
+                                        ? 'border-[#38bdf8] shadow-md shadow-[#38bdf8]/30'
+                                        : 'border-slate-700'
+                                    }`}
+                                  />
+                                  {isAdmin && (
+                                    <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#5865F2] text-white rounded-full flex items-center justify-center text-[9px] shadow">
+                                      <Shield className="w-2.5 h-2.5" />
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <h5 className="font-extrabold text-white text-xs truncate max-w-[140px]">
+                                      {u.full_name || u.username}
+                                    </h5>
+                                    {isAdmin && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-[#5865F2]/20 text-[#818cf8] border border-[#5865F2]/40">
+                                        ADMIN
+                                      </span>
+                                    )}
+                                    {isBanned && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                                        BANIDO
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="text-[11px] text-[#38bdf8] font-bold truncate">@{u.username}</div>
+
+                                  <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1 mt-0.5">
+                                    <span>ID: {u.discord_id}</span>
+                                    <button
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(u.discord_id);
+                                        showToast('ID Discord copiado!');
+                                      }}
+                                      className="hover:text-white"
+                                      title="Copiar ID Discord"
+                                    >
+                                      📋
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* User Metadata */}
+                              <div className="grid grid-cols-2 gap-2 text-[10px] bg-black/40 p-2.5 rounded-lg border border-slate-900">
+                                <div>
+                                  <span className="text-slate-500 font-bold block">ENTRADA</span>
+                                  <span className="text-slate-300 font-semibold">
+                                    {u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : 'Recente'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-slate-500 font-bold block">SESSÕES</span>
+                                  <span className="text-[#38bdf8] font-bold">{u.access_count || 1} acessos</span>
+                                </div>
+                              </div>
+
+                              {/* Actions Bar */}
+                              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1.5 flex-wrap">
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => handleToggleAdmin(u)}
+                                    className={`px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-all ${
+                                      isAdmin
+                                        ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25'
+                                        : 'bg-[#5865F2]/20 text-[#818cf8] border border-[#5865F2]/40 hover:bg-[#5865F2]/30'
+                                    }`}
+                                    title={isAdmin ? 'Remover Permissão de Admin' : 'Tornar Administrador'}
+                                  >
+                                    <ShieldCheck className="w-3 h-3" />
+                                    <span>{isAdmin ? 'Remover Admin' : 'Tornar Admin'}</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleToggleBan(u)}
+                                    className={`px-2 py-1.5 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-all ${
+                                      isBanned
+                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                                        : 'bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:bg-rose-500/25'
+                                    }`}
+                                    title={isBanned ? 'Desbanir Usuário' : 'Banir Usuário'}
+                                  >
+                                    <Ban className="w-3 h-3" />
+                                    <span>{isBanned ? 'Desbanir' : 'Banir'}</span>
+                                  </button>
+                                </div>
+
+                                <button
+                                  onClick={() => handleDeleteUser(u)}
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                  title="Excluir Usuário"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* TAB 9: AUDITORIA DE ACESSOS */}
+              {activeTab === 'access_logs' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between bg-[#060d1a] p-4 rounded-xl border border-slate-800">
+                    <div>
+                      <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-emerald-400" />
+                        Histórico de Logins & Auditoria ({accessLogsList.length} registros)
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Registros em tempo real das conexões e logins efetuados via Discord OAuth2.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        showToast('Atualizando logs de acesso...');
+                        ApiService.fetchAccessLogs().then((logs) => {
+                          setAccessLogsList(logs);
+                          showToast('Logs de acesso atualizados!');
+                        });
+                      }}
+                      className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-colors"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Atualizar</span>
+                    </button>
+                  </div>
+
+                  {/* Logs Table */}
+                  <div className="bg-[#060d1a] rounded-xl border border-slate-800 overflow-hidden">
+                    <div className="divide-y divide-slate-800/80 max-h-[550px] overflow-y-auto">
+                      {accessLogsList.length === 0 ? (
+                        <div className="p-8 text-center text-xs text-slate-500 font-semibold">
+                          Nenhum registro de acesso gravado ainda.
+                        </div>
+                      ) : (
+                        accessLogsList.map((log) => (
+                          <div key={log.id} className="p-3.5 flex items-center justify-between gap-4 hover:bg-slate-900/30 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-[#5865F2]/20 border border-[#5865F2]/40 flex items-center justify-center text-[#5865F2] font-black text-xs shrink-0">
+                                <i className="fa-brands fa-discord"></i>
+                              </div>
+
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-extrabold text-white text-xs">{log.username || 'Discord User'}</span>
+                                  <span className="text-[10px] font-mono text-[#38bdf8] bg-[#00d2ff]/10 px-1.5 py-0.5 rounded border border-[#00d2ff]/20">
+                                    ID: {log.discord_id || '—'}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-slate-500 block truncate max-w-md mt-0.5 font-mono">
+                                  {log.user_agent || 'Navegador Web Padrão'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <span className="text-xs font-bold text-slate-300 block font-mono">
+                                {log.logged_at ? new Date(log.logged_at).toLocaleTimeString('pt-BR') : 'Agora'}
+                              </span>
+                              <span className="text-[10px] text-slate-500 block">
+                                {log.logged_at ? new Date(log.logged_at).toLocaleDateString('pt-BR') : ''}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 10: OPÇÕES GLOBAIS DA PLATAFORMA */}
+              {activeTab === 'settings' && (() => {
+                return (
+                  <div className="space-y-6">
+                    {/* Anúncio Global em Tempo Real */}
+                    <div className="bg-[#060d1a] p-5 rounded-xl border border-amber-500/30 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
+                          <Megaphone className="w-4 h-4 text-amber-400" />
+                          Anúncio Global em Tempo Real
+                        </h4>
+                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${
+                          platformSettings.announcement_active
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}>
+                          {platformSettings.announcement_active ? 'TRANSMITINDO AO VIVO' : 'DESATIVADO'}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        Exibe um banner de alerta no topo de todas as páginas para todos os jogadores conectados instantaneamente.
+                      </p>
+
+                      <div className="space-y-3">
+                        <textarea
+                          placeholder="Digite aqui o texto do anúncio para todos os usuários..."
+                          value={platformSettings.global_announcement || ''}
+                          onChange={(e) =>
+                            setPlatformSettings((prev) => ({ ...prev, global_announcement: e.target.value }))
+                          }
+                          rows={2}
+                          className="w-full bg-[#000000] border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-amber-400 placeholder-slate-600"
+                        />
+
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <label className="text-xs font-bold text-slate-300 flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={platformSettings.announcement_active}
+                                onChange={(e) =>
+                                  setPlatformSettings((prev) => ({ ...prev, announcement_active: e.target.checked }))
+                                }
+                                className="accent-amber-500 w-4 h-4 cursor-pointer"
+                              />
+                              <span>Ativar Exibição do Anúncio</span>
+                            </label>
+
+                            <select
+                              value={platformSettings.announcement_type || 'info'}
+                              onChange={(e) =>
+                                setPlatformSettings((prev) => ({ ...prev, announcement_type: e.target.value as any }))
+                              }
+                              className="bg-[#000000] border border-slate-800 text-xs text-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                            >
+                              <option value="info">Tipo: Informativo (Azul)</option>
+                              <option value="warning">Tipo: Atenção (Amarelo)</option>
+                              <option value="alert">Tipo: Alerta Crítico (Vermelho)</option>
+                              <option value="success">Tipo: Sucesso (Verde)</option>
+                            </select>
+                          </div>
+
+                          <button
+                            onClick={() =>
+                              handleSaveAnnouncement(
+                                platformSettings.global_announcement || '',
+                                platformSettings.announcement_active,
+                                platformSettings.announcement_type || 'info'
+                              )
+                            }
+                            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all"
+                          >
+                            Salvar e Transmitir Anúncio
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Modo Manutenção */}
+                    <div className="bg-[#060d1a] p-5 rounded-xl border border-rose-500/30 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
+                          <ShieldAlert className="w-4 h-4 text-rose-400" />
+                          Modo de Manutenção da Plataforma
+                        </h4>
+                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${
+                          platformSettings.maintenance_mode
+                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                            : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                        }`}>
+                          {platformSettings.maintenance_mode ? 'MANUTENÇÃO ATIVA' : 'SISTEMA NORMAL'}
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        <input
+                          type="text"
+                          placeholder="Mensagem exibida para os usuários durante manutenção..."
+                          value={platformSettings.maintenance_message || ''}
+                          onChange={(e) =>
+                            setPlatformSettings((prev) => ({ ...prev, maintenance_message: e.target.value }))
+                          }
+                          className="w-full bg-[#000000] border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-rose-400 placeholder-slate-600"
+                        />
+
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-300 flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={platformSettings.maintenance_mode}
+                              onChange={(e) =>
+                                setPlatformSettings((prev) => ({ ...prev, maintenance_mode: e.target.checked }))
+                              }
+                              className="accent-rose-500 w-4 h-4 cursor-pointer"
+                            />
+                            <span>Ativar Modo de Manutenção (Apenas Admins conseguem acessar)</span>
+                          </label>
+
+                          <button
+                            onClick={() =>
+                              handleToggleMaintenance(
+                                platformSettings.maintenance_mode,
+                                platformSettings.maintenance_message || ''
+                              )
+                            }
+                            className="px-4 py-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all"
+                          >
+                            Aplicar Status de Manutenção
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Interruptor de Sistemas & Minijogos */}
+                    <div className="bg-[#060d1a] p-5 rounded-xl border border-slate-800 space-y-4">
+                      <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-[#38bdf8]" />
+                        Controle de Disponibilidade dos Sistemas
+                      </h4>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[
+                          { slug: 'mapa-interativo', name: 'Mapa Interativo RP', desc: 'Sincronização em tempo real e localização de pontos' },
+                          { slug: 'lockpick', name: 'Lockpick Simulator', desc: 'Simulador de arrombamento de pinos' },
+                          { slug: 'caixinha', name: 'Caixinha Eletrônico', desc: 'Decodificador de cofres e caixas eletrônicos' },
+                          { slug: 'hacking', name: 'Hacking Device', desc: 'Terminal de invasão Cayo Perico' },
+                        ].map((sys) => {
+                          const isDisabled = (platformSettings.disabled_systems || []).includes(sys.slug);
+
+                          return (
+                            <div
+                              key={sys.slug}
+                              className="p-3.5 rounded-xl bg-black/50 border border-slate-800 flex items-center justify-between gap-3"
+                            >
+                              <div>
+                                <h5 className="font-bold text-white text-xs">{sys.name}</h5>
+                                <p className="text-[10px] text-slate-400 mt-0.5">{sys.desc}</p>
+                              </div>
+
+                              <button
+                                onClick={() => handleToggleSystemDisabled(sys.slug)}
+                                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${
+                                  isDisabled
+                                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30'
+                                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                                }`}
+                              >
+                                {isDisabled ? 'DESATIVADO' : 'ATIVO'}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Política de Autenticação */}
+                    <div className="bg-[#060d1a] p-5 rounded-xl border border-slate-800 space-y-3">
+                      <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-[#5865F2]" />
+                        Regras de Acesso Discord
+                      </h4>
+
+                      <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/40 border border-slate-800">
+                        <div>
+                          <span className="text-xs font-bold text-white block">Exigir Login Discord para usar o Mapa Interativo</span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">
+                            Se ativado, visitantes anônimos são obrigados a autenticar pelo Discord antes de interagir.
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={() => handleToggleRequireAuth(!platformSettings.require_auth_for_interactive_map)}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${
+                            platformSettings.require_auth_for_interactive_map
+                              ? 'bg-[#5865F2] text-white'
+                              : 'bg-slate-800 text-slate-400 border border-slate-700'
+                          }`}
+                        >
+                          {platformSettings.require_auth_for_interactive_map ? 'ATIVADO' : 'DESATIVADO'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
             </div>
           </div>
         )}

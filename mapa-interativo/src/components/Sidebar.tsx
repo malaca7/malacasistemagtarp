@@ -18,6 +18,8 @@ interface SidebarProps {
   onClose: () => void;
   selectedCategories: LocationCategory[];
   onToggleCategory: (category: LocationCategory) => void;
+  onSelectOnlyCategory?: (category: LocationCategory) => void;
+  onSelectAllCategories?: () => void;
   comments: Comment[];
   onAddComment: (nickname: string, content: string) => Promise<boolean>;
   onAddSuggestion: (nickname: string, type: SuggestionType, content: string) => Promise<boolean>;
@@ -38,6 +40,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose,
   selectedCategories,
   onToggleCategory,
+  onSelectOnlyCategory,
+  onSelectAllCategories,
   comments,
   onAddComment,
   onAddSuggestion,
@@ -126,14 +130,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Panel */}
       <aside
-        className={`fixed md:static top-0 left-0 h-full w-80 md:w-84 bg-[#0D0D0D] backdrop-blur-xl border-r border-[#FA7608]/20 z-40 flex flex-col transition-transform duration-300 ${
+        className={`fixed md:static top-0 left-0 h-full w-80 md:w-84 bg-[#060d1a] backdrop-blur-xl border-r border-[#00d2ff]/20 z-40 flex flex-col transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
         {/* Top Header inside Sidebar */}
-        <div className="p-4 border-b border-[#FA7608]/20 flex items-center justify-between">
+        <div className="p-4 border-b border-[#00d2ff]/20 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-[#FA7608]" />
+            <Filter className="w-4 h-4 text-[#00d2ff]" />
             <span className="font-bold text-sm text-slate-200 uppercase tracking-wider">
               Painel do Jogador
             </span>
@@ -147,13 +151,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Andarilho Cycle Status Widget */}
-        <div className="p-4 bg-gradient-to-br from-[#FA7608]/10 via-[#0D0D0D] to-[#000000] border-b border-[#FA7608]/25">
+        <div className="p-4 bg-gradient-to-br from-[#00d2ff]/10 via-[#060d1a] to-[#000000] border-b border-[#00d2ff]/25">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-[#FFB52E] flex items-center gap-1.5 uppercase tracking-wide">
-              <Clock className="w-3.5 h-3.5 text-[#FA7608]" />
+            <span className="text-xs font-bold text-[#38bdf8] flex items-center gap-1.5 uppercase tracking-wide">
+              <Clock className="w-3.5 h-3.5 text-[#00d2ff]" />
               Troca do Andarilho
             </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FA7608]/20 text-[#FFB52E] font-medium border border-[#FA7608]/40">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#00d2ff]/20 text-[#38bdf8] font-medium border border-[#00d2ff]/40">
               06h & 18h
             </span>
           </div>
@@ -213,11 +217,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </span>
                 <button
                   onClick={() => {
-                    CATEGORIES.forEach(c => {
-                      if (!selectedCategories.includes(c.id)) onToggleCategory(c.id);
-                    });
+                    if (onSelectAllCategories) {
+                      onSelectAllCategories();
+                    } else {
+                      CATEGORIES.forEach(c => {
+                        if (!selectedCategories.includes(c.id)) onToggleCategory(c.id);
+                      });
+                    }
                   }}
-                  className="text-[10px] font-bold text-[#FFB52E] hover:underline"
+                  className="text-[10px] font-bold text-[#38bdf8] hover:underline cursor-pointer"
                 >
                   MOSTRAR TODOS
                 </button>
@@ -231,24 +239,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     key={cat.id}
                     className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${
                       isOnly
-                        ? 'bg-[#FA7608]/20 border-[#FA7608] text-white shadow-lg shadow-[#FA7608]/20'
+                        ? 'bg-[#00d2ff]/20 border-[#00d2ff] text-white shadow-lg shadow-[#00d2ff]/20'
                         : isChecked
-                        ? 'bg-[#0D0D0D] border-[#FA7608]/40 text-slate-200'
+                        ? 'bg-[#060d1a] border-[#00d2ff]/40 text-slate-200'
                         : 'bg-[#000000]/60 border-slate-800 text-slate-500 opacity-60'
                     }`}
                   >
                     <button
                       onClick={() => {
-                        // Isolate this category (show only this item)
-                        CATEGORIES.forEach(c => {
-                          if (c.id === cat.id) {
-                            if (!selectedCategories.includes(c.id)) onToggleCategory(c.id);
-                          } else {
-                            if (selectedCategories.includes(c.id)) onToggleCategory(c.id);
-                          }
-                        });
+                        if (onSelectOnlyCategory) {
+                          onSelectOnlyCategory(cat.id);
+                        } else {
+                          onToggleCategory(cat.id);
+                        }
                       }}
-                      className="flex items-center gap-2.5 text-left flex-1 hover:text-white"
+                      className="flex items-center gap-2.5 text-left flex-1 hover:text-white cursor-pointer"
                       title="Clique para mostrar apenas esta categoria"
                     >
                       <span className="text-base">{cat.icon}</span>
@@ -258,15 +263,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => {
-                          CATEGORIES.forEach(c => {
-                            if (c.id === cat.id) {
-                              if (!selectedCategories.includes(c.id)) onToggleCategory(c.id);
-                            } else {
-                              if (selectedCategories.includes(c.id)) onToggleCategory(c.id);
-                            }
-                          });
+                          if (onSelectOnlyCategory) {
+                            onSelectOnlyCategory(cat.id);
+                          } else {
+                            CATEGORIES.forEach(c => {
+                              if (c.id === cat.id) {
+                                if (!selectedCategories.includes(c.id)) onToggleCategory(c.id);
+                              } else {
+                                if (selectedCategories.includes(c.id)) onToggleCategory(c.id);
+                              }
+                            });
+                          }
                         }}
-                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#FA7608]/15 border border-[#FA7608]/30 text-[#FFB52E] hover:bg-[#FA7608]/30 transition-all"
+                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#00d2ff]/15 border border-[#00d2ff]/30 text-[#38bdf8] hover:bg-[#00d2ff]/30 transition-all cursor-pointer"
                       >
                         Apenas Este
                       </button>
@@ -274,7 +283,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => onToggleCategory(cat.id)}
-                        className="w-4 h-4 rounded border-slate-700 text-[#FA7608] focus:ring-[#FA7608] bg-[#000000] cursor-pointer"
+                        className="w-4 h-4 rounded border-slate-700 text-[#00d2ff] focus:ring-[#00d2ff] bg-[#000000] cursor-pointer"
                       />
                     </div>
                   </div>
