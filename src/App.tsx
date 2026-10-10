@@ -470,6 +470,9 @@ export const App: React.FC = () => {
           onSelectAllCategories={handleSelectAllCategories}
           suggestions={suggestions}
           onAddSuggestion={handleAddSuggestion}
+          locations={locations}
+          onSelectLocation={(loc) => setSelectedLocation(loc)}
+          currentServer={currentServer}
         />
 
         {/* Map Container View */}

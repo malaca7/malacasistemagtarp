@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { LocationCategory, Comment, Suggestion, SuggestionType } from '../types';
+import type { LocationCategory, Comment, Suggestion, SuggestionType, MapLocation, Server } from '../types';
 import {
   Filter,
   MessageSquare,
@@ -27,15 +27,18 @@ interface SidebarProps {
   suggestions?: Suggestion[];
   onAddComment?: (nickname: string, content: string) => Promise<boolean>;
   onAddSuggestion: (nickname: string, type: SuggestionType, content: string) => Promise<boolean>;
+  locations?: MapLocation[];
+  onSelectLocation?: (location: MapLocation | null) => void;
+  currentServer?: Server | null;
 }
 
 const CATEGORIES: { id: LocationCategory; label: string; color: string; icon: string }[] = [
   { id: 'hospital_ilegal', label: 'Hospital Ilegal', color: 'bg-red-500', icon: '🏥' },
-  { id: 'mercado_ilegal', label: 'Mercado Ilegal', color: 'bg-amber-500', icon: '🛒' },
-  { id: 'lavanderia_ilegal', label: 'Lavanderia Ilegal', color: 'bg-blue-500', icon: '🧺' },
+  { id: 'mercado_ilegal', label: 'Mercado Ilegal', color: 'bg-amber-500', icon: '🏪' },
+  { id: 'lavanderia_ilegal', label: 'Lavanderia Ilegal', color: 'bg-purple-500', icon: '🧼' },
   { id: 'desmanche', label: 'Desmanche', color: 'bg-emerald-500', icon: '🔧' },
-  { id: 'andarilho', label: 'Andarilho (Confirmado)', color: 'bg-purple-500', icon: '🚶‍♂️' },
-  { id: 'local_possivel', label: 'Possíveis Locais', color: 'bg-purple-400', icon: '❓' },
+  { id: 'andarilho', label: 'Andarilho (Confirmado)', color: 'bg-[#00d2ff]', icon: '🚶‍♂️' },
+  { id: 'local_possivel', label: 'Possíveis Locais (12h)', color: 'bg-[#38bdf8]', icon: '⭕' },
   { id: 'outros', label: 'Outros Pontos', color: 'bg-slate-500', icon: '📍' },
 ];
 
@@ -48,9 +51,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectAllCategories,
   suggestions = [],
   onAddSuggestion,
+  locations = [],
+  onSelectLocation,
+  currentServer,
 }) => {
-  const [activeTab, setActiveTab] = useState<'filters' | 'tickets'>('filters');
+  const [activeTab, setActiveTab] = useState<'filters' | 'npcs' | 'tickets'>('filters');
   const [ticketView, setTicketView] = useState<'list' | 'create'>('list');
+  const [npcSearch, setNpcSearch] = useState('');
+  const [howToOpen, setHowToOpen] = useState(false);
 
   // Andarilho Cycle calculation (Resets strictly at 06:00 and 18:00)
   const [cycleInfo, setCycleInfo] = useState<WandererCycleInfo>(calculateWandererCycle());
@@ -85,6 +93,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       setTimeout(() => setSugSuccess(false), 5000);
     }
   };
+
+  const filteredLocationsList = locations.filter((l) => {
+    if (!npcSearch.trim()) return true;
+    const query = npcSearch.toLowerCase();
+    return (
+      l.name.toLowerCase().includes(query) ||
+      (l.description && l.description.toLowerCase().includes(query)) ||
+      l.category.toLowerCase().includes(query)
+    );
+  });
 
   return (
     <>
@@ -165,10 +183,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Tabs Navigation */}
-        <div className="flex border-b border-[#00d2ff]/20 bg-[#030712]/80 p-1.5 gap-1.5">
+        <div className="flex border-b border-[#00d2ff]/20 bg-[#030712]/80 p-1.5 gap-1">
           <button
             onClick={() => setActiveTab('filters')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
               activeTab === 'filters'
                 ? 'bg-[#00d2ff]/15 text-[#38bdf8] border border-[#00d2ff]/40 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
@@ -178,15 +196,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Filtros
           </button>
           <button
+            onClick={() => setActiveTab('npcs')}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+              activeTab === 'npcs'
+                ? 'bg-[#00d2ff]/15 text-[#38bdf8] border border-[#00d2ff]/40 shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span>🚶</span>
+            NPCs ({locations.length})
+          </button>
+          <button
             onClick={() => setActiveTab('tickets')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
               activeTab === 'tickets'
                 ? 'bg-[#00d2ff]/15 text-[#38bdf8] border border-[#00d2ff]/40 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5 text-[#00d2ff]" />
-            Atendimento Ticket
+            Tickets
             {suggestions.length > 0 && (
               <span className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] bg-[#00d2ff]/20 text-[#38bdf8] font-mono">
                 {suggestions.length}
@@ -278,6 +307,101 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* TAB 2: LISTA DE NPCS & LOCAIS */}
+          {activeTab === 'npcs' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <span>📍</span>
+                    Locais no {currentServer?.name || 'Servidor'}
+                  </h4>
+                  <p className="text-[10px] text-slate-400">Total de {filteredLocationsList.length} pontos disponíveis</p>
+                </div>
+              </div>
+
+              {/* Busca rápida */}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={npcSearch}
+                  onChange={(e) => setNpcSearch(e.target.value)}
+                  placeholder="Buscar NPC ou ponto..."
+                  className="w-full bg-[#030712] border border-[#00d2ff]/30 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00d2ff]"
+                />
+              </div>
+
+              {/* Tutorial Como Marcar o Andarilho */}
+              <div className="p-3 bg-gradient-to-br from-[#00d2ff]/10 to-transparent border border-[#00d2ff]/25 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setHowToOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between text-left text-xs font-bold text-[#38bdf8] cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span>🎯</span> Como Marcar o Andarilho
+                  </span>
+                  <span className="text-xs">{howToOpen ? '▲' : '▼'}</span>
+                </button>
+                {howToOpen && (
+                  <div className="mt-2 text-[11px] text-slate-300 space-y-1.5 border-t border-slate-800 pt-2 leading-relaxed">
+                    <p>
+                      O Andarilho muda de local a cada <strong>12 horas</strong> (às 06:00 e 18:00).
+                    </p>
+                    <div className="space-y-1 text-slate-400">
+                      <div><strong className="text-white">1.</strong> Encontre os círculos azuis ⭕ no mapa.</div>
+                      <div><strong className="text-white">2.</strong> Clique no círculo correspondente onde o Andarilho foi avistado.</div>
+                      <div><strong className="text-white">3.</strong> Clique em <strong>"Marcar Andarilho Aqui"</strong> para confirmar para toda a comunidade!</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Lista dos Locais */}
+              <div className="space-y-2">
+                {filteredLocationsList.map((loc) => {
+                  const isAndarilho = loc.category === 'andarilho' || loc.category === 'local_possivel';
+                  const isConfirmed = isAndarilho && (loc.confirmations_count || 0) > 0;
+                  const icon = isConfirmed ? '🚶‍♂️' : isAndarilho ? '⭕' : CATEGORIES.find(c => c.id === loc.category)?.icon || '📍';
+
+                  return (
+                    <div
+                      key={loc.id}
+                      onClick={() => {
+                        if (onSelectLocation) onSelectLocation(loc);
+                        if (window.innerWidth < 768) onClose();
+                      }}
+                      className="p-2.5 rounded-xl bg-[#060d1a] border border-slate-800 hover:border-[#00d2ff]/60 hover:bg-[#00d2ff]/10 transition-all cursor-pointer flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-2.5 truncate flex-1 pr-2">
+                        <span className="text-base flex-shrink-0">{icon}</span>
+                        <div className="truncate">
+                          <h5 className="text-xs font-bold text-white group-hover:text-[#38bdf8] truncate transition-colors">
+                            {loc.name}
+                          </h5>
+                          <span className="text-[10px] text-slate-400 block truncate">
+                            {loc.description || 'Ponto de interesse'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {isConfirmed && (
+                          <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            {loc.confirmations_count} conf.
+                          </span>
+                        )}
+                        <span className="text-[9px] font-mono text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                          {loc.x},{loc.y}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

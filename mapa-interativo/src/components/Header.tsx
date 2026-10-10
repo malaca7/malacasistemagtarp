@@ -59,19 +59,34 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Actions & User Discord Auth Button */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {currentServer && (
-          <div className="hidden sm:flex items-center gap-2.5 bg-[#060d1a] border border-[#00d2ff]/40 px-3 py-1.5 rounded-xl shadow-lg">
-            <img 
-              src={currentServer.banner_image_url || '/images/hero_banner.jpg'} 
-              alt={currentServer.name} 
-              className="w-7 h-7 rounded-lg object-cover border border-[#38bdf8]/40"
-            />
-            <div className="flex flex-col">
-              <span className="text-[9px] font-extrabold text-[#00d2ff] uppercase tracking-wider leading-none">CIDADE ATIVA</span>
-              <span className="text-xs font-black text-white leading-tight">{currentServer.name}</span>
-            </div>
-          </div>
-        )}
+        {/* Seletor Oficial de Servidores (CDA & VALLEY) */}
+        <div className="flex items-center bg-[#060d1a] border border-[#00d2ff]/40 p-1 rounded-xl shadow-lg gap-1">
+          {servers
+            .filter((s) => s.slug === 'cda' || s.slug === 'valley')
+            .map((server) => {
+              const isActive =
+                currentServer?.id === server.id || currentServer?.slug === server.slug;
+              return (
+                <button
+                  key={server.id}
+                  onClick={() => onSelectServer(server)}
+                  className={`px-3 py-1 rounded-lg text-xs font-black tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isActive
+                      ? 'bg-gradient-to-r from-[#00d2ff] to-[#38bdf8] text-black shadow-[0_0_12px_rgba(0,210,255,0.6)]'
+                      : 'text-slate-300 hover:text-white hover:bg-white/10'
+                  }`}
+                  title={`Visualizar marcações de ${server.name}`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full inline-block ${
+                      isActive ? 'bg-black animate-pulse' : 'bg-[#00d2ff]'
+                    }`}
+                  />
+                  <span>{server.slug.toUpperCase()}</span>
+                </button>
+              );
+            })}
+        </div>
 
         {/* Discord Login / User Profile Button */}
         {onOpenDiscordAuth && (

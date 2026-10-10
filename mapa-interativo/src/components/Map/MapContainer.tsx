@@ -17,20 +17,20 @@ interface MapContainerProps {
 const CATEGORY_COLORS: Record<LocationCategory, string> = {
   hospital_ilegal: '#ef4444',
   mercado_ilegal: '#f59e0b',
-  lavanderia_ilegal: '#3b82f6',
+  lavanderia_ilegal: '#9b59b6',
   desmanche: '#10b981',
-  andarilho: '#8b5cf6',
-  local_possivel: '#a78bfa',
+  andarilho: '#00d2ff',
+  local_possivel: '#38bdf8',
   outros: '#6b7280',
 };
 
 const CATEGORY_ICONS: Record<LocationCategory, string> = {
   hospital_ilegal: '🏥',
-  mercado_ilegal: '🛒',
-  lavanderia_ilegal: '🧺',
+  mercado_ilegal: '🏪',
+  lavanderia_ilegal: '🧼',
   desmanche: '🔧',
   andarilho: '🚶‍♂️',
-  local_possivel: '❓',
+  local_possivel: '⭕',
   outros: '📍',
 };
 
@@ -364,6 +364,25 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       markersGroup.addLayer(marker);
     });
   }, [locations, selectedCategories, selectedLocation, onSelectLocation]);
+
+  // Pan and zoom smoothly when a location is selected (via sidebar, search or click)
+  useEffect(() => {
+    if (selectedLocation && mapRef.current) {
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      const currentZoom = mapRef.current.getZoom();
+      const targetZoom = isMobile ? Math.max(currentZoom, 0.5) : Math.max(currentZoom, 1.5);
+
+      if (isMobile) {
+        const targetPoint = mapRef.current.project([selectedLocation.y, selectedLocation.x], targetZoom);
+        const containerHeight = containerRef.current?.clientHeight || window.innerHeight;
+        const shiftedPoint = targetPoint.add([0, containerHeight * 0.18]);
+        const newCenter = mapRef.current.unproject(shiftedPoint, targetZoom);
+        mapRef.current.setView(newCenter, targetZoom, { animate: true, duration: 0.35 });
+      } else {
+        mapRef.current.setView([selectedLocation.y, selectedLocation.x], targetZoom, { animate: true, duration: 0.35 });
+      }
+    }
+  }, [selectedLocation?.id]);
 
   // Search Results Filtering
   const searchResults = searchQuery.trim()

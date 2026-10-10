@@ -86,12 +86,22 @@ export const LocationDrawer: React.FC<LocationDrawerProps> = ({
       <div className="flex items-start justify-between border-b border-slate-800/80 pb-2.5">
         <div className="flex items-center gap-2.5 truncate pr-2">
           <div className="w-10 h-10 rounded-xl bg-[#00d2ff]/20 border border-[#00d2ff]/30 flex-shrink-0 flex items-center justify-center text-lg shadow-inner">
-            {location.category === 'andarilho' || location.category === 'local_possivel' ? (location.confirmations_count ? '🚶‍♂️' : '❓') : location.category === 'desmanche' ? '🔧' : location.category === 'hospital_ilegal' ? '🏥' : location.category === 'mercado_ilegal' ? '🛒' : '📍'}
+            {location.category === 'andarilho' || location.category === 'local_possivel'
+              ? (location.confirmations_count ? '🚶‍♂️' : '⭕')
+              : location.category === 'desmanche'
+              ? '🔧'
+              : location.category === 'hospital_ilegal'
+              ? '🏥'
+              : location.category === 'mercado_ilegal'
+              ? '🏪'
+              : location.category === 'lavanderia_ilegal'
+              ? '🧼'
+              : '📍'}
           </div>
           <div className="truncate">
             <h3 className="font-extrabold text-white text-sm sm:text-base leading-tight truncate">{location.name}</h3>
             <span className="text-[10px] sm:text-[11px] text-[#38bdf8] font-semibold uppercase tracking-wider block truncate">
-              {location.category === 'local_possivel' ? 'Possível Local do Andarilho' : location.category.replace('_', ' ')}
+              {location.category === 'local_possivel' ? 'Local Possível do Andarilho' : location.category.replace('_', ' ')}
             </span>
           </div>
         </div>
