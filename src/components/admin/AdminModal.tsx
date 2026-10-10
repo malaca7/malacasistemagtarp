@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Server, System, MapLocation, Suggestion, Comment, LocationCategory, SuggestionStatus, UserProfile, AccessLog, PlatformSettings } from '../../types';
+import type { Server, System, MapLocation, Suggestion, LocationCategory, SuggestionStatus, UserProfile, AccessLog, PlatformSettings } from '../../types';
 import { ApiService } from '../../services/api';
 import { AuthService, checkAdminPermission } from '../../services/auth';
 import { calculateWandererCycle } from '../../utils/wandererCycle';
@@ -49,12 +49,12 @@ interface AdminModalProps {
   initialServers?: Server[];
   locations?: MapLocation[];
   suggestions?: Suggestion[];
-  comments?: Comment[];
-  initialComments?: Comment[];
-  onSaveLocation?: (location: Omit<MapLocation, 'id'>) => Promise<boolean> | void;
+  onSaveLocation?: (location: Omit<MapLocation, 'id'>) => Promise<boolean | MapLocation | null> | void;
+  onUpdateLocation?: (id: string, updates: Partial<MapLocation>) => Promise<boolean> | void;
   onAddLocation?: (location: Omit<MapLocation, 'id' | 'created_at'>) => void;
   onDeleteLocation?: (id: string) => Promise<boolean> | void;
   onUpdateSuggestionStatus?: (id: string, status: SuggestionStatus) => Promise<boolean> | void;
+  onDeleteSuggestion?: (id: string) => Promise<boolean> | void;
   onStartPinMode?: () => void;
   pendingPinCoords?: { x: number; y: number } | null;
 }
@@ -66,12 +66,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   initialServers,
   locations = [],
   suggestions = [],
-  comments,
-  initialComments,
   onSaveLocation,
+  onUpdateLocation,
   onAddLocation,
   onDeleteLocation,
   onUpdateSuggestionStatus,
+  onDeleteSuggestion,
   onStartPinMode,
   pendingPinCoords,
 }) => {
@@ -80,20 +80,17 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'cities' | 'systems' | 'locations' | 'wanderer' | 'comments' | 'suggestions' | 'users' | 'access_logs' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'cities' | 'systems' | 'locations' | 'wanderer' | 'suggestions' | 'users' | 'access_logs' | 'settings'>('dashboard');
 
   // Safe Array Guarantees
   const rawServers = servers || initialServers || [];
-  const rawComments = comments || initialComments || [];
   const safeInitialServers = Array.isArray(rawServers) ? rawServers : [];
   const safeLocations = Array.isArray(locations) ? locations : [];
   const safeSuggestions = Array.isArray(suggestions) ? suggestions : [];
-  const safeInitialComments = Array.isArray(rawComments) ? rawComments : [];
 
   // Dynamic Data State
   const [serversList, setServersList] = useState<Server[]>(safeInitialServers);
   const [systemsList, setSystemsList] = useState<System[]>([]);
-  const [commentsList, setCommentsList] = useState<Comment[]>(safeInitialComments);
   const [profilesList, setProfilesList] = useState<UserProfile[]>([]);
   const [accessLogsList, setAccessLogsList] = useState<AccessLog[]>([]);
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings>({
@@ -127,13 +124,27 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [sysCityIds, setSysCityIds] = useState<string[]>([]);
   const [sysActive, setSysActive] = useState(true);
 
-  // New Location Form State
+  // Location Form & Management State
+  const [editingLocation, setEditingLocation] = useState<MapLocation | null>(null);
   const [locName, setLocName] = useState('');
   const [locCategory, setLocCategory] = useState<LocationCategory>('hospital_ilegal');
   const [locDescription, setLocDescription] = useState('');
   const [locImageUrl, setLocImageUrl] = useState('');
   const [locServerId, setLocServerId] = useState(safeInitialServers[0]?.id || 'cda-server-uuid');
   const [locIsActive, setLocIsActive] = useState(true);
+  const [locX, setLocX] = useState<number | ''>('');
+  const [locY, setLocY] = useState<number | ''>('');
+  const [locSearchText, setLocSearchText] = useState('');
+  const [locFilterCategory, setLocFilterCategory] = useState<string>('all');
+  const [locFilterServer, setLocFilterServer] = useState<string>('all');
+
+  // Update locX / locY when pendingPinCoords changes
+  useEffect(() => {
+    if (pendingPinCoords) {
+      setLocX(pendingPinCoords.x);
+      setLocY(pendingPinCoords.y);
+    }
+  }, [pendingPinCoords]);
 
   // Toast Banner
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -193,17 +204,15 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
   const loadAdminData = async () => {
     try {
-      const [s, sys, comm, profs, logs, sets] = await Promise.all([
+      const [s, sys, profs, logs, sets] = await Promise.all([
         ApiService.fetchServers(),
         ApiService.fetchSystems(),
-        ApiService.fetchComments(),
         ApiService.fetchProfiles(),
         ApiService.fetchAccessLogs(),
         ApiService.fetchPlatformSettings(),
       ]);
       setServersList(Array.isArray(s) ? s : []);
       setSystemsList(Array.isArray(sys) ? sys : []);
-      setCommentsList(Array.isArray(comm) ? comm : []);
       setProfilesList(Array.isArray(profs) ? profs : []);
       setAccessLogsList(Array.isArray(logs) ? logs : []);
       if (sets) setPlatformSettings(sets);
@@ -448,45 +457,124 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
-  // Create Map Location Handler
-  const handleCreateLocation = async (e: React.FormEvent) => {
+  // Location Edit & Management Handlers
+  const handleStartEditLocation = (loc: MapLocation) => {
+    setEditingLocation(loc);
+    setLocName(loc.name);
+    setLocCategory(loc.category);
+    setLocDescription(loc.description || '');
+    setLocImageUrl(loc.image_url || '');
+    setLocServerId(loc.server_id);
+    setLocIsActive(loc.is_active !== false);
+    setLocX(loc.x);
+    setLocY(loc.y);
+  };
+
+  const handleCancelEditLocation = () => {
+    setEditingLocation(null);
+    setLocName('');
+    setLocDescription('');
+    setLocImageUrl('');
+    setLocX('');
+    setLocY('');
+  };
+
+  const handleSaveLocationForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pendingPinCoords) {
-      showToast('Por favor, clique em "Marcar no Mapa" para selecionar a posição X e Y.');
-      return;
-    }
+    const finalX = typeof locX === 'number' ? locX : (pendingPinCoords ? pendingPinCoords.x : 500);
+    const finalY = typeof locY === 'number' ? locY : (pendingPinCoords ? pendingPinCoords.y : 500);
 
-    const ok = onSaveLocation
-      ? await onSaveLocation({
-          server_id: locServerId || serversList[0]?.id || 'cda-server-uuid',
-          name: locName,
-          category: locCategory,
-          description: locDescription,
-          image_url: locImageUrl || undefined,
-          x: pendingPinCoords.x,
-          y: pendingPinCoords.y,
-          is_active: locIsActive,
-        })
-      : false;
+    if (editingLocation) {
+      const updates: Partial<MapLocation> = {
+        name: locName,
+        category: locCategory,
+        description: locDescription,
+        image_url: locImageUrl || undefined,
+        server_id: locServerId,
+        is_active: locIsActive,
+        x: finalX,
+        y: finalY,
+      };
 
-    if (ok) {
-      setLocName('');
-      setLocDescription('');
-      setLocImageUrl('');
-      showToast('Novo ponto criado no mapa com sucesso!');
+      const ok = onUpdateLocation
+        ? await onUpdateLocation(editingLocation.id, updates)
+        : await ApiService.updateLocation(editingLocation.id, updates);
+
+      if (ok) {
+        showToast(`Ponto "${locName}" atualizado com sucesso!`);
+        handleCancelEditLocation();
+      } else {
+        showToast('Erro ao atualizar ponto no banco.');
+      }
     } else {
-      showToast('Erro ao criar ponto no banco.');
+      const ok = onSaveLocation
+        ? await onSaveLocation({
+            server_id: locServerId || serversList[0]?.id || 'cda-server-uuid',
+            name: locName,
+            category: locCategory,
+            description: locDescription,
+            image_url: locImageUrl || undefined,
+            x: finalX,
+            y: finalY,
+            is_active: locIsActive,
+          })
+        : await ApiService.createLocation({
+            server_id: locServerId || serversList[0]?.id || 'cda-server-uuid',
+            name: locName,
+            category: locCategory,
+            description: locDescription,
+            image_url: locImageUrl || undefined,
+            x: finalX,
+            y: finalY,
+            is_active: locIsActive,
+          });
+
+      if (ok) {
+        showToast('Novo ponto criado no mapa com sucesso!');
+        handleCancelEditLocation();
+      } else {
+        showToast('Erro ao criar ponto no banco.');
+      }
     }
   };
 
-  // Delete Comment Handler
-  const handleDeleteComment = async (id: string) => {
-    const ok = await ApiService.deleteComment(id);
-    if (ok) {
-      showToast('Comentário moderado e removido!');
-      setCommentsList((prev) => prev.filter((c) => c.id !== id));
-    } else {
-      showToast('Erro ao excluir comentário.');
+  const handleDeleteLocation = async (id: string, name: string) => {
+    if (confirm(`Tem certeza que deseja excluir o ponto "${name}" do mapa?`)) {
+      const ok = onDeleteLocation ? await onDeleteLocation(id) : await ApiService.deleteLocation(id);
+      if (ok) {
+        showToast(`Ponto "${name}" excluído do mapa!`);
+        if (editingLocation?.id === id) {
+          handleCancelEditLocation();
+        }
+      } else {
+        showToast('Erro ao excluir ponto do mapa.');
+      }
+    }
+  };
+
+  // Delete Suggestion Handler
+  const handleDeleteSuggestion = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir esta sugestão?')) {
+      const ok = await ApiService.deleteSuggestion(id);
+      if (ok) {
+        showToast('Sugestão excluída com sucesso!');
+        if (onDeleteSuggestion) onDeleteSuggestion(id);
+      } else {
+        showToast('Erro ao excluir sugestão.');
+      }
+    }
+  };
+
+  // Clear Access Logs Handler
+  const handleClearAccessLogs = async () => {
+    if (confirm('Tem certeza que deseja limpar todo o histórico de logs de acesso?')) {
+      const ok = await ApiService.clearAccessLogs();
+      if (ok) {
+        setAccessLogsList([]);
+        showToast('Histórico de acessos limpo com sucesso!');
+      } else {
+        showToast('Erro ao limpar histórico de acessos.');
+      }
     }
   };
 
@@ -821,18 +909,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               </button>
 
               <button
-                onClick={() => setActiveTab('comments')}
-                className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-                  activeTab === 'comments'
-                    ? 'border-[#00d2ff] text-[#38bdf8] bg-[#00d2ff]/15'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4 text-[#00d2ff]" />
-                Comentários ({commentsList.length})
-              </button>
-
-              <button
                 onClick={() => setActiveTab('suggestions')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
                   activeTab === 'suggestions'
@@ -900,9 +976,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     </div>
 
                     <div className="bg-[#060d1a] p-4 rounded-xl border border-slate-800 space-y-1">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">COMENTÁRIOS DA COMUNIDADE</span>
-                      <span className="text-xl font-black text-white font-mono">{commentsList.length}</span>
-                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Mensagens ativas</p>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">PONTOS CADASTRADOS</span>
+                      <span className="text-xl font-black text-white font-mono">{safeLocations.length}</span>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">Locais ativos e marcações</p>
                     </div>
 
                     <div className="bg-[#060d1a] p-4 rounded-xl border border-slate-800 space-y-1">
@@ -1263,100 +1339,311 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               )}
 
               {/* TAB 4: LOCAIS DO MAPA */}
-              {activeTab === 'locations' && (
-                <div className="space-y-6">
-                  {/* Pin Mode Bar */}
-                  <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-                    <div>
-                      <h4 className="font-bold text-white text-sm flex items-center gap-2">
-                        <LocateFixed className="w-4 h-4 text-emerald-400" />
-                        Seleção de Coordenada no Mapa
-                      </h4>
-                      <p className="text-xs text-slate-400">
-                        {pendingPinCoords ? (
-                          <strong className="text-emerald-400">Posição Selecionada: X: {pendingPinCoords.x} | Y: {pendingPinCoords.y}</strong>
-                        ) : (
-                          'Clique no botão abaixo para selecionar a posição exata no mapa.'
+              {activeTab === 'locations' && (() => {
+                const filteredLocs = locations.filter((loc) => {
+                  const matchText = !locSearchText || 
+                    loc.name.toLowerCase().includes(locSearchText.toLowerCase()) ||
+                    (loc.description && loc.description.toLowerCase().includes(locSearchText.toLowerCase()));
+                  const matchCat = locFilterCategory === 'all' || loc.category === locFilterCategory;
+                  const matchServer = locFilterServer === 'all' || loc.server_id === locFilterServer;
+                  return matchText && matchCat && matchServer;
+                });
+
+                return (
+                  <div className="space-y-6">
+                    {/* Pin Mode Bar */}
+                    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                          <LocateFixed className="w-4 h-4 text-emerald-400" />
+                          Seleção de Coordenada no Mapa
+                        </h4>
+                        <p className="text-xs text-slate-400">
+                          {pendingPinCoords ? (
+                            <strong className="text-emerald-400">Posição Selecionada: X: {pendingPinCoords.x} | Y: {pendingPinCoords.y}</strong>
+                          ) : (
+                            'Clique no botão para marcar uma coordenada clicando no mapa interativo ou digite X/Y abaixo.'
+                          )}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={onStartPinMode}
+                        className="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs rounded-xl flex items-center gap-2 transition-all"
+                      >
+                        <MapPin className="w-4 h-4" />
+                        Marcar no Mapa
+                      </button>
+                    </div>
+
+                    {/* Create / Edit Location Form */}
+                    <form onSubmit={handleSaveLocationForm} className="bg-slate-900/60 p-5 rounded-xl border border-slate-800 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                          {editingLocation ? (
+                            <>
+                              <Edit2 className="w-4 h-4 text-[#38bdf8]" />
+                              <span>Editar Ponto: <strong className="text-[#38bdf8]">{editingLocation.name}</strong></span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-4 h-4 text-emerald-400" />
+                              <span>Adicionar Novo Ponto no Mapa</span>
+                            </>
+                          )}
+                        </h4>
+                        {editingLocation && (
+                          <button
+                            type="button"
+                            onClick={handleCancelEditLocation}
+                            className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded bg-slate-800"
+                          >
+                            Cancelar Edição
+                          </button>
                         )}
-                      </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                        <div>
+                          <label className="block text-slate-400 font-semibold mb-1">Nome do Local *</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: Hospital Ilegal Norte"
+                            value={locName}
+                            onChange={(e) => setLocName(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-400 font-semibold mb-1">Categoria *</label>
+                          <select
+                            value={locCategory}
+                            onChange={(e) => setLocCategory(e.target.value as LocationCategory)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
+                          >
+                            <option value="hospital_ilegal">Hospital Ilegal</option>
+                            <option value="mercado_ilegal">Mercado Ilegal</option>
+                            <option value="lavanderia_ilegal">Lavanderia Ilegal</option>
+                            <option value="desmanche">Desmanche</option>
+                            <option value="andarilho">Andarilho (Confirmado)</option>
+                            <option value="local_possivel">Possível Local do Andarilho</option>
+                            <option value="outros">Outros</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-400 font-semibold mb-1">Cidade / Servidor</label>
+                          <select
+                            value={locServerId}
+                            onChange={(e) => setLocServerId(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
+                          >
+                            {serversList.map((s) => (
+                              <option key={s.id} value={s.id}>{s.name} ({s.slug})</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-400 font-semibold mb-1">Coordenada X *</label>
+                          <input
+                            type="number"
+                            placeholder="Ex: 500"
+                            value={locX}
+                            onChange={(e) => setLocX(e.target.value === '' ? '' : Number(e.target.value))}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500 font-mono"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-400 font-semibold mb-1">Coordenada Y *</label>
+                          <input
+                            type="number"
+                            placeholder="Ex: 500"
+                            value={locY}
+                            onChange={(e) => setLocY(e.target.value === '' ? '' : Number(e.target.value))}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500 font-mono"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-400 font-semibold mb-1">Status de Exibição</label>
+                          <div className="flex items-center gap-2 pt-2">
+                            <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                              <input
+                                type="checkbox"
+                                checked={locIsActive}
+                                onChange={(e) => setLocIsActive(e.target.checked)}
+                                className="accent-emerald-500 w-4 h-4 cursor-pointer"
+                              />
+                              <span>Exibir Ponto no Mapa</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        <div className="md:col-span-2 lg:col-span-3">
+                          <label className="block text-slate-400 font-semibold mb-1">Descrição</label>
+                          <input
+                            type="text"
+                            placeholder="Descrição opcional..."
+                            value={locDescription}
+                            onChange={(e) => setLocDescription(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="submit"
+                          className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xs rounded-xl shadow-lg hover:from-emerald-400 hover:to-teal-500 transition-all flex items-center gap-2"
+                        >
+                          {editingLocation ? <CheckCircle2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                          {editingLocation ? 'Salvar Alterações do Ponto' : 'Salvar Novo Ponto no Mapa'}
+                        </button>
+
+                        {editingLocation && (
+                          <button
+                            type="button"
+                            onClick={handleCancelEditLocation}
+                            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all"
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                      </div>
+                    </form>
+
+                    {/* Locations Management & Filter List */}
+                    <div className="space-y-4">
+                      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-[#060d1a] p-4 rounded-xl border border-slate-800">
+                        <div className="relative flex-1">
+                          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            placeholder="Buscar ponto por nome ou descrição..."
+                            value={locSearchText}
+                            onChange={(e) => setLocSearchText(e.target.value)}
+                            className="w-full bg-[#000000] border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00d2ff]"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <select
+                            value={locFilterCategory}
+                            onChange={(e) => setLocFilterCategory(e.target.value)}
+                            className="bg-[#000000] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none"
+                          >
+                            <option value="all">Todas Categorias</option>
+                            <option value="hospital_ilegal">Hospital Ilegal</option>
+                            <option value="mercado_ilegal">Mercado Ilegal</option>
+                            <option value="lavanderia_ilegal">Lavanderia Ilegal</option>
+                            <option value="desmanche">Desmanche</option>
+                            <option value="andarilho">Andarilho</option>
+                            <option value="local_possivel">Possível Andarilho</option>
+                            <option value="outros">Outros</option>
+                          </select>
+
+                          <select
+                            value={locFilterServer}
+                            onChange={(e) => setLocFilterServer(e.target.value)}
+                            className="bg-[#000000] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none"
+                          >
+                            <option value="all">Todas as Cidades</option>
+                            {serversList.map((s) => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+                        <span>Exibindo <strong>{filteredLocs.length}</strong> de <strong>{locations.length}</strong> pontos cadastrados</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {filteredLocs.length === 0 ? (
+                          <div className="col-span-full py-10 text-center text-slate-500 text-xs font-semibold">
+                            Nenhum ponto encontrado com os filtros selecionados.
+                          </div>
+                        ) : (
+                          filteredLocs.map((loc) => {
+                            const isWanderer = loc.category === 'andarilho' || loc.category === 'local_possivel';
+                            return (
+                              <div
+                                key={loc.id}
+                                className={`bg-[#060d1a] p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 ${
+                                  editingLocation?.id === loc.id
+                                    ? 'border-[#00d2ff] bg-[#00d2ff]/5'
+                                    : 'border-slate-800 hover:border-slate-700'
+                                }`}
+                              >
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded border ${
+                                      loc.category === 'hospital_ilegal' ? 'bg-rose-500/15 border-rose-500/30 text-rose-300' :
+                                      loc.category === 'mercado_ilegal' ? 'bg-amber-500/15 border-amber-500/30 text-amber-300' :
+                                      loc.category === 'lavanderia_ilegal' ? 'bg-blue-500/15 border-blue-500/30 text-blue-300' :
+                                      loc.category === 'desmanche' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' :
+                                      isWanderer ? 'bg-purple-500/15 border-purple-500/30 text-purple-300' :
+                                      'bg-slate-800 border-slate-700 text-slate-300'
+                                    }`}>
+                                      {loc.category.replace('_', ' ')}
+                                    </span>
+                                    <span className="text-[10px] font-mono text-slate-400 bg-black/60 px-2 py-0.5 rounded border border-slate-800">
+                                      X: {loc.x} | Y: {loc.y}
+                                    </span>
+                                  </div>
+
+                                  <h5 className="font-extrabold text-white text-xs mt-1">{loc.name}</h5>
+                                  {loc.description && (
+                                    <p className="text-[11px] text-slate-400 line-clamp-2">{loc.description}</p>
+                                  )}
+
+                                  {isWanderer && (
+                                    <div className="text-[10px] text-purple-300 font-mono font-bold flex items-center gap-1 pt-1">
+                                      <Clock className="w-3 h-3" /> Votos no Ciclo: {loc.confirmations_count || 0}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                                  <span className={`text-[10px] font-bold ${loc.is_active !== false ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                    {loc.is_active !== false ? '● Ativo' : '○ Inativo'}
+                                  </span>
+
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartEditLocation(loc)}
+                                      className="p-1.5 rounded-lg bg-[#00d2ff]/15 border border-[#00d2ff]/30 text-[#38bdf8] hover:bg-[#00d2ff]/25 transition-colors"
+                                      title="Editar Ponto"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteLocation(loc.id, loc.name)}
+                                      className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors"
+                                      title="Excluir Ponto"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
-                    <button
-                      onClick={onStartPinMode}
-                      className="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs rounded-xl flex items-center gap-2 transition-all"
-                    >
-                      <MapPin className="w-4 h-4" />
-                      Marcar no Mapa
-                    </button>
                   </div>
-
-                  {/* Create Location Form */}
-                  <form onSubmit={handleCreateLocation} className="bg-slate-900/60 p-5 rounded-xl border border-slate-800 space-y-4">
-                    <h4 className="font-bold text-white text-sm">Adicionar Novo Ponto no Mapa</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <label className="block text-slate-400 font-semibold mb-1">Nome do Local *</label>
-                        <input
-                          type="text"
-                          placeholder="Ex: Hospital Ilegal Norte"
-                          value={locName}
-                          onChange={(e) => setLocName(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-slate-400 font-semibold mb-1">Categoria *</label>
-                        <select
-                          value={locCategory}
-                          onChange={(e) => setLocCategory(e.target.value as LocationCategory)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
-                        >
-                          <option value="hospital_ilegal">Hospital Ilegal</option>
-                          <option value="mercado_ilegal">Mercado Ilegal</option>
-                          <option value="lavanderia_ilegal">Lavanderia Ilegal</option>
-                          <option value="desmanche">Desmanche</option>
-                          <option value="andarilho">Andarilho (Confirmado)</option>
-                          <option value="local_possivel">Possível Local do Andarilho</option>
-                          <option value="outros">Outros</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-slate-400 font-semibold mb-1">Cidade / Servidor</label>
-                        <select
-                          value={locServerId}
-                          onChange={(e) => setLocServerId(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
-                        >
-                          {serversList.map((s) => (
-                            <option key={s.id} value={s.id}>{s.name} ({s.slug})</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-slate-400 font-semibold mb-1">Descrição</label>
-                        <input
-                          type="text"
-                          placeholder="Descrição opcional..."
-                          value={locDescription}
-                          onChange={(e) => setLocDescription(e.target.value)}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500"
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xs rounded-xl shadow-lg hover:from-emerald-400 hover:to-teal-500 transition-all flex items-center gap-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Salvar Ponto no Mapa
-                    </button>
-                  </form>
-                </div>
-              )}
+                );
+              })()}
 
               {/* TAB 5: CICLO DO ANDARILHO */}
               {activeTab === 'wanderer' && (() => {
@@ -1420,73 +1707,88 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           Zerar Votos Agora (Sincronizar Todas as Telas)
                         </button>
                       </div>
+                      {/* Wanderer Candidate Locations & Votes */}
+                      <div className="pt-3 border-t border-slate-800/80 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h5 className="font-bold text-white text-xs">Locais Candidatos do Andarilho & Votações em Tempo Real</h5>
+                          <span className="text-[10px] text-slate-400">Total: {locations.filter(l => l.category === 'andarilho' || l.category === 'local_possivel').length} pontos</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                          {locations
+                            .filter((l) => l.category === 'andarilho' || l.category === 'local_possivel')
+                            .map((l) => (
+                              <div key={l.id} className="bg-black/40 p-2.5 rounded-lg border border-slate-800 flex items-center justify-between">
+                                <div className="min-w-0 pr-2">
+                                  <div className="text-xs font-bold text-white truncate">{l.name}</div>
+                                  <div className="text-[10px] text-slate-500 font-mono">X: {l.x} | Y: {l.y}</div>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded text-xs font-mono font-black ${
+                                  (l.confirmations_count || 0) > 0 
+                                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' 
+                                    : 'bg-slate-800 text-slate-500'
+                                }`}>
+                                  {l.confirmations_count || 0}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
               })()}
-
-              {/* TAB 6: COMENTÁRIOS & MODERAÇÃO */}
-              {activeTab === 'comments' && (
-                <div className="space-y-4">
-                  <h4 className="font-bold text-white text-sm">Moderação de Comentários ({commentsList.length})</h4>
-                  <div className="space-y-2">
-                    {commentsList.map((comm) => (
-                      <div key={comm.id} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-white text-xs">{comm.nickname}</span>
-                            <span className="text-[10px] text-slate-500">{comm.created_at ? new Date(comm.created_at).toLocaleTimeString() : 'recente'}</span>
-                          </div>
-                          <p className="text-xs text-slate-300">{comm.content}</p>
-                        </div>
-
-                        <button
-                          onClick={() => handleDeleteComment(comm.id)}
-                          className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors"
-                          title="Excluir Comentário"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* TAB 7: SUGESTÕES */}
               {activeTab === 'suggestions' && (
                 <div className="space-y-4">
                   <h4 className="font-bold text-white text-sm">Sugestões Enviadas ({suggestions.length})</h4>
                   <div className="space-y-2">
-                    {suggestions.map((sug) => (
-                      <div key={sug.id} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-white text-xs">{sug.nickname}</span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">{sug.type}</span>
-                            <span className="text-[10px] text-amber-400 font-bold uppercase">{sug.status}</span>
-                          </div>
-                          <p className="text-xs text-slate-300">{sug.content}</p>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => onUpdateSuggestionStatus && onUpdateSuggestionStatus(sug.id, 'aceita')}
-                            className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-                            title="Aceitar Sugestão"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => onUpdateSuggestionStatus && onUpdateSuggestionStatus(sug.id, 'recusada')}
-                            className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors"
-                            title="Recusar Sugestão"
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                        </div>
+                    {suggestions.length === 0 ? (
+                      <div className="p-8 text-center text-xs text-slate-500 font-semibold bg-[#060d1a] rounded-xl border border-slate-800">
+                        Nenhuma sugestão enviada pela comunidade ainda.
                       </div>
-                    ))}
+                    ) : (
+                      suggestions.map((sug) => (
+                        <div key={sug.id} className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-white text-xs">{sug.nickname}</span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">{sug.type}</span>
+                              <span className={`text-[10px] font-bold uppercase ${
+                                sug.status === 'aceita' ? 'text-emerald-400' :
+                                sug.status === 'recusada' ? 'text-rose-400' :
+                                'text-amber-400'
+                              }`}>{sug.status}</span>
+                            </div>
+                            <p className="text-xs text-slate-300">{sug.content}</p>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => onUpdateSuggestionStatus && onUpdateSuggestionStatus(sug.id, 'aceita')}
+                              className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                              title="Aceitar Sugestão"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => onUpdateSuggestionStatus && onUpdateSuggestionStatus(sug.id, 'recusada')}
+                              className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors"
+                              title="Recusar Sugestão"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteSuggestion(sug.id)}
+                              className="p-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors"
+                              title="Excluir Sugestão"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
@@ -1688,19 +1990,30 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       </p>
                     </div>
 
-                    <button
-                      onClick={() => {
-                        showToast('Atualizando logs de acesso...');
-                        ApiService.fetchAccessLogs().then((logs) => {
-                          setAccessLogsList(logs);
-                          showToast('Logs de acesso atualizados!');
-                        });
-                      }}
-                      className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-colors"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Atualizar</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          showToast('Atualizando logs de acesso...');
+                          ApiService.fetchAccessLogs().then((logs) => {
+                            setAccessLogsList(logs);
+                            showToast('Logs de acesso atualizados!');
+                          });
+                        }}
+                        className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-colors"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Atualizar</span>
+                      </button>
+
+                      <button
+                        onClick={handleClearAccessLogs}
+                        className="px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 text-xs font-bold text-rose-300 flex items-center gap-1.5 transition-colors"
+                        title="Limpar todos os registros de acessos"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Limpar Histórico</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Logs Table */}

@@ -23,8 +23,8 @@ interface SidebarProps {
   onToggleCategory: (category: LocationCategory) => void;
   onSelectOnlyCategory?: (category: LocationCategory) => void;
   onSelectAllCategories?: () => void;
-  comments: Comment[];
-  onAddComment: (nickname: string, content: string) => Promise<boolean>;
+  comments?: Comment[];
+  onAddComment?: (nickname: string, content: string) => Promise<boolean>;
   onAddSuggestion: (nickname: string, type: SuggestionType, content: string) => Promise<boolean>;
 }
 
@@ -45,11 +45,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggleCategory,
   onSelectOnlyCategory,
   onSelectAllCategories,
-  comments,
-  onAddComment,
   onAddSuggestion,
 }) => {
-  const [activeTab, setActiveTab] = useState<'filters' | 'comments' | 'suggestions'>('filters');
+  const [activeTab, setActiveTab] = useState<'filters' | 'suggestions'>('filters');
 
   // Andarilho Cycle calculation (Resets strictly at 06:00 and 18:00)
   const [cycleInfo, setCycleInfo] = useState<WandererCycleInfo>(calculateWandererCycle());
@@ -65,26 +63,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, []);
 
   // Form States
-  const [commentNickname, setCommentNickname] = useState('');
-  const [commentContent, setCommentContent] = useState('');
-  const [commentSubmitting, setCommentSubmitting] = useState(false);
-
   const [sugNickname, setSugNickname] = useState('');
   const [sugType, setSugType] = useState<SuggestionType>('novo_npc');
   const [sugContent, setSugContent] = useState('');
   const [sugSubmitting, setSugSubmitting] = useState(false);
   const [sugSuccess, setSugSuccess] = useState(false);
-
-  const handleCommentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentNickname.trim() || !commentContent.trim()) return;
-    setCommentSubmitting(true);
-    const ok = await onAddComment(commentNickname, commentContent);
-    setCommentSubmitting(false);
-    if (ok) {
-      setCommentContent('');
-    }
-  };
 
   const handleSuggestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,7 +166,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={() => setActiveTab('filters')}
             className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
               activeTab === 'filters'
-                ? 'bg-slate-800 text-purple-300 border border-slate-700'
+                ? 'bg-slate-800 text-[#00d2ff] border border-slate-700 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -191,21 +174,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Filtros
           </button>
           <button
-            onClick={() => setActiveTab('comments')}
-            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === 'comments'
-                ? 'bg-slate-800 text-purple-300 border border-slate-700'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            Chat ({comments.length})
-          </button>
-          <button
             onClick={() => setActiveTab('suggestions')}
             className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
               activeTab === 'suggestions'
-                ? 'bg-slate-800 text-purple-300 border border-slate-700'
+                ? 'bg-slate-800 text-[#00d2ff] border border-slate-700 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -300,69 +272,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
 
-          {/* TAB 2: COMMENTS / REALTIME FEED */}
-          {activeTab === 'comments' && (
-            <div className="flex flex-col h-full space-y-4">
-              {/* Form */}
-              <form onSubmit={handleCommentSubmit} className="space-y-2.5 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
-                <input
-                  type="text"
-                  placeholder="Seu Nickname"
-                  value={commentNickname}
-                  onChange={(e) => setCommentNickname(e.target.value)}
-                  maxLength={30}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500"
-                  required
-                />
-                <textarea
-                  placeholder="Deixe uma mensagem para a comunidade..."
-                  value={commentContent}
-                  onChange={(e) => setCommentContent(e.target.value)}
-                  maxLength={500}
-                  rows={2}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500 resize-none"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={commentSubmitting}
-                  className="w-full py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  Enviar Comentário
-                </button>
-              </form>
-
-              {/* Feed */}
-              <div className="space-y-2.5">
-                {comments.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-6">
-                    Nenhum comentário recente. Seja o primeiro a enviar!
-                  </p>
-                ) : (
-                  comments.map((c) => (
-                    <div
-                      key={c.id}
-                      className="bg-slate-900/40 p-3 rounded-xl border border-slate-800/60 space-y-1"
-                    >
-                      <div className="flex items-center justify-between text-[10px] text-slate-400">
-                        <span className="font-bold text-purple-300">{c.nickname}</span>
-                        <span>
-                          {c.created_at
-                            ? new Date(c.created_at).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })
-                            : 'Agora'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-300 break-words">{c.content}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
 
           {/* TAB 3: SUGGESTIONS */}
           {activeTab === 'suggestions' && (

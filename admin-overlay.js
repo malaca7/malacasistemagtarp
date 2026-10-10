@@ -11,6 +11,8 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     }
 });
 
+const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
+
 (function () {
     // Inject HTML Modal Container
     const modalHTML = `
@@ -336,10 +338,90 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         }
     });
 
+    // Realtime Hub Broadcast Listeners
+    globalHubChannel
+        .on('broadcast', { event: 'servers_updated' }, (payload) => {
+            if (payload?.payload?.servers && Array.isArray(payload.payload.servers)) {
+                localStorage.setItem('malaca_custom_servers', JSON.stringify(payload.payload.servers));
+                if (typeof window.loadCustomCities === 'function') window.loadCustomCities();
+                renderAdminContent();
+                const pathParts = window.location.pathname.split('/');
+                const pathSlug = pathParts[2] || pathParts[1];
+                if (pathSlug && typeof window.loadCitySystems === 'function') window.loadCitySystems(pathSlug);
+            }
+        })
+        .on('broadcast', { event: 'systems_updated' }, (payload) => {
+            if (payload?.payload?.systems && Array.isArray(payload.payload.systems)) {
+                localStorage.setItem('malaca_custom_systems', JSON.stringify(payload.payload.systems));
+                renderAdminContent();
+                const pathParts = window.location.pathname.split('/');
+                const pathSlug = pathParts[2] || pathParts[1];
+                if (pathSlug && typeof window.loadCitySystems === 'function') window.loadCitySystems(pathSlug);
+            }
+        })
+        .on('broadcast', { event: 'entity_sync' }, async (response) => {
+            const ent = response?.payload?.entity;
+            if (ent === 'servers') {
+                await syncGlobalDatabaseData();
+                renderAdminContent();
+                if (typeof window.loadCustomCities === 'function') window.loadCustomCities();
+            } else if (ent === 'systems') {
+                await syncGlobalDatabaseData();
+                renderAdminContent();
+                const pathParts = window.location.pathname.split('/');
+                const pathSlug = pathParts[2] || pathParts[1];
+                if (pathSlug && typeof window.loadCitySystems === 'function') window.loadCitySystems(pathSlug);
+            } else if (ent === 'settings') {
+                checkGlobalAnnouncementBanner();
+            }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'servers' }, async () => {
+            await syncGlobalDatabaseData();
+            renderAdminContent();
+            if (typeof window.loadCustomCities === 'function') window.loadCustomCities();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'systems' }, async () => {
+            await syncGlobalDatabaseData();
+            renderAdminContent();
+            const pathParts = window.location.pathname.split('/');
+            const pathSlug = pathParts[2] || pathParts[1];
+            if (pathSlug && typeof window.loadCitySystems === 'function') window.loadCitySystems(pathSlug);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'platform_settings' }, () => {
+            checkGlobalAnnouncementBanner();
+        })
+        .on('broadcast', { event: 'settings_updated' }, () => {
+            checkGlobalAnnouncementBanner();
+        })
+        .on('broadcast', { event: 'wanderer_cycle_reset' }, () => {
+            localStorage.removeItem('cidade_alta_user_confirmations');
+            localStorage.removeItem('malaca_wanderer_cycle_state');
+        })
+        .subscribe();
+
+    async function syncGlobalDatabaseData() {
+        try {
+            const { data: dbServers } = await supabaseClient.from('servers').select('*').order('created_at', { ascending: true });
+            if (dbServers && dbServers.length > 0) {
+                localStorage.setItem('malaca_custom_servers', JSON.stringify(dbServers));
+                if (typeof window.loadCustomCities === 'function') window.loadCustomCities();
+            }
+        } catch(e) {}
+
+        try {
+            const { data: dbSystems } = await supabaseClient.from('systems').select('*').order('created_at', { ascending: true });
+            if (dbSystems && dbSystems.length > 0) {
+                localStorage.setItem('malaca_custom_systems', JSON.stringify(dbSystems));
+            }
+        } catch(e) {}
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         syncDiscordSession();
+        syncGlobalDatabaseData();
     });
     syncDiscordSession();
+    syncGlobalDatabaseData();
 
     window.openAppearanceModal = function () {
         document.getElementById('global-appearance-modal').classList.add('active');
@@ -705,9 +787,14 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
                         <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.95rem; margin: 0;">
                             <i class="fa-solid fa-chart-line" style="color: #22c55e;"></i> Auditoria de Acessos Recentes
                         </h4>
-                        <button onclick="loadAdminLogsView()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; padding: 6px 12px; border-radius: 8px; font-size: 0.72rem; cursor: pointer; display: flex; items-center; gap: 6px;">
-                            <i class="fa-solid fa-rotate"></i> Atualizar
-                        </button>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="loadAdminLogsView()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; padding: 6px 12px; border-radius: 8px; font-size: 0.72rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-rotate"></i> Atualizar
+                            </button>
+                            <button onclick="handleClearAccessLogs()" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; padding: 6px 12px; border-radius: 8px; font-size: 0.72rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-trash"></i> Limpar Histórico
+                            </button>
+                        </div>
                     </div>
                     <div id="admin-logs-list-container" style="background: rgba(15,20,32,0.6); border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); overflow: hidden;">
                         <div style="text-align: center; color: #94a3b8; padding: 40px; font-size: 0.8rem;">
@@ -875,7 +962,7 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         renderAdminContent();
     };
 
-    window.handleSaveCity = function(e) {
+    window.handleSaveCity = async function(e) {
         e.preventDefault();
         const name = document.getElementById('city-form-name').value.trim();
         const slug = document.getElementById('city-form-slug').value.trim();
@@ -883,17 +970,48 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         const banner = document.getElementById('city-form-banner').value.trim();
 
         let servers = getActiveServers();
+        let targetCity = null;
 
         if (editingCityId) {
-            servers = servers.map(s => s.id === editingCityId ? { ...s, name, slug, subtitle: sub, banner_image_url: banner } : s);
+            servers = servers.map(s => {
+                if (s.id === editingCityId) {
+                    targetCity = { ...s, name, slug, subtitle: sub, banner_image_url: banner };
+                    return targetCity;
+                }
+                return s;
+            });
             editingCityId = null;
-            alert('Cidade atualizada com sucesso!');
         } else {
-            servers.push({ id: 'city-' + Date.now(), name, slug, subtitle: sub, banner_image_url: banner, description: 'Cidade cadastrada via Admin.' });
-            alert('Cidade cadastrada com sucesso!');
+            targetCity = {
+                id: 'city-' + Date.now(),
+                name,
+                slug,
+                subtitle: sub,
+                banner_image_url: banner,
+                description: 'Cidade cadastrada via Admin.',
+                active: true,
+            };
+            servers.push(targetCity);
         }
 
         localStorage.setItem('malaca_custom_servers', JSON.stringify(servers));
+
+        try {
+            await supabaseClient.from('servers').upsert([targetCity], { onConflict: 'id' });
+        } catch(e) {}
+
+        globalHubChannel.send({
+            type: 'broadcast',
+            event: 'servers_updated',
+            payload: { servers, targetCity },
+        });
+        globalHubChannel.send({
+            type: 'broadcast',
+            event: 'entity_sync',
+            payload: { entity: 'servers', action: 'UPDATE', data: targetCity, timestamp: Date.now() },
+        });
+
+        alert('Cidade salva no banco de dados e sincronizada em tempo real com todos os usuários!');
         renderAdminContent();
         if (window.loadCustomCities) window.loadCustomCities();
     };
@@ -905,6 +1023,13 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         servers[idx - 1] = servers[idx];
         servers[idx] = temp;
         localStorage.setItem('malaca_custom_servers', JSON.stringify(servers));
+
+        globalHubChannel.send({
+            type: 'broadcast',
+            event: 'servers_updated',
+            payload: { servers },
+        });
+
         renderAdminContent();
         if (window.loadCustomCities) window.loadCustomCities();
     };
@@ -916,15 +1041,38 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         servers[idx + 1] = servers[idx];
         servers[idx] = temp;
         localStorage.setItem('malaca_custom_servers', JSON.stringify(servers));
+
+        globalHubChannel.send({
+            type: 'broadcast',
+            event: 'servers_updated',
+            payload: { servers },
+        });
+
         renderAdminContent();
         if (window.loadCustomCities) window.loadCustomCities();
     };
 
-    window.deleteCity = function(id, name) {
+    window.deleteCity = async function(id, name) {
         if (confirm(`Tem certeza que deseja excluir a cidade "${name}"?`)) {
             let servers = getActiveServers();
             servers = servers.filter(s => s.id !== id);
             localStorage.setItem('malaca_custom_servers', JSON.stringify(servers));
+
+            try {
+                await supabaseClient.from('servers').delete().eq('id', id);
+            } catch(e) {}
+
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'servers_updated',
+                payload: { servers, deletedId: id },
+            });
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'entity_sync',
+                payload: { entity: 'servers', action: 'DELETE', id: id, timestamp: Date.now() },
+            });
+
             renderAdminContent();
             if (window.loadCustomCities) window.loadCustomCities();
         }
@@ -941,7 +1089,7 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         renderAdminContent();
     };
 
-    window.handleSaveSystem = function(e) {
+    window.handleSaveSystem = async function(e) {
         e.preventDefault();
         const name = document.getElementById('sys-form-name').value.trim();
         const slug = document.getElementById('sys-form-slug').value.trim();
@@ -950,17 +1098,50 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         const checked = Array.from(document.querySelectorAll('input[name="city-link-check"]:checked')).map(c => c.value);
 
         let systems = getActiveSystems();
+        let targetSys = null;
 
         if (editingSystemId) {
-            systems = systems.map(s => s.id === editingSystemId ? { ...s, name, slug, tag, link, city_ids: checked } : s);
+            systems = systems.map(s => {
+                if (s.id === editingSystemId) {
+                    targetSys = { ...s, name, slug, tag, link, city_ids: checked };
+                    return targetSys;
+                }
+                return s;
+            });
             editingSystemId = null;
-            alert('Sistema atualizado com sucesso!');
         } else {
-            systems.push({ id: 'sys-' + Date.now(), name, slug, tag, link: link || `${slug}/`, city_ids: checked, is_active: true });
-            alert('Sistema cadastrado com sucesso!');
+            targetSys = {
+                id: 'sys-' + Date.now(),
+                name,
+                slug,
+                tag,
+                link: link || `${slug}/`,
+                city_ids: checked,
+                is_active: true,
+                description: 'Sistema cadastrado via Admin.',
+                icon: 'fa-microchip',
+            };
+            systems.push(targetSys);
         }
 
         localStorage.setItem('malaca_custom_systems', JSON.stringify(systems));
+
+        try {
+            await supabaseClient.from('systems').upsert([targetSys], { onConflict: 'id' });
+        } catch(e) {}
+
+        globalHubChannel.send({
+            type: 'broadcast',
+            event: 'systems_updated',
+            payload: { systems, targetSys },
+        });
+        globalHubChannel.send({
+            type: 'broadcast',
+            event: 'entity_sync',
+            payload: { entity: 'systems', action: 'UPDATE', data: targetSys, timestamp: Date.now() },
+        });
+
+        alert('Sistema salvo no banco de dados e sincronizado em tempo real!');
         renderAdminContent();
     };
 
@@ -971,6 +1152,13 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         systems[idx - 1] = systems[idx];
         systems[idx] = temp;
         localStorage.setItem('malaca_custom_systems', JSON.stringify(systems));
+
+        globalHubChannel.send({
+            type: 'broadcast',
+            event: 'systems_updated',
+            payload: { systems },
+        });
+
         renderAdminContent();
     };
 
@@ -981,21 +1169,70 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         systems[idx + 1] = systems[idx];
         systems[idx] = temp;
         localStorage.setItem('malaca_custom_systems', JSON.stringify(systems));
+
+        globalHubChannel.send({
+            type: 'broadcast',
+            event: 'systems_updated',
+            payload: { systems },
+        });
+
         renderAdminContent();
     };
 
-    window.deleteSystem = function(id, name) {
+    window.deleteSystem = async function(id, name) {
         if (confirm(`Tem certeza que deseja excluir o sistema "${name}"?`)) {
             let systems = getActiveSystems();
             systems = systems.filter(s => s.id !== id);
             localStorage.setItem('malaca_custom_systems', JSON.stringify(systems));
+
+            try {
+                await supabaseClient.from('systems').delete().eq('id', id);
+            } catch(e) {}
+
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'systems_updated',
+                payload: { systems, deletedId: id },
+            });
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'entity_sync',
+                payload: { entity: 'systems', action: 'DELETE', id: id, timestamp: Date.now() },
+            });
+
             renderAdminContent();
         }
     };
 
-    window.handleResetWandererCycle = function() {
-        localStorage.removeItem('cidade_alta_user_confirmations');
-        alert('Ciclo do Andarilho resetado com sucesso!');
+    window.handleResetWandererCycle = async function() {
+        if (confirm('Zerar votos do Andarilho e sincronizar todas as telas em tempo real?')) {
+            localStorage.removeItem('cidade_alta_user_confirmations');
+            localStorage.removeItem('malaca_wanderer_cycle_state');
+
+            try {
+                await supabaseClient.from('wanderer_confirmations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            } catch(e) {}
+
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'wanderer_cycle_reset',
+                payload: { resetBy: 'admin', timestamp: Date.now() },
+            });
+
+            alert('Ciclo do Andarilho zerado com sucesso! Todas as telas conectadas foram atualizadas.');
+        }
+    };
+
+    window.handleClearAccessLogs = async function() {
+        if (confirm('Tem certeza que deseja limpar todo o histórico de logs de acesso?')) {
+            try {
+                await supabaseClient.from('access_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                alert('Histórico de acessos limpo com sucesso!');
+            } catch(e) {
+                alert('Erro ao limpar histórico: ' + e.message);
+            }
+            loadAdminLogsView();
+        }
     };
 
     // Admin Users Management View
@@ -1117,6 +1354,11 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         const active = document.getElementById('setting-announcement-active').checked;
         try {
             await supabaseClient.from('platform_settings').upsert([{ id: 'default', global_announcement: text, announcement_active: active, updated_at: new Date().toISOString() }], { onConflict: 'id' });
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'settings_updated',
+                payload: { global_announcement: text, announcement_active: active },
+            });
             alert('Anúncio global salvo e transmitido com sucesso!');
             checkGlobalAnnouncementBanner();
         } catch(err) {
@@ -1130,6 +1372,11 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         const active = document.getElementById('setting-maint-active').checked;
         try {
             await supabaseClient.from('platform_settings').upsert([{ id: 'default', maintenance_message: msg, maintenance_mode: active, updated_at: new Date().toISOString() }], { onConflict: 'id' });
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'settings_updated',
+                payload: { maintenance_message: msg, maintenance_mode: active },
+            });
             alert('Status de manutenção atualizado!');
         } catch(err) {
             alert('Erro ao salvar manutenção: ' + err.message);

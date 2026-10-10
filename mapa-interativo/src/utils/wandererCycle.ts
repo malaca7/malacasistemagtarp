@@ -11,52 +11,80 @@ export interface WandererCycleInfo {
   formattedEndTime: string;   // Ex: "06:00"
 }
 
+export interface StoredWandererCycleState {
+  cycleKey: string;
+  userConfirmedIds: string[];
+  counts: Record<string, number>;
+}
+
+export function getBrasiliaParts(date: Date = new Date()) {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(date).map((p) => [p.type, p.value]));
+  return {
+    year: parseInt(parts.year, 10),
+    month: parseInt(parts.month, 10),
+    day: parseInt(parts.day, 10),
+    hour: parseInt(parts.hour, 10),
+    minute: parseInt(parts.minute, 10),
+    second: parseInt(parts.second, 10),
+  };
+}
+
 /**
  * Calcula com precisão o ciclo ativo do Andarilho e a contagem regressiva para a próxima virada.
- * A virada ocorre estritamente todos os dias às 06:00 (manhã) e 18:00 (noite).
+ * A virada ocorre estritamente todos os dias às 06:00 (manhã) e 18:00 (noite) no Horário de Brasília.
  */
 export function calculateWandererCycle(now: Date = new Date()): WandererCycleInfo {
-  const currentHours = now.getHours();
+  const b = getBrasiliaParts(now);
+  const currentHours = b.hour;
 
-  const startTime = new Date(now);
-  const endTime = new Date(now);
   let cycleHour: 6 | 18;
   let cycleLabel: string;
   let formattedStartTime: string;
   let formattedEndTime: string;
 
+  let startYear = b.year;
+  let startMonth = b.month;
+  let startDay = b.day;
+
   if (currentHours >= 6 && currentHours < 18) {
-    // Ciclo Diurno: iniciou hoje às 06:00:00, encerra hoje às 18:00:00
-    startTime.setHours(6, 0, 0, 0);
-    endTime.setHours(18, 0, 0, 0);
     cycleHour = 6;
     cycleLabel = 'Ciclo Diurno (06h - 18h)';
     formattedStartTime = '06:00';
     formattedEndTime = '18:00';
   } else if (currentHours >= 18) {
-    // Ciclo Noturno (parte 1): iniciou hoje às 18:00:00, encerra amanhã às 06:00:00
-    startTime.setHours(18, 0, 0, 0);
-    endTime.setDate(endTime.getDate() + 1);
-    endTime.setHours(6, 0, 0, 0);
     cycleHour = 18;
     cycleLabel = 'Ciclo Noturno (18h - 06h)';
     formattedStartTime = '18:00';
     formattedEndTime = '06:00';
   } else {
-    // Ciclo Noturno (parte 2 - madrugada antes das 06h): iniciou ontem às 18:00:00, encerra hoje às 06:00:00
-    startTime.setDate(startTime.getDate() - 1);
-    startTime.setHours(18, 0, 0, 0);
-    endTime.setHours(6, 0, 0, 0);
     cycleHour = 18;
     cycleLabel = 'Ciclo Noturno (18h - 06h)';
     formattedStartTime = '18:00';
     formattedEndTime = '06:00';
+    const prevDay = new Date(Date.UTC(b.year, b.month - 1, b.day - 1));
+    startYear = prevDay.getUTCFullYear();
+    startMonth = prevDay.getUTCMonth() + 1;
+    startDay = prevDay.getUTCDate();
   }
 
-  const year = startTime.getFullYear();
-  const month = String(startTime.getMonth() + 1).padStart(2, '0');
-  const day = String(startTime.getDate()).padStart(2, '0');
-  const cycleKey = `${year}-${month}-${day}_${cycleHour === 6 ? '06h' : '18h'}`;
+  // 06:00 BRT = 09:00 UTC, 18:00 BRT = 21:00 UTC
+  const startUtcHour = cycleHour === 6 ? 9 : 21;
+  const startTime = new Date(Date.UTC(startYear, startMonth - 1, startDay, startUtcHour, 0, 0, 0));
+  const endTime = new Date(startTime.getTime() + 12 * 60 * 60 * 1000);
+
+  const monthStr = String(startMonth).padStart(2, '0');
+  const dayStr = String(startDay).padStart(2, '0');
+  const cycleKey = `${startYear}-${monthStr}-${dayStr}_${cycleHour === 6 ? '06h' : '18h'}`;
 
   const diffMs = Math.max(0, endTime.getTime() - now.getTime());
   const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
@@ -65,7 +93,7 @@ export function calculateWandererCycle(now: Date = new Date()): WandererCycleInf
 
   const formattedTimeLeft = `${String(diffHrs).padStart(2, '0')}:${String(diffMins).padStart(2, '0')}:${String(diffSecs).padStart(2, '0')}`;
 
-  const totalCycleMs = 12 * 60 * 60 * 1000; // 12 horas exatas
+  const totalCycleMs = 12 * 60 * 60 * 1000;
   const elapsedMs = Math.max(0, now.getTime() - startTime.getTime());
   const progressPercent = Math.min(100, Math.max(0, Math.round((elapsedMs / totalCycleMs) * 100)));
 
@@ -90,4 +118,34 @@ export function isCycleExpired(storedCycleKey: string | null | undefined): boole
   if (!storedCycleKey) return true;
   const current = calculateWandererCycle();
   return storedCycleKey !== current.cycleKey;
+}
+
+export function getLocalWandererCycleState(): StoredWandererCycleState {
+  const current = calculateWandererCycle();
+  try {
+    const raw = localStorage.getItem('cidade_alta_wanderer_cycle_state');
+    if (raw) {
+      const parsed: StoredWandererCycleState = JSON.parse(raw);
+      if (parsed && parsed.cycleKey === current.cycleKey) {
+        return parsed;
+      }
+    }
+  } catch {}
+
+  const fresh: StoredWandererCycleState = {
+    cycleKey: current.cycleKey,
+    userConfirmedIds: [],
+    counts: {},
+  };
+  saveLocalWandererCycleState(fresh);
+  try {
+    localStorage.removeItem('cidade_alta_user_confirmations');
+  } catch {}
+  return fresh;
+}
+
+export function saveLocalWandererCycleState(state: StoredWandererCycleState) {
+  try {
+    localStorage.setItem('cidade_alta_wanderer_cycle_state', JSON.stringify(state));
+  } catch {}
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Server, MapLocation, LocationCategory, Comment, Suggestion, SuggestionType } from './types';
+import type { Server, MapLocation, LocationCategory, Suggestion, SuggestionType } from './types';
 import { ApiService } from './services/api';
 import { RealtimeSync } from './services/realtimeSync';
 import { Header } from './components/Header';
@@ -29,7 +29,6 @@ export const App: React.FC = () => {
     'outros',
   ]);
 
-  const [comments, setComments] = useState<Comment[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -119,22 +118,37 @@ export const App: React.FC = () => {
       const locs = await ApiService.fetchLocations(currentServer.id);
       setLocations(locs);
 
-      const comms = await ApiService.fetchComments(currentServer.id);
-      setComments(comms);
-
       const sugs = await ApiService.fetchSuggestions(currentServer.id);
       setSuggestions(sugs);
     };
 
     loadServerData();
 
-    // Subscribe to Realtime Comments & Confirmations
-    const sub = ApiService.subscribeToComments(currentServer.id, (newComment) => {
-      setComments((prev) => [newComment, ...prev]);
-    });
+    // 2. Subscribe to Wanderer Confirmations (sincronização de votos em tempo real)
+    const subConf = ApiService.subscribeToConfirmations(async (payload) => {
+      if (payload && payload.locationId) {
+        const locId = payload.locationId;
+        const delta = payload.action === 'vote_added' ? 1 : -1;
+        setLocations((prev) =>
+          prev.map((loc) => {
+            if (loc.id === locId) {
+              const freshVal = typeof payload.count === 'number'
+                ? payload.count
+                : Math.max(0, (loc.confirmations_count || 0) + delta);
+              return { ...loc, confirmations_count: freshVal };
+            }
+            return loc;
+          })
+        );
 
-    const subConf = ApiService.subscribeToConfirmations(async () => {
-      if (currentServer) {
+        setSelectedLocation((prev) => {
+          if (!prev || prev.id !== locId) return prev;
+          const freshVal = typeof payload.count === 'number'
+            ? payload.count
+            : Math.max(0, (prev.confirmations_count || 0) + delta);
+          return { ...prev, confirmations_count: freshVal };
+        });
+      } else if (currentServer) {
         const locs = await ApiService.fetchLocations(currentServer.id);
         setLocations(locs);
         setSelectedLocation((prev) => {
@@ -145,34 +159,81 @@ export const App: React.FC = () => {
       }
     });
 
-    // Escuta alterações em tempo real de locais/pins
+    // 3. Sincronização coletiva de presença (quando outros usuários online confirmam locais)
+    const unsubPresence = RealtimeSync.onPresenceSync((counts) => {
+      setLocations((prev) =>
+        prev.map((loc) => {
+          if (loc.category === 'andarilho' || loc.category === 'local_possivel') {
+            const remoteVote = counts[loc.id] ?? 0;
+            const userMin = loc.user_confirmed && remoteVote === 0 ? 1 : 0;
+            const finalVal = Math.max(remoteVote, userMin);
+            if (finalVal !== (loc.confirmations_count || 0)) {
+              return { ...loc, confirmations_count: finalVal };
+            }
+          }
+          return loc;
+        })
+      );
+
+      setSelectedLocation((prev) => {
+        if (!prev || (prev.category !== 'andarilho' && prev.category !== 'local_possivel')) return prev;
+        const remoteVote = counts[prev.id] ?? 0;
+        const userMin = prev.user_confirmed && remoteVote === 0 ? 1 : 0;
+        const finalVal = Math.max(remoteVote, userMin);
+        if (finalVal !== (prev.confirmations_count || 0)) {
+          return { ...prev, confirmations_count: finalVal };
+        }
+        return prev;
+      });
+    });
+
+    // 4. Escuta alterações em tempo real de locais/pins adicionados/editados/deletados
     const unsubLocs = RealtimeSync.onLocationsChange(async (payload) => {
-      if (currentServer && (!payload.serverId || payload.serverId === currentServer.id)) {
+      if (!payload) return;
+      if (payload.action === 'INSERT' && payload.data) {
+        setLocations((prev) => {
+          if (prev.some((l) => l.id === payload.data.id)) return prev;
+          return [...prev, payload.data];
+        });
+      } else if (payload.action === 'UPDATE' && payload.id) {
+        setLocations((prev) =>
+          prev.map((l) => (l.id === payload.id ? { ...l, ...(payload.data || {}) } : l))
+        );
+        setSelectedLocation((prev) =>
+          prev && prev.id === payload.id ? { ...prev, ...(payload.data || {}) } : prev
+        );
+      } else if (payload.action === 'DELETE' && payload.id) {
+        setLocations((prev) => prev.filter((l) => l.id !== payload.id));
+        setSelectedLocation((prev) => (prev && prev.id === payload.id ? null : prev));
+      } else if (currentServer) {
         const locs = await ApiService.fetchLocations(currentServer.id);
         setLocations(locs);
-        setSelectedLocation((prev) => {
-          if (!prev) return null;
-          const fresh = locs.find((l) => l.id === prev.id);
-          return fresh || null;
+      }
+    });
+
+    // 5. Escuta alterações em tempo real de comentários
+    // 6. Escuta alterações em tempo real de sugestões
+    const unsubSugs = RealtimeSync.onSuggestionsChange((payload) => {
+      if (!payload) return;
+      if (payload.action === 'INSERT' && payload.data) {
+        setSuggestions((prev) => {
+          if (prev.some((s) => s.id === payload.data.id)) return prev;
+          return [payload.data, ...prev];
         });
+      } else if (payload.action === 'UPDATE' && payload.id) {
+        setSuggestions((prev) =>
+          prev.map((s) => (s.id === payload.id ? { ...s, ...(payload.data || {}) } : s))
+        );
       }
     });
 
-    // Escuta alterações em tempo real de sugestões
-    const unsubSugs = RealtimeSync.onSuggestionsChange(async () => {
-      if (currentServer) {
-        const fresh = await ApiService.fetchSuggestions(currentServer.id);
-        setSuggestions(fresh);
-      }
-    });
-
-    // Escuta alterações em tempo real de servidores/cidades
+    // 7. Escuta alterações em tempo real de servidores/cidades
     const unsubServers = RealtimeSync.onServersChange(async () => {
       const fresh = await ApiService.fetchServers();
       setServers(fresh);
     });
 
-    // Escuta viradas de ciclo (às 06:00 e 18:00 ou reset administrativo)
+    // 8. Escuta viradas de ciclo (às 06:00 e 18:00 ou reset administrativo)
     const unsubCycle = RealtimeSync.onCycleReset(async (info, reason) => {
       const message =
         reason === 'automatic_rotation_06_18'
@@ -194,8 +255,8 @@ export const App: React.FC = () => {
     });
 
     return () => {
-      sub.unsubscribe();
       subConf.unsubscribe();
+      unsubPresence();
       unsubLocs();
       unsubSugs();
       unsubServers();
@@ -296,27 +357,6 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleAddComment = async (nickname: string, content: string) => {
-    if (!user) {
-      setToastMessage('🔒 Faça login com o Discord para enviar comentários!');
-      setDiscordAuthOpen(true);
-      setTimeout(() => setToastMessage(null), 4000);
-      return false;
-    }
-    if (!currentServer) return false;
-    const ok = await ApiService.addComment({
-      server_id: currentServer.id,
-      location_id: selectedLocation?.id,
-      nickname: nickname || user.username,
-      content,
-    });
-    if (ok) {
-      const freshComms = await ApiService.fetchComments(currentServer.id);
-      setComments(freshComms);
-    }
-    return ok;
-  };
-
   const handleAddSuggestion = async (nickname: string, type: SuggestionType, content: string) => {
     if (!user) {
       setToastMessage('🔒 Faça login com o Discord para enviar sugestões!');
@@ -356,6 +396,19 @@ export const App: React.FC = () => {
     return false;
   };
 
+  const handleUpdateAdminLocation = async (id: string, updates: Partial<MapLocation>) => {
+    const ok = await ApiService.updateLocation(id, updates);
+    if (ok) {
+      setLocations((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, ...updates } : l))
+      );
+      if (selectedLocation?.id === id) {
+        setSelectedLocation((prev) => (prev ? { ...prev, ...updates } : null));
+      }
+    }
+    return ok;
+  };
+
   const handleDeleteAdminLocation = async (id: string) => {
     const ok = await ApiService.deleteLocation(id);
     if (ok) {
@@ -370,6 +423,14 @@ export const App: React.FC = () => {
     if (ok && currentServer) {
       const fresh = await ApiService.fetchSuggestions(currentServer.id);
       setSuggestions(fresh);
+    }
+    return ok;
+  };
+
+  const handleDeleteAdminSuggestion = async (id: string) => {
+    const ok = await ApiService.deleteSuggestion(id);
+    if (ok) {
+      setSuggestions((prev) => prev.filter((s) => s.id !== id));
     }
     return ok;
   };
@@ -407,8 +468,6 @@ export const App: React.FC = () => {
           onToggleCategory={handleToggleCategory}
           onSelectOnlyCategory={handleSelectOnlyCategory}
           onSelectAllCategories={handleSelectAllCategories}
-          comments={comments}
-          onAddComment={handleAddComment}
           onAddSuggestion={handleAddSuggestion}
         />
 
@@ -447,10 +506,11 @@ export const App: React.FC = () => {
         servers={servers}
         locations={locations}
         suggestions={suggestions}
-        comments={comments}
         onSaveLocation={handleSaveAdminLocation}
+        onUpdateLocation={handleUpdateAdminLocation}
         onDeleteLocation={handleDeleteAdminLocation}
         onUpdateSuggestionStatus={handleUpdateSuggestionStatus}
+        onDeleteSuggestion={handleDeleteAdminSuggestion}
         onStartPinMode={() => setIsAdminPinMode(true)}
         pendingPinCoords={pendingPinCoords}
       />

@@ -104,6 +104,7 @@ export const AuthService = {
         if (stored) {
           try {
             const parsed = JSON.parse(stored);
+            // If stored profile was a mock user, invalidate it
             if (parsed.id && String(parsed.id).startsWith('mock-')) {
               localStorage.removeItem('malaca_user_profile');
               return null;

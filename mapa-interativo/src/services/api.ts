@@ -1,7 +1,12 @@
 import { supabase } from '../lib/supabase';
 import type { Server, System, MapLocation, Comment, Suggestion, SuggestionType, SuggestionStatus, UserProfile, AccessLog, PlatformSettings } from '../types';
 import { getAnonymousUserId } from '../utils/anonymousId';
-import { calculateWandererCycle } from '../utils/wandererCycle';
+import {
+  calculateWandererCycle,
+  getLocalWandererCycleState,
+  saveLocalWandererCycleState,
+  type StoredWandererCycleState,
+} from '../utils/wandererCycle';
 import { RealtimeSync } from './realtimeSync';
 
 // Default Fallback Cities when DB or localStorage is empty
@@ -185,7 +190,6 @@ const saveLocalCustomLocations = (locs: MapLocation[]) => {
     localStorage.setItem('malaca_custom_locations', JSON.stringify(locs));
   } catch {}
 };
-
 const getLocalServers = (): Server[] => {
   try {
     const raw = localStorage.getItem('malaca_custom_servers');
@@ -220,42 +224,6 @@ const saveLocalSystems = (systems: System[]) => {
   } catch {}
 };
 
-interface StoredWandererCycleState {
-  cycleKey: string;
-  userConfirmedIds: string[];
-  counts: Record<string, number>;
-}
-
-const getLocalWandererCycleState = (): StoredWandererCycleState => {
-  const current = calculateWandererCycle();
-  try {
-    const raw = localStorage.getItem('cidade_alta_wanderer_cycle_state');
-    if (raw) {
-      const parsed: StoredWandererCycleState = JSON.parse(raw);
-      if (parsed && parsed.cycleKey === current.cycleKey) {
-        return parsed;
-      }
-    }
-  } catch {}
-
-  // Se for nulo ou se o ciclo mudou (passou das 06:00 ou 18:00), reseta todas as marcações automaticamente!
-  const fresh: StoredWandererCycleState = {
-    cycleKey: current.cycleKey,
-    userConfirmedIds: [],
-    counts: {},
-  };
-  saveLocalWandererCycleState(fresh);
-  try {
-    localStorage.removeItem('cidade_alta_user_confirmations');
-  } catch {}
-  return fresh;
-};
-
-const saveLocalWandererCycleState = (state: StoredWandererCycleState) => {
-  try {
-    localStorage.setItem('cidade_alta_wanderer_cycle_state', JSON.stringify(state));
-  } catch {}
-};
 
 export const ApiService = {
   // Fetch Servers / Cities
@@ -288,15 +256,27 @@ export const ApiService = {
     saveLocalServers(updated);
 
     try {
-      await supabase.from('servers').insert([
-        {
-          name: newCity.name,
-          slug: newCity.slug,
-          map_image_url: newCity.map_image_url,
-          active: newCity.active,
-        },
-      ]);
+      const { data } = await supabase
+        .from('servers')
+        .insert([
+          {
+            name: newCity.name,
+            slug: newCity.slug,
+            subtitle: newCity.subtitle,
+            description: newCity.description,
+            banner_image_url: newCity.banner_image_url,
+            map_image_url: newCity.map_image_url,
+            active: newCity.active,
+          },
+        ])
+        .select()
+        .single();
+      if (data) {
+        Object.assign(newCity, data);
+      }
     } catch {}
+
+    RealtimeSync.broadcastEntityChange('servers', 'INSERT', newCity, newCity.id);
     return newCity;
   },
 
@@ -307,6 +287,9 @@ export const ApiService = {
       current[index] = { ...current[index], ...updates };
       saveLocalServers(current);
     }
+
+    RealtimeSync.broadcastEntityChange('servers', 'UPDATE', updates, id);
+
     try {
       await supabase.from('servers').update(updates).eq('id', id);
     } catch {}
@@ -317,6 +300,9 @@ export const ApiService = {
     const current = getLocalServers();
     const filtered = current.filter((c) => c.id !== id && c.slug !== id);
     saveLocalServers(filtered);
+
+    RealtimeSync.broadcastEntityChange('servers', 'DELETE', undefined, id);
+
     try {
       await supabase.from('servers').delete().eq('id', id);
     } catch {}
@@ -325,7 +311,19 @@ export const ApiService = {
 
   // Fetch Systems
   async fetchSystems(): Promise<System[]> {
-    return getLocalSystems();
+    const local = getLocalSystems();
+    try {
+      const { data, error } = await supabase.from('systems').select('*').eq('is_active', true);
+      if (error || !data || data.length === 0) {
+        return local;
+      }
+      const map = new Map<string, System>();
+      local.forEach((s) => map.set(s.id, s));
+      data.forEach((s) => map.set(s.id, { ...map.get(s.id), ...s }));
+      return Array.from(map.values());
+    } catch {
+      return local;
+    }
   },
 
   // Systems Management (Admin)
@@ -338,6 +336,31 @@ export const ApiService = {
     const current = getLocalSystems();
     const updated = [newSys, ...current];
     saveLocalSystems(updated);
+
+    try {
+      const { data } = await supabase
+        .from('systems')
+        .insert([
+          {
+            name: newSys.name,
+            slug: newSys.slug,
+            tag: newSys.tag,
+            description: newSys.description,
+            icon: newSys.icon,
+            image_url: newSys.image_url,
+            link: newSys.link,
+            city_ids: newSys.city_ids || [],
+            is_active: newSys.is_active,
+          },
+        ])
+        .select()
+        .single();
+      if (data) {
+        Object.assign(newSys, data);
+      }
+    } catch {}
+
+    RealtimeSync.broadcastEntityChange('systems', 'INSERT', newSys, newSys.id);
     return newSys;
   },
 
@@ -348,6 +371,12 @@ export const ApiService = {
       current[index] = { ...current[index], ...updates };
       saveLocalSystems(current);
     }
+
+    RealtimeSync.broadcastEntityChange('systems', 'UPDATE', updates, id);
+
+    try {
+      await supabase.from('systems').update(updates).eq('id', id);
+    } catch {}
     return true;
   },
 
@@ -355,6 +384,12 @@ export const ApiService = {
     const current = getLocalSystems();
     const filtered = current.filter((s) => s.id !== id);
     saveLocalSystems(filtered);
+
+    RealtimeSync.broadcastEntityChange('systems', 'DELETE', undefined, id);
+
+    try {
+      await supabase.from('systems').delete().eq('id', id);
+    } catch {}
     return true;
   },
 
@@ -363,6 +398,7 @@ export const ApiService = {
     const anonId = getAnonymousUserId();
     const cycleState = getLocalWandererCycleState();
     const currentCycle = calculateWandererCycle();
+    const realtimeCounts = RealtimeSync.getAggregatedCounts();
 
     try {
       const { data: locations, error } = await supabase
@@ -409,10 +445,11 @@ export const ApiService = {
         const isLocallyConfirmed = userConfirmedSet.has(loc.id);
         const remoteCount = remoteCounts[loc.id] || 0;
         const localCycleCount = cycleState.counts[loc.id] || 0;
+        const liveCount = realtimeCounts[loc.id] || 0;
 
-        // Se for marcação do Andarilho, zerado por padrão no novo ciclo, salvo votos ativos
+        // Se for marcação do Andarilho, combina contagem remota, realtime coletiva e local
         const totalCount = isWanderer
-          ? Math.max(remoteCount, localCycleCount) + (isLocallyConfirmed && !remoteCount && !localCycleCount ? 1 : 0)
+          ? Math.max(remoteCount, localCycleCount, liveCount) + (isLocallyConfirmed && !remoteCount && !localCycleCount && !liveCount ? 1 : 0)
           : (loc.confirmations_count || 0);
 
         return {
@@ -437,18 +474,22 @@ export const ApiService = {
       return baseLocations.map((loc) => {
         const isWanderer = loc.category === 'andarilho' || loc.category === 'local_possivel';
         const isLocallyConfirmed = userConfirmedSet.has(loc.id);
-        const localCount = cycleState.counts[loc.id] || (isLocallyConfirmed ? 1 : 0);
+        const localCount = cycleState.counts[loc.id] || 0;
+        const liveCount = realtimeCounts[loc.id] || 0;
+        const totalCount = isWanderer
+          ? Math.max(localCount, liveCount) + (isLocallyConfirmed && !localCount && !liveCount ? 1 : 0)
+          : (loc.confirmations_count || 0);
 
         return {
           ...loc,
-          confirmations_count: isWanderer ? localCount : (loc.confirmations_count || 0),
+          confirmations_count: totalCount,
           user_confirmed: isLocallyConfirmed,
         };
       });
     }
   },
 
-  // Confirm Wanderer Location (com Broadcast instantâneo para todas as telas)
+  // Confirm Wanderer Location (com Broadcast instantâneo e Presence para todas as telas)
   async addWandererConfirmation(locationId: string, serverId?: string): Promise<boolean> {
     const anonId = getAnonymousUserId();
     const cycleState = getLocalWandererCycleState();
@@ -458,6 +499,9 @@ export const ApiService = {
     }
     cycleState.counts[locationId] = (cycleState.counts[locationId] || 0) + 1;
     saveLocalWandererCycleState(cycleState);
+
+    // Atualiza Presença Realtime no Supabase para sincronizar com todos os usuários ativos
+    RealtimeSync.syncPresence(cycleState.userConfirmedIds);
 
     // Broadcast em tempo real para todas as telas/abas
     RealtimeSync.broadcastVoteChange('vote_added', locationId, serverId, cycleState.counts[locationId]);
@@ -471,7 +515,7 @@ export const ApiService = {
     return true;
   },
 
-  // Remove Wanderer Confirmation (com Broadcast instantâneo para todas as telas)
+  // Remove Wanderer Confirmation (com Broadcast instantâneo e Presence para todas as telas)
   async removeWandererConfirmation(locationId: string, serverId?: string): Promise<boolean> {
     const anonId = getAnonymousUserId();
     const cycleState = getLocalWandererCycleState();
@@ -479,6 +523,9 @@ export const ApiService = {
     cycleState.userConfirmedIds = cycleState.userConfirmedIds.filter((id) => id !== locationId);
     cycleState.counts[locationId] = Math.max(0, (cycleState.counts[locationId] || 1) - 1);
     saveLocalWandererCycleState(cycleState);
+
+    // Atualiza Presença Realtime no Supabase
+    RealtimeSync.syncPresence(cycleState.userConfirmedIds);
 
     // Broadcast em tempo real para todas as telas/abas
     RealtimeSync.broadcastVoteChange('vote_removed', locationId, serverId, cycleState.counts[locationId]);
@@ -633,9 +680,9 @@ export const ApiService = {
     };
   },
 
-  subscribeToConfirmations(onChange: () => void) {
-    const unsubChange = RealtimeSync.onWandererChange(() => {
-      onChange();
+  subscribeToConfirmations(onChange: (payload?: any) => void) {
+    const unsubChange = RealtimeSync.onWandererChange((payload) => {
+      onChange(payload);
     });
     const unsubReset = RealtimeSync.onCycleReset(() => {
       onChange();
@@ -710,6 +757,16 @@ export const ApiService = {
     RealtimeSync.broadcastEntityChange('suggestions', 'UPDATE', { status }, id);
     try {
       const { error } = await supabase.from('suggestions').update({ status }).eq('id', id);
+      return !error;
+    } catch {
+      return true;
+    }
+  },
+
+  async deleteSuggestion(id: string): Promise<boolean> {
+    RealtimeSync.broadcastEntityChange('suggestions', 'DELETE', undefined, id);
+    try {
+      const { error } = await supabase.from('suggestions').delete().eq('id', id);
       return !error;
     } catch {
       return true;
@@ -829,6 +886,13 @@ export const ApiService = {
       console.warn('fetchAccessLogs error:', e);
     }
     return [];
+  },
+
+  async clearAccessLogs(): Promise<boolean> {
+    try {
+      await supabase.from('access_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    } catch {}
+    return true;
   },
 
   // --- Platform Settings ---

@@ -60,6 +60,21 @@ CREATE TABLE IF NOT EXISTS public.servers (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 3.1. TABELA DE SISTEMAS DA PLATAFORMA
+CREATE TABLE IF NOT EXISTS public.systems (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+    tag VARCHAR(100),
+    description TEXT,
+    icon VARCHAR(100) DEFAULT 'fa-compass',
+    image_url TEXT,
+    link TEXT,
+    city_ids JSONB DEFAULT '[]'::jsonb,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- 4. TABELA DE LOCAIS DO MAPA
 CREATE TABLE IF NOT EXISTS public.map_locations (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -210,6 +225,7 @@ CREATE TRIGGER on_auth_user_created
 
 -- 12. ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.servers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.systems ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.map_locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wanderer_confirmations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wanderer_cycles ENABLE ROW LEVEL SECURITY;
@@ -221,6 +237,8 @@ ALTER TABLE public.access_logs ENABLE ROW LEVEL SECURITY;
 -- Limpeza de políticas existentes para evitar conflitos na recriação
 DROP POLICY IF EXISTS "Servidores visíveis para todos" ON public.servers;
 DROP POLICY IF EXISTS "Permitir gestão de servidores" ON public.servers;
+DROP POLICY IF EXISTS "Sistemas visíveis para todos" ON public.systems;
+DROP POLICY IF EXISTS "Permitir gestão de sistemas" ON public.systems;
 DROP POLICY IF EXISTS "Locais visíveis para todos" ON public.map_locations;
 DROP POLICY IF EXISTS "Permitir gestão de locais" ON public.map_locations;
 DROP POLICY IF EXISTS "Confirmações visíveis para todos" ON public.wanderer_confirmations;
@@ -240,6 +258,9 @@ DROP POLICY IF EXISTS "Allow public select access_logs" ON public.access_logs;
 -- Políticas
 CREATE POLICY "Servidores visíveis para todos" ON public.servers FOR SELECT USING (true);
 CREATE POLICY "Permitir gestão de servidores" ON public.servers FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Sistemas visíveis para todos" ON public.systems FOR SELECT USING (true);
+CREATE POLICY "Permitir gestão de sistemas" ON public.systems FOR ALL USING (true) WITH CHECK (true);
 
 CREATE POLICY "Locais visíveis para todos" ON public.map_locations FOR SELECT USING (true);
 CREATE POLICY "Permitir gestão de locais" ON public.map_locations FOR ALL USING (true) WITH CHECK (true);
@@ -270,6 +291,13 @@ INSERT INTO public.servers (id, name, slug, subtitle, description, banner_image_
 ('los-santos-server-uuid', 'LOS SANTOS CENTRAL', 'los-santos', 'TREINAMENTO HEISTS & MINIJOGOS', 'Central de treinamento de reflexos para invasão de cofres de registradoras, fechaduras de 32 pinos e terminais de segurança.', '/images/gta_map_bg.webp', '/images/mapa_cda_optimized.webp', true)
 ON CONFLICT (slug) DO NOTHING;
 
+INSERT INTO public.systems (id, name, slug, tag, description, icon, image_url, link, city_ids, is_active) VALUES
+('sys-mapa', 'MAPA INTERATIVO RP', 'mapa-interativo', 'CDA & VALLEY REALTIME', 'Mapa interativo em tempo real com virada do Andarilho e pontos de interesse.', 'fa-compass', '/images/gta_map_bg.webp', '/cidades/cda/mapa/', '["cda-server-uuid","valley-server-uuid","cda","valley"]'::jsonb, true),
+('sys-lockpick', 'LOCKPICK SIMULATOR', 'lockpick', 'FIVEM LOCKPICK KIT', 'Simulador oficial de arrombamento com travamento de pinos.', 'fa-key', '/images/lockpick.jpg', '/cidades/cda/lockpick/', '["cda-server-uuid","los-santos-server-uuid","cda","los-santos"]'::jsonb, true),
+('sys-caixinha', 'CAIXINHA ELETRÔNICO', 'caixinha', 'SAFE & ATM HACK', 'Decodificador rápido de cofres e caixas eletrônicos.', 'fa-vault', '/images/caixinha.jpg', '/cidades/cda/caixinha/', '["cda-server-uuid","los-santos-server-uuid","cda","los-santos"]'::jsonb, true),
+('sys-hacking', 'HACKING DEVICE', 'hacking', 'CYBER HACK TERMINAL', 'Terminal de hacking estilo Cayo Perico com matrizes de caracteres.', 'fa-microchip', '/images/hacking.jpg', '/cidades/cda/hacking/', '["cda-server-uuid","los-santos-server-uuid","cda","los-santos"]'::jsonb, true)
+ON CONFLICT (slug) DO NOTHING;
+
 INSERT INTO public.map_locations (server_id, name, category, description, x, y, color) VALUES
 ('cda-server-uuid', 'Hospital Ilegal #1', 'hospital_ilegal', 'Localização fixa do Hospital Ilegal', 440, 550, '#ef4444'),
 ('cda-server-uuid', 'Hospital Ilegal Paleto', 'hospital_ilegal', 'Localização fixa do Hospital Ilegal Paleto', 421, 825, '#ef4444'),
@@ -288,6 +316,14 @@ ON CONFLICT DO NOTHING;
 
 -- 14. ATIVAÇÃO DO REALTIME
 DO $$ BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.servers;
+EXCEPTION WHEN others THEN null; END $$;
+
+DO $$ BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.systems;
+EXCEPTION WHEN others THEN null; END $$;
+
+DO $$ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
 EXCEPTION WHEN others THEN null; END $$;
 
@@ -300,5 +336,39 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN null; END $$;
 
 DO $$ BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.suggestions;
+EXCEPTION WHEN others THEN null; END $$;
+
+DO $$ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
 EXCEPTION WHEN others THEN null; END $$;
+
+-- 15. TABELA DE CONFIGURAÇÕES GLOBAIS DA PLATAFORMA
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+    id TEXT PRIMARY KEY DEFAULT 'default',
+    maintenance_mode BOOLEAN DEFAULT false,
+    maintenance_message TEXT DEFAULT 'Plataforma em manutenção programada para melhorias.',
+    global_announcement TEXT DEFAULT '',
+    announcement_active BOOLEAN DEFAULT false,
+    announcement_type TEXT DEFAULT 'info',
+    disabled_systems JSONB DEFAULT '[]'::jsonb,
+    require_auth_for_interactive_map BOOLEAN DEFAULT false,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Permitir leitura de platform_settings" ON public.platform_settings FOR SELECT USING (true);
+CREATE POLICY "Permitir edicao de platform_settings" ON public.platform_settings FOR ALL USING (true) WITH CHECK (true);
+
+INSERT INTO public.platform_settings (id, maintenance_mode, global_announcement, announcement_active)
+VALUES ('default', false, '', false)
+ON CONFLICT (id) DO NOTHING;
+
+DO $$ BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.platform_settings;
+EXCEPTION WHEN others THEN null; END $$;
+
+DO $$ BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.access_logs;
+EXCEPTION WHEN others THEN null; END $$;
+
