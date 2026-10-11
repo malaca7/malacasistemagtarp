@@ -650,7 +650,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     document.addEventListener('DOMContentLoaded', syncAppearanceState);
     syncAppearanceState();
 
-    let activeTab = 'cities';
+    let activeTab = 'dashboard';
     let editingCityId = null;
     let editingSystemId = null;
 
@@ -821,30 +821,46 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 </div>
             `;
         } else {
-            const allServers = getActiveServers();
-                   container.innerHTML = `
-                <div class="global-admin-nav">
-                    <button class="global-admin-nav-btn ${activeTab === 'dashboard' ? 'active' : ''}" onclick="switchAdminTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
-                    <button class="global-admin-nav-btn ${activeTab === 'users' ? 'active' : ''}" onclick="switchAdminTab('users')"><i class="fa-solid fa-users"></i> Usuários</button>
-                    <button class="global-admin-nav-btn ${activeTab === 'andarilho' ? 'active' : ''}" onclick="switchAdminTab('andarilho')"><i class="fa-solid fa-person-walking"></i> Andarilho</button>
-                    <button class="global-admin-nav-btn ${activeTab === 'cities' ? 'active' : ''}" onclick="switchAdminTab('cities')"><i class="fa-solid fa-city"></i> Cidades (${allServers.length})</button>
-                    <button class="global-admin-nav-btn ${activeTab === 'systems' ? 'active' : ''}" onclick="switchAdminTab('systems')"><i class="fa-solid fa-layer-group"></i> Sistemas (${allSystems.length})</button>
-                    <button class="global-admin-nav-btn ${activeTab === 'settings' ? 'active' : ''}" onclick="switchAdminTab('settings')"><i class="fa-solid fa-gear"></i> Opções Globais</button>
-                    <button class="global-admin-nav-btn" onclick="logoutAdmin()" style="margin-left: auto; color: #ff5252;"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
-                </div>
-                <div class="global-admin-body" id="admin-tab-body">
-                    ${renderTabBody(activeTab, allServers, allSystems)}
-                </div>
-            `;
+            try {
+                const allServers = getActiveServers();
+                const allSystems = getActiveSystems();
 
-            if (activeTab === 'dashboard') {
-                loadAdminDashboardView();
-            } else if (activeTab === 'users') {
-                loadAdminUsersView();
-            } else if (activeTab === 'andarilho') {
-                loadAdminWandererListView();
-            } else if (activeTab === 'settings') {
-                loadAdminSettingsView();
+                container.innerHTML = `
+                    <div class="global-admin-nav">
+                        <button class="global-admin-nav-btn ${activeTab === 'dashboard' ? 'active' : ''}" onclick="switchAdminTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+                        <button class="global-admin-nav-btn ${activeTab === 'users' ? 'active' : ''}" onclick="switchAdminTab('users')"><i class="fa-solid fa-users"></i> Usuários</button>
+                        <button class="global-admin-nav-btn ${activeTab === 'andarilho' ? 'active' : ''}" onclick="switchAdminTab('andarilho')"><i class="fa-solid fa-person-walking"></i> Andarilho</button>
+                        <button class="global-admin-nav-btn ${activeTab === 'cities' ? 'active' : ''}" onclick="switchAdminTab('cities')"><i class="fa-solid fa-city"></i> Cidades (${allServers.length})</button>
+                        <button class="global-admin-nav-btn ${activeTab === 'systems' ? 'active' : ''}" onclick="switchAdminTab('systems')"><i class="fa-solid fa-layer-group"></i> Sistemas (${allSystems.length})</button>
+                        <button class="global-admin-nav-btn ${activeTab === 'settings' ? 'active' : ''}" onclick="switchAdminTab('settings')"><i class="fa-solid fa-gear"></i> Opções Globais</button>
+                        <button class="global-admin-nav-btn" onclick="logoutAdmin()" style="margin-left: auto; color: #ff5252;"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
+                    </div>
+                    <div class="global-admin-body" id="admin-tab-body">
+                        ${renderTabBody(activeTab, allServers, allSystems)}
+                    </div>
+                `;
+
+                if (activeTab === 'dashboard') {
+                    loadAdminDashboardView();
+                } else if (activeTab === 'users') {
+                    loadAdminUsersView();
+                } else if (activeTab === 'andarilho') {
+                    loadAdminWandererListView();
+                } else if (activeTab === 'settings') {
+                    loadAdminSettingsView();
+                }
+            } catch (err) {
+                console.error('Erro ao montar o painel administrativo:', err);
+                container.innerHTML = `
+                    <div class="global-admin-body" style="padding: 40px; text-align: center;">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.2rem; color: #f87171; margin-bottom: 12px; display: block;"></i>
+                        <h4 style="color: #fff; font-size: 16px; font-weight: 800; margin-bottom: 8px;">Erro ao carregar o painel administrativo</h4>
+                        <p style="font-size: 12px; color: #94a3b8; margin-bottom: 16px; max-width: 400px; margin-left: auto; margin-right: auto;">${err.message || 'Falha ao renderizar os componentes do painel.'}</p>
+                        <button onclick="switchAdminTab('dashboard')" class="global-admin-submit" style="width: auto; padding: 10px 24px; display: inline-block;">
+                            <i class="fa-solid fa-rotate"></i> Recarregar Painel
+                        </button>
+                    </div>
+                `;
             }
         }
     }
