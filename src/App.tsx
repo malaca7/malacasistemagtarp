@@ -10,7 +10,7 @@ import { LocationDrawer } from './components/map/LocationDrawer';
 import { AdminModal } from './components/admin/AdminModal';
 import { AppearanceModal } from './components/AppearanceModal';
 import { DiscordAuthModal } from './components/DiscordAuthModal';
-import { AuthService, UserProfile } from './services/auth';
+import { AuthService, UserProfile, checkAdminPermission, extractDiscordId, DEFAULT_ADMIN_DISCORD_IDS } from './services/auth';
 import { supabase } from './lib/supabase';
 
 export const App: React.FC = () => {
@@ -50,6 +50,12 @@ export const App: React.FC = () => {
       .then((u) => {
         setUser(u);
         setAuthLoading(false);
+        if (u && (checkAdminPermission(u) || DEFAULT_ADMIN_DISCORD_IDS.includes(extractDiscordId(u)))) {
+          if (sessionStorage.getItem('malaca_open_admin_after_auth') === '1') {
+            sessionStorage.removeItem('malaca_open_admin_after_auth');
+            setAdminOpen(true);
+          }
+        }
       })
       .catch(() => {
         setAuthLoading(false);
@@ -59,7 +65,7 @@ export const App: React.FC = () => {
       if (event === 'SIGNED_IN' && session?.user) {
         const u = session.user;
         const meta = u.user_metadata || {};
-        const discordId = meta.provider_id || meta.sub || u.id;
+        const discordId = extractDiscordId(u) || meta.provider_id || meta.sub || u.id;
         const username = meta.preferred_username || meta.user_name || meta.name || meta.full_name || 'Discord User';
         AuthService.logAccessSession(u.id, String(discordId), String(username));
       }
@@ -67,6 +73,12 @@ export const App: React.FC = () => {
         const synced = await AuthService.syncDiscordUser();
         setUser(synced);
         setAuthLoading(false);
+        if (synced && (checkAdminPermission(synced) || DEFAULT_ADMIN_DISCORD_IDS.includes(extractDiscordId(synced)))) {
+          if (sessionStorage.getItem('malaca_open_admin_after_auth') === '1') {
+            sessionStorage.removeItem('malaca_open_admin_after_auth');
+            setAdminOpen(true);
+          }
+        }
       } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem('malaca_user_profile');
         setUser(null);

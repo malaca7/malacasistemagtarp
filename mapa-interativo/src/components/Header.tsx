@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Server } from '../types';
-import type { UserProfile } from '../services/auth';
+import { UserProfile, checkAdminPermission, extractDiscordId, DEFAULT_ADMIN_DISCORD_IDS } from '../services/auth';
 import { Menu, Settings, ArrowLeft, Sliders, UserCheck } from 'lucide-react';
 
 interface HeaderProps {
@@ -24,6 +24,8 @@ export const Header: React.FC<HeaderProps> = ({
   user,
   onOpenDiscordAuth,
 }) => {
+  const isAdmin = user ? (checkAdminPermission(user) || DEFAULT_ADMIN_DISCORD_IDS.includes(extractDiscordId(user))) : false;
+
   return (
     <header className="h-16 bg-[#030712]/95 backdrop-blur-xl border-b border-[#00d2ff]/20 px-4 md:px-6 flex items-center justify-between z-30 relative shadow-2xl">
       {/* Navigation Left: Back Button & Brand */}
@@ -133,13 +135,16 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        <button
-          onClick={onOpenAdmin}
-          className="px-3 py-1.5 rounded-lg bg-[#060d1a] border border-[#00d2ff]/30 hover:border-[#00d2ff] text-slate-300 hover:text-[#38bdf8] text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md"
-        >
-          <Settings className="w-4 h-4 text-[#00d2ff]" />
-          <span className="hidden sm:inline">PAINEL ADMIN</span>
-        </button>
+        {isAdmin && (
+          <button
+            onClick={onOpenAdmin}
+            className="px-3 py-1.5 rounded-lg bg-[#060d1a] border border-[#00d2ff]/30 hover:border-[#00d2ff] text-slate-300 hover:text-[#38bdf8] text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md"
+            title="Painel Administrativo"
+          >
+            <Settings className="w-4 h-4 text-[#00d2ff]" />
+            <span className="hidden sm:inline">PAINEL ADMIN</span>
+          </button>
+        )}
       </div>
     </header>
   );

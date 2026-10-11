@@ -786,7 +786,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             )}
 
             <button
-              onClick={() => AuthService.loginWithDiscord()}
+              onClick={() => {
+                sessionStorage.setItem('malaca_open_admin_after_auth', '1');
+                AuthService.loginWithDiscord();
+              }}
               className="w-full py-3.5 px-6 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white font-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-3 transition-all shadow-lg shadow-[#5865F2]/25"
             >
               <i className="fa-brands fa-discord text-lg"></i>

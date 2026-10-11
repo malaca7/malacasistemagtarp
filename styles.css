@@ -4294,7 +4294,7 @@ body {
 }
 
 .hub-footer-admin-link {
-    display: inline-flex;
+    display: none;
     align-items: center;
     gap: 6px;
     padding: 4px 10px;
@@ -4307,6 +4307,10 @@ body {
     font-weight: 800;
     letter-spacing: 1px;
     transition: all 0.25s ease;
+}
+
+.hub-footer-admin-link.is-admin-visible {
+    display: inline-flex !important;
 }
 
 .hub-footer-admin-link:hover {

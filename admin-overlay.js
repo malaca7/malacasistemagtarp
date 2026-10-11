@@ -107,6 +107,96 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
+    const DEFAULT_ADMIN_DISCORD_IDS = ['722320491767136346', '917826984778797087'];
+    const DEFAULT_ADMIN_EMAILS = ['malaca@malacasystem.com', 'admin@malacasystem.com'];
+    const DEFAULT_ADMIN_USERNAMES = ['malaca7', 'malaca', 'admin'];
+
+    function extractDiscordId(u) {
+        if (!u) return '';
+        if (u.discord_id && typeof u.discord_id === 'string' && u.discord_id.trim()) {
+            return u.discord_id.trim();
+        }
+        if (Array.isArray(u.identities) && u.identities.length > 0) {
+            const discordIdentity = u.identities.find(i => i.provider === 'discord') || u.identities[0];
+            if (discordIdentity) {
+                if (discordIdentity.id) return String(discordIdentity.id).trim();
+                if (discordIdentity.identity_data) {
+                    if (discordIdentity.identity_data.provider_id) return String(discordIdentity.identity_data.provider_id).trim();
+                    if (discordIdentity.identity_data.sub) return String(discordIdentity.identity_data.sub).trim();
+                }
+            }
+        }
+        const meta = u.user_metadata || u.raw_user_meta_data || {};
+        if (meta.provider_id) return String(meta.provider_id).trim();
+        if (meta.sub && !String(meta.sub).includes('-')) return String(meta.sub).trim();
+        if (meta.id && !String(meta.id).includes('-')) return String(meta.id).trim();
+
+        if (u.id && typeof u.id === 'string' && /^\d{15,22}$/.test(u.id.trim())) {
+            return u.id.trim();
+        }
+        if (u.sub && typeof u.sub === 'string' && /^\d{15,22}$/.test(u.sub.trim())) {
+            return u.sub.trim();
+        }
+        return '';
+    }
+
+    function checkAdminPermission(user) {
+        if (!user) return false;
+        const discordId = extractDiscordId(user);
+        if (discordId && DEFAULT_ADMIN_DISCORD_IDS.includes(discordId)) {
+            return true;
+        }
+        if (user.is_admin === true || user.role === 'admin') {
+            return true;
+        }
+        const email = String(user.email || (user.user_metadata && user.user_metadata.email) || '').trim().toLowerCase();
+        if (email && DEFAULT_ADMIN_EMAILS.includes(email)) {
+            return true;
+        }
+        const username = String(
+            user.username ||
+            (user.user_metadata && (user.user_metadata.preferred_username || user.user_metadata.user_name || user.user_metadata.name || user.user_metadata.full_name)) ||
+            ''
+        ).trim().toLowerCase();
+        if (username && DEFAULT_ADMIN_USERNAMES.includes(username)) {
+            return true;
+        }
+        try {
+            const customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+            if (discordId && customAdmins.includes(discordId)) {
+                return true;
+            }
+        } catch(e) {}
+        return false;
+    }
+
+    function getSavedAdminState() {
+        try {
+            const stored = localStorage.getItem('malaca_user_profile');
+            if (stored) {
+                const u = JSON.parse(stored);
+                if (checkAdminPermission(u)) return true;
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    function updateAdminUiVisibility(isAdmin) {
+        const adminLinks = document.querySelectorAll('.hub-footer-admin-link');
+        adminLinks.forEach(link => {
+            if (isAdmin) {
+                link.classList.add('is-admin-visible');
+                link.style.display = 'inline-flex';
+            } else {
+                link.classList.remove('is-admin-visible');
+                link.style.display = 'none';
+            }
+        });
+    }
+
+    let isAuthenticated = getSavedAdminState();
+    updateAdminUiVisibility(isAuthenticated);
+
     window.openDiscordModal = function () {
         document.getElementById('global-discord-modal').classList.add('active');
         renderDiscordModalContent();
@@ -116,12 +206,27 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         document.getElementById('global-discord-modal').classList.remove('active');
     };
 
-    window.openGlobalAdminModal = function () {
+    window.openGlobalAdminModal = async function () {
         const modal = document.getElementById('global-admin-modal');
-        if (modal) {
-            modal.classList.add('active');
-            renderAdminContent();
+        if (!modal) return;
+
+        if (!isAuthenticated) {
+            if (getSavedAdminState()) {
+                isAuthenticated = true;
+                updateAdminUiVisibility(true);
+            } else {
+                try {
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (session && session.user && checkAdminPermission(session.user)) {
+                        isAuthenticated = true;
+                        updateAdminUiVisibility(true);
+                    }
+                } catch (e) {}
+            }
         }
+
+        modal.classList.add('active');
+        renderAdminContent();
     };
 
     window.closeGlobalAdminModal = function () {
@@ -278,13 +383,17 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
             if (session && session.user) {
                 const u = session.user;
                 const meta = u.user_metadata || {};
-                const discordId = meta.provider_id || meta.sub || u.id;
+                const discordId = extractDiscordId(u) || meta.provider_id || meta.sub || '';
                 const username = meta.preferred_username || meta.user_name || meta.name || meta.full_name || 'Discord User';
                 const fullName = meta.full_name || meta.global_name || meta.name || username;
                 const avatarUrl = meta.avatar_url || meta.picture || 'https://cdn.discordapp.com/embed/avatars/0.png';
                 const now = new Date().toISOString();
                 const email = u.email || meta.email || '';
-                const isAdmin = typeof checkAdminPermission === 'function' ? checkAdminPermission(u) : false;
+                const isAdmin = checkAdminPermission(u);
+
+                if (isAdmin) {
+                    isAuthenticated = true;
+                }
 
                 const profileData = {
                     id: u.id,
@@ -304,11 +413,20 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 };
 
                 localStorage.setItem('malaca_user_profile', JSON.stringify(profile));
+                updateAdminUiVisibility(isAdmin);
 
                 // Upsert into Supabase profiles table asynchronously
                 supabaseClient.from('profiles').upsert([profileData], { onConflict: 'id' }).then(() => {}).catch(err => {
                     console.warn('Supabase profiles sync warning:', err);
                 });
+
+                // Auto-open modal se o login foi iniciado para acessar o painel admin
+                if (isAdmin && sessionStorage.getItem('malaca_open_admin_after_auth') === '1') {
+                    sessionStorage.removeItem('malaca_open_admin_after_auth');
+                    setTimeout(() => {
+                        window.openGlobalAdminModal();
+                    }, 100);
+                }
 
                 // Clean OAuth URL params if present
                 if (typeof window !== 'undefined') {
@@ -323,8 +441,17 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                         const parsed = JSON.parse(stored);
                         if (parsed.id && String(parsed.id).startsWith('mock-')) {
                             localStorage.removeItem('malaca_user_profile');
+                            isAuthenticated = false;
+                            updateAdminUiVisibility(false);
+                        } else {
+                            const isAdmin = checkAdminPermission(parsed);
+                            if (isAdmin) isAuthenticated = true;
+                            updateAdminUiVisibility(isAdmin);
                         }
                     } catch(e) {}
+                } else {
+                    isAuthenticated = false;
+                    updateAdminUiVisibility(false);
                 }
             }
         } catch (e) {
@@ -334,15 +461,28 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     }
 
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
-
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
             await syncDiscordSession();
             renderDiscordModalContent();
+            if (session && session.user && checkAdminPermission(session.user)) {
+                isAuthenticated = true;
+                updateAdminUiVisibility(true);
+                const modal = document.getElementById('global-admin-modal');
+                if (modal && modal.classList.contains('active')) {
+                    renderAdminContent();
+                }
+            }
             if (typeof checkSystemAuthProtection === 'function') checkSystemAuthProtection();
         } else if (event === 'SIGNED_OUT') {
+            isAuthenticated = false;
             localStorage.removeItem('malaca_user_profile');
+            updateAdminUiVisibility(false);
             syncDiscordNavButton();
             renderDiscordModalContent();
+            const modal = document.getElementById('global-admin-modal');
+            if (modal && modal.classList.contains('active')) {
+                renderAdminContent();
+            }
             if (typeof checkSystemAuthProtection === 'function') checkSystemAuthProtection();
         }
     });
@@ -510,7 +650,6 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     document.addEventListener('DOMContentLoaded', syncAppearanceState);
     syncAppearanceState();
 
-    let isAuthenticated = false;
     let activeTab = 'cities';
     let editingCityId = null;
     let editingSystemId = null;
@@ -610,21 +749,6 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         });
     };
 
-    window.openGlobalAdminModal = function () {
-        const modal = document.getElementById('global-admin-modal');
-        if (modal) {
-            modal.classList.add('active');
-            renderAdminContent();
-        }
-    };
-
-    window.closeGlobalAdminModal = function () {
-        const modal = document.getElementById('global-admin-modal');
-        if (modal) {
-            modal.classList.remove('active');
-        }
-    };
-
     function getActiveServers() {
         const raw = JSON.parse(localStorage.getItem('malaca_custom_servers') || '[]');
         return raw.length > 0 ? raw : defaultServers;
@@ -635,30 +759,8 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         return raw.length > 0 ? raw : defaultSystems;
     }
 
-    function checkAdminPermission(user) {
-        if (!user) return false;
-
-        const discordId = String(
-            user.discord_id ||
-            user.id ||
-            (user.user_metadata && (user.user_metadata.provider_id || user.user_metadata.sub)) ||
-            ''
-        ).trim();
-
-        const defaultDiscordIds = ['722320491767136346', '917826984778797087'];
-        if (discordId && defaultDiscordIds.includes(discordId)) return true;
-
-        try {
-            const customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
-            if (discordId && customAdmins.includes(discordId)) {
-                return true;
-            }
-        } catch(e) {}
-
-        return false;
-    }
-
     window.loginAdminWithDiscord = function() {
+        sessionStorage.setItem('malaca_open_admin_after_auth', '1');
         const redirectUrl = window.location.origin + window.location.pathname;
         supabaseClient.auth.signInWithOAuth({
             provider: 'discord',
@@ -666,25 +768,19 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         });
     };
 
-    supabaseClient.auth.getSession().then(({ data: { session } }) => {
-        if (session && session.user && checkAdminPermission(session.user)) {
-            isAuthenticated = true;
-        }
-    });
-
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-        if (session && session.user && checkAdminPermission(session.user)) {
-            isAuthenticated = true;
-            const modal = document.getElementById('global-admin-modal');
-            if (modal && modal.classList.contains('active')) {
-                renderAdminContent();
-            }
-        }
-    });
-
     function renderAdminContent() {
         const container = document.getElementById('global-admin-content');
+        if (!container) return;
+
         if (!isAuthenticated) {
+            const stored = localStorage.getItem('malaca_user_profile');
+            let currentUser = null;
+            try {
+                if (stored) currentUser = JSON.parse(stored);
+            } catch(e) {}
+
+            const isAccessDenied = currentUser && !checkAdminPermission(currentUser);
+
             container.innerHTML = `
                 <div class="global-admin-body">
                     <div class="global-admin-auth-box">
@@ -692,8 +788,19 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                         <h3 style="font-family: var(--font-header); font-size: 1.2rem; color: #fff; margin-bottom: 8px;">Autenticação Administrativa</h3>
                         <p style="font-size: 0.78rem; color: #8b9cb5; margin-bottom: 20px;">Acesse o painel de gestão através da sua conta autorizada do Discord.</p>
                         
+                        ${isAccessDenied ? `
+                            <div style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); border-radius: 12px; padding: 14px; margin-bottom: 16px; text-align: left;">
+                                <div style="font-weight: 800; font-size: 12px; color: #f87171; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> ACESSO ADMINISTRATIVO NÃO AUTORIZADO
+                                </div>
+                                <div style="font-size: 11px; color: #cbd5e1; line-height: 1.4;">
+                                    A conta Discord <strong>@${currentUser.username || 'Usuário'}</strong> não está na lista de administradores oficiais desta plataforma.
+                                </div>
+                            </div>
+                        ` : ''}
+
                         <button onclick="loginAdminWithDiscord()" style="width:100%; padding:14px; background:#5865F2; color:#fff; font-family:var(--font-header); font-weight:800; border:none; border-radius:12px; cursor:pointer; font-size:0.85rem; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 16px rgba(88,101,242,0.3); transition:all 0.3s ease;">
-                            <i class="fa-brands fa-discord" style="font-size:1.2rem;"></i> ENTRAR COM DISCORD (ADMIN)
+                            <i class="fa-brands fa-discord" style="font-size:1.2rem;"></i> ${currentUser ? 'TROCAR DE CONTA DISCORD (ADMIN)' : 'ENTRAR COM DISCORD (ADMIN)'}
                         </button>
 
                         <details style="margin-top:20px; text-align:left;">
@@ -2141,8 +2248,10 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         }
         checkSystemAuthProtection();
         checkGlobalAnnouncementBanner();
+        updateAdminUiVisibility(isAuthenticated);
     });
     checkSystemAuthProtection();
     checkGlobalAnnouncementBanner();
+    updateAdminUiVisibility(isAuthenticated);
 })();
 
