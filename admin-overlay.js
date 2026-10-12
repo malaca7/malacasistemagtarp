@@ -108,8 +108,6 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
     const DEFAULT_ADMIN_DISCORD_IDS = ['722320491767136346', '917826984778797087'];
-    const DEFAULT_ADMIN_EMAILS = ['malaca@malacasystem.com', 'admin@malacasystem.com'];
-    const DEFAULT_ADMIN_USERNAMES = ['malaca7', 'malaca', 'admin'];
 
     function extractDiscordId(u) {
         if (!u) return '';
@@ -143,24 +141,15 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     function checkAdminPermission(user) {
         if (!user) return false;
         const discordId = extractDiscordId(user);
+        // 1. Superadmins inatos
         if (discordId && DEFAULT_ADMIN_DISCORD_IDS.includes(discordId)) {
             return true;
         }
+        // 2. Cargo explícito vindo do banco (promovido por outro admin)
         if (user.is_admin === true || user.role === 'admin') {
             return true;
         }
-        const email = String(user.email || (user.user_metadata && user.user_metadata.email) || '').trim().toLowerCase();
-        if (email && DEFAULT_ADMIN_EMAILS.includes(email)) {
-            return true;
-        }
-        const username = String(
-            user.username ||
-            (user.user_metadata && (user.user_metadata.preferred_username || user.user_metadata.user_name || user.user_metadata.name || user.user_metadata.full_name)) ||
-            ''
-        ).trim().toLowerCase();
-        if (username && DEFAULT_ADMIN_USERNAMES.includes(username)) {
-            return true;
-        }
+        // 3. Discord IDs personalizados cadastrados
         try {
             const customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
             if (discordId && customAdmins.includes(discordId)) {
@@ -223,6 +212,17 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                     }
                 } catch (e) {}
             }
+        }
+
+        if (!isAuthenticated) {
+            const stored = localStorage.getItem('malaca_user_profile');
+            if (stored) {
+                showAccessRestrictedToast('Acesso restrito: sua conta não possui privilégios de administrador.');
+            } else {
+                showAccessRestrictedToast('Faça login com sua conta de administrador.');
+                window.openDiscordModal();
+            }
+            return;
         }
 
         modal.classList.add('active');
@@ -389,11 +389,25 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 const avatarUrl = meta.avatar_url || meta.picture || 'https://cdn.discordapp.com/embed/avatars/0.png';
                 const now = new Date().toISOString();
                 const email = u.email || meta.email || '';
-                const isAdmin = checkAdminPermission(u);
 
-                if (isAdmin) {
-                    isAuthenticated = true;
-                }
+                // Resgatar perfil existente no banco para validar se foi promovido por outro admin
+                let existingProfile = null;
+                try {
+                    const { data } = await supabaseClient
+                        .from('profiles')
+                        .select('character_name, instagram, twitch, youtube, twitter_x, custom_bio, is_admin, role')
+                        .eq('id', u.id)
+                        .maybeSingle();
+                    if (data) existingProfile = data;
+                } catch(e) {}
+
+                // Regra estrita: Fundadores oficiais OU promovidos no banco por outro admin
+                const isOfficialFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId));
+                const isPromotedAdmin = Boolean(existingProfile && (existingProfile.is_admin === true || existingProfile.role === 'admin'));
+                const isAdmin = isOfficialFounder || isPromotedAdmin;
+                const userRole = isAdmin ? 'admin' : (existingProfile && existingProfile.role && existingProfile.role !== 'admin' ? existingProfile.role : 'user');
+
+                isAuthenticated = isAdmin;
 
                 const profileData = {
                     id: u.id,
@@ -402,8 +416,14 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                     full_name: String(fullName),
                     avatar_url: String(avatarUrl),
                     email: email || undefined,
+                    character_name: existingProfile?.character_name || '',
+                    instagram: existingProfile?.instagram || '',
+                    twitch: existingProfile?.twitch || '',
+                    youtube: existingProfile?.youtube || '',
+                    twitter_x: existingProfile?.twitter_x || '',
+                    custom_bio: existingProfile?.custom_bio || '',
                     is_admin: isAdmin,
-                    role: isAdmin ? 'admin' : 'user',
+                    role: userRole,
                     last_login_at: now
                 };
 
@@ -773,53 +793,10 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         if (!container) return;
 
         if (!isAuthenticated) {
-            const stored = localStorage.getItem('malaca_user_profile');
-            let currentUser = null;
-            try {
-                if (stored) currentUser = JSON.parse(stored);
-            } catch(e) {}
-
-            const isAccessDenied = currentUser && !checkAdminPermission(currentUser);
-
-            container.innerHTML = `
-                <div class="global-admin-body">
-                    <div class="global-admin-auth-box">
-                        <i class="fa-brands fa-discord" style="font-size: 3rem; color: #5865F2; margin-bottom: 12px;"></i>
-                        <h3 style="font-family: var(--font-header); font-size: 1.2rem; color: #fff; margin-bottom: 8px;">Autenticação Administrativa</h3>
-                        <p style="font-size: 0.78rem; color: #8b9cb5; margin-bottom: 20px;">Acesse o painel de gestão através da sua conta autorizada do Discord.</p>
-                        
-                        ${isAccessDenied ? `
-                            <div style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); border-radius: 12px; padding: 14px; margin-bottom: 16px; text-align: left;">
-                                <div style="font-weight: 800; font-size: 12px; color: #f87171; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                    <i class="fa-solid fa-triangle-exclamation"></i> ACESSO ADMINISTRATIVO NÃO AUTORIZADO
-                                </div>
-                                <div style="font-size: 11px; color: #cbd5e1; line-height: 1.4;">
-                                    A conta Discord <strong>@${currentUser.username || 'Usuário'}</strong> não está na lista de administradores oficiais desta plataforma.
-                                </div>
-                            </div>
-                        ` : ''}
-
-                        <button onclick="loginAdminWithDiscord()" style="width:100%; padding:14px; background:#5865F2; color:#fff; font-family:var(--font-header); font-weight:800; border:none; border-radius:12px; cursor:pointer; font-size:0.85rem; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 16px rgba(88,101,242,0.3); transition:all 0.3s ease;">
-                            <i class="fa-brands fa-discord" style="font-size:1.2rem;"></i> ${currentUser ? 'TROCAR DE CONTA DISCORD (ADMIN)' : 'ENTRAR COM DISCORD (ADMIN)'}
-                        </button>
-
-                        <details style="margin-top:20px; text-align:left;">
-                            <summary style="font-size:0.72rem; color:#64748b; cursor:pointer; text-align:center;">Opção de emergência (Senha Mestra)</summary>
-                            <form onsubmit="handleAdminLogin(event)" style="margin-top:12px;">
-                                <label style="font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Usuário</label>
-                                <input type="text" id="admin-user-input" class="global-admin-input" placeholder="ex: malaca" required>
-                                
-                                <label style="font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Senha</label>
-                                <input type="password" id="admin-pass-input" class="global-admin-input" placeholder="Digite a senha" required>
-
-                                <p id="admin-auth-err" style="color: #ff5252; font-size: 0.75rem; display: none; margin-bottom: 12px;">Usuário ou senha incorretos.</p>
-                                
-                                <button type="submit" class="global-admin-submit" style="margin-top:10px;">ENTRAR COM SENHA</button>
-                            </form>
-                        </details>
-                    </div>
-                </div>
-            `;
+            window.closeGlobalAdminModal();
+            container.innerHTML = '';
+            showAccessRestrictedToast('Acesso restrito: sua conta não possui privilégios de administrador.');
+            return;
         } else {
             try {
                 const allServers = getActiveServers();
@@ -2149,12 +2126,26 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     }
     window.showAccessRestrictedToast = showAccessRestrictedToast;
 
-    // Global Interceptor: Block unauthenticated users from clicking into systems
+    // Global Interceptor: Block unauthenticated users from clicking into cities and systems
     document.addEventListener('click', (e) => {
-        const target = e.target.closest('a') || e.target.closest('button.system-access-btn') || e.target.closest('.hub-city-card');
+        const target = e.target.closest('a') || e.target.closest('button.system-access-btn') || e.target.closest('.hub-city-card') || e.target.closest('.hub-card');
         if (!target) return;
 
         const href = (target.getAttribute('href') || target.dataset.link || '').toLowerCase();
+        const isCityCard = target.classList.contains('hub-card') || 
+                           Boolean(target.closest('.hub-card')) ||
+                           Boolean(target.closest('#custom-cities-grid a')) ||
+                           Boolean(target.closest('#cidades-section a'));
+
+        const isCityTarget = href.includes('/cidades') ||
+                             href.includes('cidades/') ||
+                             href.includes('/cidade.html') ||
+                             href.includes('cidade.html') ||
+                             href.includes('/cidade/') ||
+                             href === 'valley/' ||
+                             href === 'cda/' ||
+                             href === 'los-santos/';
+
         const isSystemCard = target.classList.contains('hub-city-card') || 
                              target.classList.contains('system-access-btn') ||
                              target.classList.contains('hub-city-card-btn');
@@ -2166,25 +2157,27 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                                href.includes('/hacking') ||
                                href.includes('mapa-interativo');
 
-        // Only intercept if target is a system and user is not logged in
-        if ((isSystemCard || isSystemTarget) && !isUserLoggedIn()) {
+        // Only intercept if target is a city or system and user is not logged in
+        if ((isCityCard || isCityTarget || isSystemCard || isSystemTarget) && !isUserLoggedIn()) {
             e.preventDefault();
             e.stopPropagation();
-            showAccessRestrictedToast('Faça login com o Discord para acessar este sistema.');
+            showAccessRestrictedToast('Faça login com o Discord para acessar as cidades e sistemas.');
             window.openDiscordModal();
         }
     }, true);
 
-    // Authentication Guard for Simulator / Minigame / Systems Pages (Direct URL access)
-    function checkSystemAuthProtection() {
+    // Authentication Guard for Cities, Maps, Simulator & Systems Pages (Direct URL access)
+    function checkGlobalAuthProtection() {
         const path = window.location.pathname.toLowerCase();
-        const isSystemPage = path.includes('/sistemas') ||
-                             path.includes('/lockpick') ||
-                             path.includes('/caixinha') ||
-                             path.includes('/hacking') ||
-                             path.includes('/mapa') ||
-                             path.includes('/mapa-interativo');
-        if (!isSystemPage) return;
+        const isProtectedPage = path.includes('/cidades') ||
+                                path.includes('/cidade') ||
+                                path.includes('/sistemas') ||
+                                path.includes('/lockpick') ||
+                                path.includes('/caixinha') ||
+                                path.includes('/hacking') ||
+                                path.includes('/mapa') ||
+                                path.includes('/mapa-interativo');
+        if (!isProtectedPage) return;
 
         if (!isUserLoggedIn()) {
             let lockOverlay = document.getElementById('system-auth-guard-overlay');
@@ -2192,36 +2185,35 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 lockOverlay = document.createElement('div');
                 lockOverlay.id = 'system-auth-guard-overlay';
                 lockOverlay.style.cssText = `
-                    position: fixed; inset: 0; background: rgba(3, 7, 18, 0.95); backdrop-filter: blur(16px);
+                    position: fixed; inset: 0; background: rgba(3, 7, 18, 0.96); backdrop-filter: blur(16px);
                     z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 20px;
                 `;
 
-                // Detect city context from URL or fallback
-                let backUrl = '/cidades/';
-                const matchCity = window.location.pathname.match(/\/cidades\/([^\/]+)\//);
-                if (matchCity && matchCity[1]) {
-                    backUrl = `/cidades/${matchCity[1]}/`;
-                }
+                const isCity = path.includes('/cidades') || path.includes('/cidade');
+                const titleText = isCity ? 'CIDADE RESTRITA' : 'SISTEMA RESTRITO';
+                const descText = isCity
+                    ? 'O acesso às páginas das cidades e aos seus recursos é exclusivo para membros logados via Discord.'
+                    : 'Para utilizar este sistema/simulador e acompanhar seus dados em tempo real, faça login com sua conta do Discord.';
 
                 lockOverlay.innerHTML = `
-                    <div style="background: linear-gradient(135deg, #090e17 0%, #000000 100%); border: 1px solid rgba(88,101,242,0.4); border-radius: 20px; padding: 36px; max-width: 440px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.9);">
+                    <div style="background: linear-gradient(135deg, #090e17 0%, #000000 100%); border: 1px solid rgba(88,101,242,0.4); border-radius: 20px; padding: 36px; max-width: 440px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.95);">
                         <div style="width: 68px; height: 68px; border-radius: 50%; background: rgba(88,101,242,0.15); border: 2px solid #5865F2; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; color: #5865F2; font-size: 32px; box-shadow: 0 0 25px rgba(88,101,242,0.3);">
                             <i class="fa-brands fa-discord"></i>
                         </div>
                         <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; background: rgba(88,101,242,0.15); border: 1px solid rgba(88,101,242,0.3); color: #818cf8; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
-                            SISTEMA RESTRITO • MALACA GTARP
+                            ${titleText} • MALACA GTARP
                         </span>
                         <h3 style="font-family: var(--font-header, sans-serif); font-size: 1.25rem; font-weight: 900; color: #fff; margin-bottom: 10px; letter-spacing: 0.5px;">
                             AUTENTICAÇÃO NECESSÁRIA
                         </h3>
                         <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.6; margin-bottom: 24px;">
-                            Para utilizar este sistema/simulador e acompanhar seus dados em tempo real, faça login com sua conta do Discord.
+                            ${descText}
                         </p>
                         <button onclick="loginWithDiscordGlobal()" style="width: 100%; padding: 14px; border-radius: 12px; background: #5865F2; color: #fff; font-size: 0.85rem; font-weight: 800; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 25px rgba(88,101,242,0.4); transition: all 0.2s ease;">
                             <i class="fa-brands fa-discord" style="font-size: 1.2rem;"></i> ENTRAR COM O DISCORD
                         </button>
-                        <a href="${backUrl}" style="display: inline-flex; align-items: center; gap: 6px; margin-top: 18px; font-size: 0.8rem; color: #64748b; text-decoration: none; font-weight: 700; transition: color 0.2s;">
-                            <i class="fa-solid fa-arrow-left"></i> Voltar para a Cidade
+                        <a href="/" style="display: inline-flex; align-items: center; gap: 6px; margin-top: 18px; font-size: 0.8rem; color: #64748b; text-decoration: none; font-weight: 700; transition: color 0.2s;">
+                            <i class="fa-solid fa-arrow-left"></i> Voltar para a Página Inicial
                         </a>
                     </div>
                 `;
@@ -2232,6 +2224,8 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
             if (lockOverlay) lockOverlay.remove();
         }
     }
+    window.checkSystemAuthProtection = checkGlobalAuthProtection;
+    window.checkGlobalAuthProtection = checkGlobalAuthProtection;
 
     // Global Announcement Banner Check
     async function checkGlobalAnnouncementBanner() {
@@ -2256,17 +2250,23 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         } catch(e) {}
     }
 
-    // Auto-open modal if URL contains admin=true parameter & run guards
+    // Auto-open modal ONLY if user is authenticated admin; otherwise sanitize URL
     document.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.search);
         if (params.get('admin') === 'true' || params.get('admin') === '1') {
-            window.openGlobalAdminModal();
+            if (isAuthenticated) {
+                window.openGlobalAdminModal();
+            } else {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('admin');
+                window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+            }
         }
-        checkSystemAuthProtection();
+        checkGlobalAuthProtection();
         checkGlobalAnnouncementBanner();
         updateAdminUiVisibility(isAuthenticated);
     });
-    checkSystemAuthProtection();
+    checkGlobalAuthProtection();
     checkGlobalAnnouncementBanner();
     updateAdminUiVisibility(isAuthenticated);
 })();

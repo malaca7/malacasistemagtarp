@@ -4,15 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel Administrativo | Malaca System GTARP</title>
-    <meta name="description" content="Acesso direto ao Painel Administrativo do Malaca System GTARP.">
+    <meta name="description" content="Acesso restrito ao Painel Administrativo do Malaca System GTARP.">
     <script>
-        // Directly redirect to interactive map with admin=true parameter
-        window.location.replace('../mapa-interativo/?cidade=cda&admin=true');
+        (function() {
+            var DEFAULT_ADMIN_DISCORD_IDS = ['722320491767136346', '917826984778797087'];
+            var isAdmin = false;
+            try {
+                var stored = localStorage.getItem('malaca_user_profile');
+                if (stored) {
+                    var user = JSON.parse(stored);
+                    var dId = user.discord_id || '';
+                    if (dId && DEFAULT_ADMIN_DISCORD_IDS.indexOf(dId) !== -1) {
+                        isAdmin = true;
+                    } else if (user.is_admin === true || user.role === 'admin') {
+                        isAdmin = true;
+                    }
+                }
+            } catch(e) {}
+
+            if (isAdmin) {
+                window.location.replace('../mapa-interativo/?cidade=cda&admin=true');
+            } else {
+                alert('Acesso restrito: O painel de administração está disponível apenas para administradores autorizados.');
+                window.location.replace('../');
+            }
+        })();
     </script>
 </head>
 <body style="background: #04060c; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
     <div style="text-align: center;">
-        <h2 style="color: #ff6600;">Redirecionando para o Painel Admin...</h2>
+        <h2 style="color: #00d2ff;">Verificando credenciais de administrador...</h2>
         <p style="color: #94a3b8; font-size: 0.9rem;">Aguarde um momento.</p>
     </div>
 </body>

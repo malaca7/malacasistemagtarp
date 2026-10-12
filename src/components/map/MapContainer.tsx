@@ -140,12 +140,20 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       zoomControl: false,
       attributionControl: false,
       bounceAtZoomLimits: false,
+      preferCanvas: true,
+      fadeAnimation: true,
+      markerZoomAnimation: true,
+      inertia: true,
+      inertiaDeceleration: 3000,
+      inertiaMaxSpeed: 1500,
+      easeLinearity: 0.2,
       // @ts-ignore
       tapTolerance: 15,
     });
 
     const overlay = L.imageOverlay(mapImageUrl, bounds, {
       className: 'gta-map-image-layer',
+      interactive: false,
     }).addTo(map);
     overlayRef.current = overlay;
 
@@ -201,18 +209,37 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       window.addEventListener('orientationchange', handleResize);
     }
 
-    // Track mouse & touch movements for live X/Y GTA coordinates
-    const updateCoords = (latlng: L.LatLng) => {
+    // Otimização: Throttled update com requestAnimationFrame para não congelar o thread principal
+    let lastCoordsX = -1;
+    let lastCoordsY = -1;
+    let coordsRafId: number | null = null;
+    let lastCoordsTime = 0;
+
+    const updateCoords = (latlng: L.LatLng, immediate = false) => {
       const x = Math.round(latlng.lng);
       const y = Math.round(latlng.lat);
-      if (x >= 0 && x <= 1000 && y >= 0 && y <= 1000) {
+      if (x < 0 || x > 1000 || y < 0 || y > 1000) return;
+      if (x === lastCoordsX && y === lastCoordsY) return;
+
+      lastCoordsX = x;
+      lastCoordsY = y;
+
+      const now = performance.now();
+      if (immediate || now - lastCoordsTime > 75) {
+        lastCoordsTime = now;
         setHoverCoords({ x, y });
+      } else if (!coordsRafId) {
+        coordsRafId = window.requestAnimationFrame(() => {
+          coordsRafId = null;
+          lastCoordsTime = performance.now();
+          setHoverCoords({ x, y });
+        });
       }
     };
 
     map.on('mousemove', (e: L.LeafletMouseEvent) => updateCoords(e.latlng));
     map.on('click', (e: L.LeafletMouseEvent) => {
-      updateCoords(e.latlng);
+      updateCoords(e.latlng, true);
       if (!isAdminPinMode) {
         onSelectLocation(null);
       }
@@ -224,6 +251,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
 
     return () => {
       clearTimeout(sizeTimer);
+      if (coordsRafId) cancelAnimationFrame(coordsRafId);
       if (resizeObserver) resizeObserver.disconnect();
       if (typeof window !== 'undefined') {
         window.removeEventListener('resize', handleResize);
@@ -513,10 +541,23 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         }
         .leaflet-container {
           outline: none !important;
+          touch-action: pan-x pan-y pinch-zoom !important;
+          transform: translateZ(0);
+          will-change: transform;
+          user-select: none;
+          -webkit-user-select: none;
         }
         .gta-map-image-layer,
         .leaflet-image-layer {
           object-fit: cover !important;
+          transform: translateZ(0);
+          will-change: transform;
+          backface-visibility: hidden;
+        }
+        .custom-map-pin-wrapper {
+          transform: translateZ(0);
+          will-change: transform;
+          backface-visibility: hidden;
         }
       `}</style>
 

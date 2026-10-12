@@ -95,6 +95,11 @@ export const App: React.FC = () => {
   const [isAdminPinMode, setIsAdminPinMode] = useState(false);
   const [pendingPinCoords, setPendingPinCoords] = useState<{ x: number; y: number } | null>(null);
 
+  const isUserAdmin = (u: UserProfile | null): boolean => {
+    if (!u) return false;
+    return checkAdminPermission(u) || DEFAULT_ADMIN_DISCORD_IDS.includes(extractDiscordId(u));
+  };
+
   // Load Servers on Startup & Enforce City Context
   useEffect(() => {
     const loadServers = async () => {
@@ -128,8 +133,16 @@ export const App: React.FC = () => {
         if (match) selected = match;
         setCurrentServer(selected);
 
+        // Apenas abre o painel admin via URL se o usuário atual for comprovadamente admin
         if (params.get('admin') === 'true' || params.get('admin') === '1') {
-          setAdminOpen(true);
+          const saved = AuthService.getSavedProfile();
+          if (isUserAdmin(saved)) {
+            setAdminOpen(true);
+          } else {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('admin');
+            window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+          }
         }
       }
     };
@@ -573,7 +586,13 @@ export const App: React.FC = () => {
           setSelectedLocation(null);
         }}
         onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
-        onOpenAdmin={() => setAdminOpen(true)}
+        onOpenAdmin={() => {
+          if (isUserAdmin(user)) {
+            setAdminOpen(true);
+          } else {
+            setToastMessage('Acesso restrito: sua conta não possui cargo de administrador.');
+          }
+        }}
         onOpenAppearance={() => setAppearanceOpen(true)}
         user={user}
         onOpenDiscordAuth={() => setDiscordAuthOpen(true)}
@@ -704,22 +723,24 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Admin Panel Modal */}
-      <AdminModal
-        isOpen={adminOpen}
-        onClose={() => setAdminOpen(false)}
-        user={user}
-        servers={servers}
-        locations={locations}
-        suggestions={suggestions}
-        onSaveLocation={handleSaveAdminLocation}
-        onUpdateLocation={handleUpdateAdminLocation}
-        onDeleteLocation={handleDeleteAdminLocation}
-        onUpdateSuggestionStatus={handleUpdateSuggestionStatus}
-        onDeleteSuggestion={handleDeleteAdminSuggestion}
-        onStartPinMode={() => setIsAdminPinMode(true)}
-        pendingPinCoords={pendingPinCoords}
-      />
+      {/* Admin Panel Modal - Exclusivo para administradores */}
+      {isUserAdmin(user) && (
+        <AdminModal
+          isOpen={adminOpen}
+          onClose={() => setAdminOpen(false)}
+          user={user}
+          servers={servers}
+          locations={locations}
+          suggestions={suggestions}
+          onSaveLocation={handleSaveAdminLocation}
+          onUpdateLocation={handleUpdateAdminLocation}
+          onDeleteLocation={handleDeleteAdminLocation}
+          onUpdateSuggestionStatus={handleUpdateSuggestionStatus}
+          onDeleteSuggestion={handleDeleteAdminSuggestion}
+          onStartPinMode={() => setIsAdminPinMode(true)}
+          pendingPinCoords={pendingPinCoords}
+        />
+      )}
 
       {/* Appearance Customization Modal */}
       <AppearanceModal

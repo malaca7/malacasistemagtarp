@@ -20,17 +20,6 @@ export interface UserProfile {
   access_count?: number;
 }
 
-const DEFAULT_ADMIN_EMAILS = [
-  'rogeriomalaquiasjr@gmail.com',
-  'rogeriosantanajr@gmail.com',
-];
-
-const DEFAULT_ADMIN_USERNAMES = [
-  'malaca',
-  'malaquias',
-  'malaca7',
-];
-
 export const DEFAULT_ADMIN_DISCORD_IDS = [
   '722320491767136346', // Administrador Solicitado
   '917826984778797087', // malaca7
@@ -73,35 +62,17 @@ export const checkAdminPermission = (userOrProfile: any): boolean => {
   // 1. Extrair ID do Discord garantindo tipagem consistente e sem falsos UUIDs
   const discordId = extractDiscordId(userOrProfile);
 
-  // 2. Apenas IDs oficiais e explicitamente designados possuem privilégio administrativo
+  // 2. Apenas IDs oficiais fundadores possuem privilégio administrativo inato
   if (discordId && DEFAULT_ADMIN_DISCORD_IDS.includes(discordId)) {
     return true;
   }
 
-  // 3. Cargo explícito vindo do banco de dados (se foi promovido no painel)
+  // 3. Cargo explícito vindo do banco de dados (promovido por outro administrador)
   if (userOrProfile.is_admin === true || userOrProfile.role === 'admin') {
     return true;
   }
 
-  // 4. E-mails administrativos autorizados
-  const email = String(userOrProfile.email || userOrProfile.user_metadata?.email || '').trim().toLowerCase();
-  if (email && DEFAULT_ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(email)) {
-    return true;
-  }
-
-  // 5. Usernames administrativos autorizados
-  const username = String(
-    userOrProfile.username ||
-    userOrProfile.user_metadata?.preferred_username ||
-    userOrProfile.user_metadata?.user_name ||
-    userOrProfile.user_metadata?.name ||
-    ''
-  ).trim().toLowerCase();
-  if (username && DEFAULT_ADMIN_USERNAMES.map((u) => u.toLowerCase()).includes(username)) {
-    return true;
-  }
-
-  // 6. Lista personalizada configurada pelo administrador no painel
+  // 4. Lista personalizada de Discord IDs configurada pelo administrador no painel
   try {
     const customAdminsRaw = localStorage.getItem('malaca_admin_discord_accounts');
     if (customAdminsRaw) {
@@ -179,22 +150,28 @@ export const AuthService = {
       const fullName = metadata.full_name || metadata.global_name || metadata.name || username;
       const avatarUrl = metadata.avatar_url || metadata.picture || 'https://cdn.discordapp.com/embed/avatars/0.png';
       const email = user.email || metadata.email || '';
-      const isOfficialAdmin = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId));
-      const isAdmin = isOfficialAdmin || checkAdminPermission(user);
-      const now = new Date().toISOString();
-
-      // Tentar resgatar dados adicionais existentes no Supabase (como character_name e redes)
+      // Resgatar dados existentes no Supabase (incluindo is_admin e role para checar promoção)
       let existingProfile: any = null;
       try {
         const { data } = await supabase
           .from('profiles')
-          .select('character_name, instagram, twitch, youtube, twitter_x, custom_bio')
+          .select('character_name, instagram, twitch, youtube, twitter_x, custom_bio, is_admin, role')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         if (data) existingProfile = data;
       } catch (err) {}
 
-      // Se existir cache local, usar como fallback
+      // Regra de Permissões Estrita:
+      // 1. Superadmins inatos (IDs fundadores fixos)
+      // 2. Usuários promovidos por outro administrador no banco de dados
+      // 3. Todo novo cadastro é estritamente usuário comum (is_admin = false, role = 'user')
+      const isOfficialFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId));
+      const isPromotedAdmin = Boolean(existingProfile?.is_admin === true || existingProfile?.role === 'admin');
+      const isAdmin = isOfficialFounder || isPromotedAdmin;
+      const userRole = isAdmin ? ('admin' as const) : ('user' as const);
+      const now = new Date().toISOString();
+
+      // Se existir cache local, usar como fallback secundário
       const localCached = AuthService.getSavedProfile();
 
       const characterName = existingProfile?.character_name || localCached?.character_name || '';
@@ -218,7 +195,7 @@ export const AuthService = {
         twitter_x: twitterX,
         custom_bio: customBio,
         is_admin: isAdmin,
-        role: isAdmin ? ('admin' as const) : ('user' as const),
+        role: userRole,
         last_login_at: now,
       };
 
@@ -257,7 +234,7 @@ export const AuthService = {
         twitter_x: twitterX,
         custom_bio: customBio,
         is_admin: isAdmin,
-        role: isAdmin ? 'admin' : 'user',
+        role: userRole,
         created_at: user.created_at || now,
         last_login_at: now,
         access_count: accessCount,
