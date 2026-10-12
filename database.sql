@@ -212,9 +212,10 @@ BEGIN
     v_full_name := COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'global_name', new.raw_user_meta_data->>'name', v_username);
     v_avatar := COALESCE(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture', 'https://cdn.discordapp.com/embed/avatars/0.png');
     
-    -- Apenas IDs do Discord explicitamente autorizados são administradores; todo novo cadastro é usuário comum
+    -- Apenas o fundador principal (722320491767136346 - MALACA7X) é superadministrador inato
+    -- Todo novo cadastro é estritamente usuário comum (is_admin = false, role = 'user')
     v_is_admin := (
-        v_discord_id IN ('722320491767136346', '917826984778797087')
+        v_discord_id = '722320491767136346'
     );
 
     INSERT INTO public.profiles (
@@ -226,6 +227,7 @@ BEGIN
         email,
         is_admin,
         role,
+        is_banned,
         created_at,
         last_login_at
     )
@@ -238,6 +240,7 @@ BEGIN
         new.email,
         v_is_admin,
         CASE WHEN v_is_admin THEN 'admin' ELSE 'user' END,
+        false,
         NOW(),
         NOW()
     )
@@ -246,8 +249,8 @@ BEGIN
         avatar_url = EXCLUDED.avatar_url,
         full_name = EXCLUDED.full_name,
         username = EXCLUDED.username,
-        is_admin = (public.profiles.is_admin OR EXCLUDED.is_admin),
-        role = CASE WHEN (public.profiles.is_admin OR EXCLUDED.is_admin) THEN 'admin' ELSE public.profiles.role END;
+        is_admin = CASE WHEN v_discord_id = '722320491767136346' THEN true ELSE public.profiles.is_admin END,
+        role = CASE WHEN v_discord_id = '722320491767136346' THEN 'admin' ELSE public.profiles.role END;
 
     RETURN new;
 END;
@@ -459,8 +462,13 @@ DO $$ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.access_logs;
 EXCEPTION WHEN others THEN null; END $$;
 
--- 16. GARANTIR CARGO DE ADMINISTRADOR PARA DISCORD IDS OFICIAIS
+-- 16. GARANTIR CARGO DE ADMINISTRADOR PARA FUNDADOR OFICIAL PRINCIPAL
 UPDATE public.profiles
 SET is_admin = true, role = 'admin'
-WHERE discord_id IN ('722320491767136346', '917826984778797087');
+WHERE discord_id = '722320491767136346';
+
+-- GARANTIR QUE OUTROS USUÁRIOS SÓ SEJAM ADMIN SE EXPLICITAMENTE PROMOVIDOS
+UPDATE public.profiles
+SET is_admin = false, role = 'user'
+WHERE discord_id = '917826984778797087' AND is_admin IS NULL;
 

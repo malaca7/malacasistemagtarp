@@ -73,7 +73,7 @@ export const App: React.FC = () => {
         const synced = await AuthService.syncDiscordUser();
         setUser(synced);
         setAuthLoading(false);
-        if (synced && (checkAdminPermission(synced) || DEFAULT_ADMIN_DISCORD_IDS.includes(extractDiscordId(synced)))) {
+        if (synced && !synced.is_banned && (checkAdminPermission(synced) || DEFAULT_ADMIN_DISCORD_IDS.includes(extractDiscordId(synced)))) {
           if (sessionStorage.getItem('malaca_open_admin_after_auth') === '1') {
             sessionStorage.removeItem('malaca_open_admin_after_auth');
             setAdminOpen(true);
@@ -86,8 +86,40 @@ export const App: React.FC = () => {
       }
     });
 
+    const liveChannel = supabase.channel('malaca_realtime_global_hub_mapa')
+      .on('broadcast', { event: 'user_permission_updated' }, ({ payload }) => {
+        if (!payload) return;
+        setUser((prev) => {
+          if (prev && (prev.id === payload.id || prev.discord_id === payload.discordId)) {
+            const updated = { ...prev, is_admin: payload.is_admin, role: payload.role };
+            localStorage.setItem('malaca_user_profile', JSON.stringify(updated));
+            if (!payload.is_admin) setAdminOpen(false);
+            return updated;
+          }
+          return prev;
+        });
+      })
+      .on('broadcast', { event: 'user_ban_updated' }, ({ payload }) => {
+        if (!payload) return;
+        setUser((prev) => {
+          if (prev && (prev.id === payload.id || prev.discord_id === payload.discordId)) {
+            const updated = {
+              ...prev,
+              is_banned: payload.is_banned,
+              ...(payload.is_banned ? { is_admin: false, role: 'user' as const } : {}),
+            };
+            localStorage.setItem('malaca_user_profile', JSON.stringify(updated));
+            if (payload.is_banned) setAdminOpen(false);
+            return updated;
+          }
+          return prev;
+        });
+      })
+      .subscribe();
+
     return () => {
       subscription.unsubscribe();
+      supabase.removeChannel(liveChannel);
     };
   }, []);
 
@@ -97,6 +129,7 @@ export const App: React.FC = () => {
 
   const isUserAdmin = (u: UserProfile | null): boolean => {
     if (!u) return false;
+    if (u.is_banned === true) return false;
     return checkAdminPermission(u) || DEFAULT_ADMIN_DISCORD_IDS.includes(extractDiscordId(u));
   };
 
@@ -609,6 +642,47 @@ export const App: React.FC = () => {
           <span className="text-xs font-mono font-bold tracking-widest text-[#38bdf8] uppercase">
             Verificando Credenciais...
           </span>
+        </div>
+      ) : user?.is_banned ? (
+        <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-b from-[#180909] via-[#0d0404] to-[#050202]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(239,68,68,0.15),_transparent_70%)] pointer-events-none" />
+          <div className="max-w-md w-full relative z-10 bg-[#120505]/95 backdrop-blur-2xl border border-rose-500/40 rounded-2xl p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(239,68,68,0.2)] text-center">
+            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center text-rose-500 shadow-[0_0_30px_rgba(239,68,68,0.3)]">
+              <i className="fa-solid fa-ban text-2xl" />
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-black uppercase tracking-wider mb-3">
+              <i className="fa-solid fa-triangle-exclamation text-xs" /> Acesso Revogado • Conta Suspensa
+            </div>
+
+            <h2 className="text-xl md:text-2xl font-black text-white font-['Orbitron',sans-serif] tracking-wider mb-2">
+              CONTA SUSPENSA
+            </h2>
+
+            <p className="text-xs md:text-sm text-slate-300 leading-relaxed mb-6">
+              Seu acesso à plataforma <strong className="text-white">Malaca System GTARP</strong> foi suspenso pela administração. Todas as cidades, sistemas, mapas e painéis estão bloqueados para sua conta.
+            </p>
+
+            <div className="bg-black/60 border border-rose-500/30 rounded-xl p-3.5 mb-6 text-left flex items-center gap-3">
+              <img src={user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'} alt={user.username} className="w-12 h-12 rounded-full border-2 border-rose-500 object-cover shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="text-white font-black text-sm truncate">{user.full_name || user.username}</div>
+                <div className="text-rose-400 font-bold text-xs truncate">@{user.username}</div>
+                <div className="text-slate-500 font-mono text-[10px]">ID Discord: {user.discord_id}</div>
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-rose-500/25 text-rose-300 border border-rose-500/40">
+                BANIDO
+              </span>
+            </div>
+
+            <button
+              onClick={() => AuthService.logout()}
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(239,68,68,0.4)] flex items-center justify-center gap-2.5 cursor-pointer"
+            >
+              <i className="fa-solid fa-arrow-right-from-bracket text-sm" />
+              <span>Desconectar Conta</span>
+            </button>
+          </div>
         </div>
       ) : !user ? (
         <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-b from-[#030712] via-[#080d1a] to-[#020408]">

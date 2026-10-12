@@ -15,14 +15,14 @@ export interface UserProfile {
   custom_bio?: string;
   is_admin?: boolean;
   role?: 'admin' | 'user';
+  is_banned?: boolean;
   created_at: string;
   last_login_at: string;
   access_count?: number;
 }
 
 export const DEFAULT_ADMIN_DISCORD_IDS = [
-  '722320491767136346', // Administrador Solicitado
-  '917826984778797087', // malaca7
+  '722320491767136346', // Fundador & Administrador Principal Inato (MALACA7X)
 ];
 
 export const extractDiscordId = (u: any): string => {
@@ -59,20 +59,24 @@ export const extractDiscordId = (u: any): string => {
 export const checkAdminPermission = (userOrProfile: any): boolean => {
   if (!userOrProfile) return false;
 
-  // 1. Extrair ID do Discord garantindo tipagem consistente e sem falsos UUIDs
   const discordId = extractDiscordId(userOrProfile);
 
-  // 2. Apenas IDs oficiais fundadores possuem privilégio administrativo inato
+  // 1. Fundador oficial principal inato (nunca perde permissão)
   if (discordId && DEFAULT_ADMIN_DISCORD_IDS.includes(discordId)) {
     return true;
   }
 
-  // 3. Cargo explícito vindo do banco de dados (promovido por outro administrador)
+  // Se o usuário estiver banido, perde qualquer privilégio administrativo
+  if (userOrProfile.is_banned === true) {
+    return false;
+  }
+
+  // 2. Cargo explícito vindo do banco de dados (promovido por outro administrador)
   if (userOrProfile.is_admin === true || userOrProfile.role === 'admin') {
     return true;
   }
 
-  // 4. Lista personalizada de Discord IDs configurada pelo administrador no painel
+  // 3. Lista personalizada de Discord IDs configurada pelo administrador no painel
   try {
     const customAdminsRaw = localStorage.getItem('malaca_admin_discord_accounts');
     if (customAdminsRaw) {
@@ -150,23 +154,30 @@ export const AuthService = {
       const fullName = metadata.full_name || metadata.global_name || metadata.name || username;
       const avatarUrl = metadata.avatar_url || metadata.picture || 'https://cdn.discordapp.com/embed/avatars/0.png';
       const email = user.email || metadata.email || '';
-      // Resgatar dados existentes no Supabase (incluindo is_admin e role para checar promoção)
+      // Resgatar dados existentes no Supabase (incluindo is_admin, role e is_banned para checar permissões)
       let existingProfile: any = null;
       try {
         const { data } = await supabase
           .from('profiles')
-          .select('character_name, instagram, twitch, youtube, twitter_x, custom_bio, is_admin, role')
+          .select('character_name, instagram, twitch, youtube, twitter_x, custom_bio, is_admin, role, is_banned, created_at')
           .eq('id', user.id)
           .maybeSingle();
         if (data) existingProfile = data;
       } catch (err) {}
 
       // Regra de Permissões Estrita:
-      // 1. Superadmins inatos (IDs fundadores fixos)
-      // 2. Usuários promovidos por outro administrador no banco de dados
-      // 3. Todo novo cadastro é estritamente usuário comum (is_admin = false, role = 'user')
+      // 1. Superadmin inato oficial: Apenas o Fundador (722320491767136346)
+      // 2. Banimento: Contas banidas perdem qualquer privilégio de administrador e são bloqueadas
+      // 3. Usuários promovidos por outro administrador no banco de dados
+      // 4. Todo novo cadastro é estritamente usuário comum (is_admin = false, role = 'user')
       const isOfficialFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId));
-      const isPromotedAdmin = Boolean(existingProfile?.is_admin === true || existingProfile?.role === 'admin');
+      let customBanned: string[] = [];
+      try {
+        customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
+      } catch (e) {}
+
+      const isBanned = Boolean(!isOfficialFounder && (existingProfile?.is_banned === true || customBanned.includes(String(discordId))));
+      const isPromotedAdmin = Boolean(!isBanned && (existingProfile?.is_admin === true || existingProfile?.role === 'admin'));
       const isAdmin = isOfficialFounder || isPromotedAdmin;
       const userRole = isAdmin ? ('admin' as const) : ('user' as const);
       const now = new Date().toISOString();
@@ -196,6 +207,7 @@ export const AuthService = {
         custom_bio: customBio,
         is_admin: isAdmin,
         role: userRole,
+        is_banned: isBanned,
         last_login_at: now,
       };
 
@@ -301,12 +313,32 @@ export const AuthService = {
         localStorage.removeItem('malaca_user_profile');
         return null;
       }
-      // Guarantee instant admin elevation for official admins
+      // Guarantee correct permission status
       const discordId = extractDiscordId(parsed);
-      if (DEFAULT_ADMIN_DISCORD_IDS.includes(discordId) || checkAdminPermission(parsed)) {
+      const isOfficialFounder = Boolean(discordId && DEFAULT_ADMIN_DISCORD_IDS.includes(discordId));
+      let customBanned: string[] = [];
+      try {
+        customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
+      } catch (e) {}
+
+      if (!isOfficialFounder && (parsed.is_banned === true || customBanned.includes(discordId))) {
+        parsed.is_banned = true;
+        parsed.is_admin = false;
+        parsed.role = 'user';
+        return parsed;
+      }
+
+      if (isOfficialFounder) {
         if (!parsed.is_admin || parsed.role !== 'admin') {
           parsed.is_admin = true;
           parsed.role = 'admin';
+          localStorage.setItem('malaca_user_profile', JSON.stringify(parsed));
+        }
+      } else {
+        const isAdmin = checkAdminPermission(parsed);
+        if (parsed.is_admin !== isAdmin) {
+          parsed.is_admin = isAdmin;
+          parsed.role = isAdmin ? 'admin' : 'user';
           localStorage.setItem('malaca_user_profile', JSON.stringify(parsed));
         }
       }

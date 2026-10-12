@@ -259,7 +259,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     if (
       (u === 'malaca' && p === '199425') ||
       (u === 'admin' && (p === 'cidadealta123' || p === 'admin')) ||
-      (u === '722320491767136346' || u === '917826984778797087') ||
+      (u === '722320491767136346') ||
       (p === '722320491767136346' || p === '199425')
     ) {
       setIsAuthenticated(true);
@@ -700,6 +700,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
   // --- Handlers para Usuários & Permissões ---
   const handleToggleAdmin = async (u: UserProfile) => {
+    if (u.discord_id === '722320491767136346' || u.id === '722320491767136346') {
+      showToast('O fundador principal não pode ter sua permissão alterada.');
+      return;
+    }
     const newAdmin = !u.is_admin;
     const newRole = newAdmin ? 'admin' : 'user';
     const ok = await ApiService.updateProfile(u.id, {
@@ -717,12 +721,20 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   };
 
   const handleToggleBan = async (u: UserProfile) => {
+    if (u.discord_id === '722320491767136346' || u.id === '722320491767136346') {
+      showToast('O fundador principal não pode ser banido.');
+      return;
+    }
     const newBanned = !u.is_banned;
-    const ok = await ApiService.updateProfile(u.id, { is_banned: newBanned });
+    const updates: Partial<UserProfile> = {
+      is_banned: newBanned,
+      ...(newBanned ? { is_admin: false, role: 'user' as const } : {}),
+    };
+    const ok = await ApiService.updateProfile(u.id, updates);
     if (ok) {
       showToast(`Usuário @${u.username} ${newBanned ? 'BANIDO' : 'DESBANIDO'} com sucesso.`);
       setProfilesList((prev) =>
-        prev.map((item) => (item.id === u.id ? { ...item, is_banned: newBanned } : item))
+        prev.map((item) => (item.id === u.id ? { ...item, ...updates } : item))
       );
     } else {
       showToast('Falha ao alterar status de banimento.');
@@ -2094,8 +2106,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         </div>
                       ) : (
                         filteredUsers.map((u) => {
-                          const isAdmin = u.is_admin || u.role === 'admin';
-                          const isBanned = u.is_banned === true;
+                          const isOwner = u.discord_id === '722320491767136346' || u.id === '722320491767136346';
+                          const isBanned = !isOwner && u.is_banned === true;
+                          const isAdmin = isOwner || (!isBanned && (u.is_admin || u.role === 'admin'));
 
                           return (
                             <div
@@ -2103,6 +2116,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               className={`p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 ${
                                 isBanned
                                   ? 'bg-rose-950/20 border-rose-900/40'
+                                  : isOwner
+                                  ? 'bg-gradient-to-br from-[#00d2ff]/10 via-[#060d1a] to-[#000000] border-[#00d2ff]/40 shadow-lg shadow-[#00d2ff]/5'
                                   : isAdmin
                                   ? 'bg-gradient-to-br from-[#5865F2]/10 via-[#060d1a] to-[#000000] border-[#5865F2]/40 shadow-lg shadow-[#5865F2]/5'
                                   : 'bg-[#060d1a] border-slate-800'
@@ -2117,16 +2132,22 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                     className={`w-12 h-12 rounded-full object-cover border-2 ${
                                       isBanned
                                         ? 'border-rose-500 opacity-60'
+                                        : isOwner
+                                        ? 'border-[#00d2ff] shadow-md shadow-[#00d2ff]/30'
                                         : isAdmin
                                         ? 'border-[#38bdf8] shadow-md shadow-[#38bdf8]/30'
                                         : 'border-slate-700'
                                     }`}
                                   />
-                                  {isAdmin && (
+                                  {isOwner ? (
+                                    <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#00d2ff] text-black rounded-full flex items-center justify-center text-[9px] shadow font-bold">
+                                      👑
+                                    </span>
+                                  ) : isAdmin ? (
                                     <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#5865F2] text-white rounded-full flex items-center justify-center text-[9px] shadow">
                                       <Shield className="w-2.5 h-2.5" />
                                     </span>
-                                  )}
+                                  ) : null}
                                 </div>
 
                                 <div className="min-w-0 flex-1">
@@ -2134,9 +2155,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                     <h5 className="font-extrabold text-white text-xs truncate max-w-[140px]">
                                       {u.full_name || u.username}
                                     </h5>
-                                    {isAdmin && (
+                                    {isOwner && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-[#00d2ff]/20 text-[#38bdf8] border border-[#00d2ff]/40">
+                                        FUNDADOR
+                                      </span>
+                                    )}
+                                    {isAdmin && !isOwner && (
                                       <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-[#5865F2]/20 text-[#818cf8] border border-[#5865F2]/40">
                                         ADMIN
+                                      </span>
+                                    )}
+                                    {!isAdmin && !isBanned && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-slate-800 text-slate-400 border border-slate-700">
+                                        USUÁRIO
                                       </span>
                                     )}
                                     {isBanned && (
@@ -2174,47 +2205,57 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 </div>
                                 <div>
                                   <span className="text-slate-500 font-bold block">CARGO</span>
-                                  <span className="text-[#38bdf8] font-bold">{isAdmin ? 'ADMINISTRADOR' : 'USUÁRIO RP'}</span>
+                                  <span className="text-[#38bdf8] font-bold">
+                                    {isOwner ? 'FUNDADOR INATO' : isAdmin ? 'ADMINISTRADOR' : 'USUÁRIO RP'}
+                                  </span>
                                 </div>
                               </div>
 
                               {/* Actions Bar */}
                               <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1.5 flex-wrap">
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    onClick={() => handleToggleAdmin(u)}
-                                    className={`px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-all ${
-                                      isAdmin
-                                        ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25'
-                                        : 'bg-[#5865F2]/20 text-[#818cf8] border border-[#5865F2]/40 hover:bg-[#5865F2]/30'
-                                    }`}
-                                    title={isAdmin ? 'Remover Permissão de Admin' : 'Tornar Administrador'}
-                                  >
-                                    <ShieldCheck className="w-3 h-3" />
-                                    <span>{isAdmin ? 'Remover Admin' : 'Tornar Admin'}</span>
-                                  </button>
+                                {isOwner ? (
+                                  <div className="text-[10px] text-[#38bdf8] font-bold py-1 flex items-center gap-1">
+                                    <span>👑 Fundador Principal</span>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        onClick={() => handleToggleAdmin(u)}
+                                        className={`px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-all ${
+                                          isAdmin
+                                            ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25'
+                                            : 'bg-[#5865F2]/20 text-[#818cf8] border border-[#5865F2]/40 hover:bg-[#5865F2]/30'
+                                        }`}
+                                        title={isAdmin ? 'Remover Permissão de Admin' : 'Tornar Administrador'}
+                                      >
+                                        <ShieldCheck className="w-3 h-3" />
+                                        <span>{isAdmin ? 'Remover Admin' : 'Tornar Admin'}</span>
+                                      </button>
 
-                                  <button
-                                    onClick={() => handleToggleBan(u)}
-                                    className={`px-2 py-1.5 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-all ${
-                                      isBanned
-                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
-                                        : 'bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:bg-rose-500/25'
-                                    }`}
-                                    title={isBanned ? 'Desbanir Usuário' : 'Banir Usuário'}
-                                  >
-                                    <Ban className="w-3 h-3" />
-                                    <span>{isBanned ? 'Desbanir' : 'Banir'}</span>
-                                  </button>
-                                </div>
+                                      <button
+                                        onClick={() => handleToggleBan(u)}
+                                        className={`px-2 py-1.5 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-all ${
+                                          isBanned
+                                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                                            : 'bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:bg-rose-500/25'
+                                        }`}
+                                        title={isBanned ? 'Desbanir Usuário' : 'Banir Usuário'}
+                                      >
+                                        <Ban className="w-3 h-3" />
+                                        <span>{isBanned ? 'Desbanir' : 'Banir'}</span>
+                                      </button>
+                                    </div>
 
-                                <button
-                                  onClick={() => handleDeleteUser(u)}
-                                  className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                                  title="Excluir Usuário"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                    <button
+                                      onClick={() => handleDeleteUser(u)}
+                                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                      title="Excluir Usuário"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           );

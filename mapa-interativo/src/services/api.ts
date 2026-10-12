@@ -1053,7 +1053,7 @@ export const ApiService = {
 
     // 1. Tentar atualizar no Supabase
     try {
-      await supabase.from('profiles').update(updates).eq('id', id);
+      await supabase.from('profiles').update(updates).or(`id.eq.${id},discord_id.eq.${id}`);
     } catch (e) {
       console.warn('Supabase updateProfile warn:', e);
     }
@@ -1088,14 +1088,20 @@ export const ApiService = {
       // Gerenciar listas especiais de Admin e Banidos
       const targetIdToSync = targetDiscordId || id;
 
+      if (targetDiscordId && targetDiscordId !== id) {
+        try {
+          await supabase.from('profiles').update(updates).eq('discord_id', targetDiscordId);
+        } catch (e) {}
+      }
+
       // Gestão de Cargo Admin
-      if (updates.is_admin === true || updates.role === 'admin') {
+      if (updates.is_admin === true || (updates.role as string) === 'admin') {
         const admins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
         if (!admins.includes(targetIdToSync)) {
           admins.push(targetIdToSync);
           localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(admins));
         }
-      } else if (updates.is_admin === false || (updates.role && updates.role !== 'admin')) {
+      } else if (updates.is_admin === false || ((updates.role as string) && (updates.role as string) !== 'admin')) {
         const admins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
         const filtered = admins.filter((a: string) => a !== targetIdToSync && a !== id);
         localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(filtered));
@@ -1108,11 +1114,34 @@ export const ApiService = {
           banned.push(targetIdToSync);
           localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(banned));
         }
+        // Se banido, remover de administradores
+        const admins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+        const filtered = admins.filter((a: string) => a !== targetIdToSync && a !== id);
+        localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(filtered));
       } else if (updates.is_banned === false) {
         const banned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
         const filtered = banned.filter((b: string) => b !== targetIdToSync && b !== id);
         localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(filtered));
       }
+
+      // Disparar broadcast em tempo real para sincronização entre abas
+      try {
+        const globalHub = supabase.channel('malaca_realtime_global_hub');
+        if (updates.is_admin !== undefined) {
+          globalHub.send({
+            type: 'broadcast',
+            event: 'user_permission_updated',
+            payload: { id, discordId: targetIdToSync, is_admin: updates.is_admin, role: updates.role || (updates.is_admin ? 'admin' : 'user') }
+          });
+        }
+        if (updates.is_banned !== undefined) {
+          globalHub.send({
+            type: 'broadcast',
+            event: 'user_ban_updated',
+            payload: { id, discordId: targetIdToSync, is_banned: updates.is_banned }
+          });
+        }
+      } catch(e) {}
     } catch (err) {
       console.warn('Local updateProfile sync error:', err);
     }
@@ -1125,7 +1154,7 @@ export const ApiService = {
 
     // 1. Tentar deletar no Supabase
     try {
-      await supabase.from('profiles').delete().eq('id', id);
+      await supabase.from('profiles').delete().or(`id.eq.${id},discord_id.eq.${id}`);
     } catch (e) {
       console.warn('Supabase deleteProfile warn:', e);
     }

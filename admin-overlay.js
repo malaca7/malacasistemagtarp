@@ -107,7 +107,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-    const DEFAULT_ADMIN_DISCORD_IDS = ['722320491767136346', '917826984778797087'];
+    const DEFAULT_ADMIN_DISCORD_IDS = ['722320491767136346']; // Fundador Inato Principal (MALACA7X)
 
     function extractDiscordId(u) {
         if (!u) return '';
@@ -141,10 +141,18 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     function checkAdminPermission(user) {
         if (!user) return false;
         const discordId = extractDiscordId(user);
-        // 1. Superadmins inatos
+        // 1. Superadmin inato oficial (fundador principal)
         if (discordId && DEFAULT_ADMIN_DISCORD_IDS.includes(discordId)) {
             return true;
         }
+        // Se a conta estiver banida, perde privilégios administrativos
+        if (user.is_banned === true) {
+            return false;
+        }
+        try {
+            const customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
+            if (discordId && customBanned.includes(discordId)) return false;
+        } catch(e) {}
         // 2. Cargo explícito vindo do banco (promovido por outro admin)
         if (user.is_admin === true || user.role === 'admin') {
             return true;
@@ -164,6 +172,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
             const stored = localStorage.getItem('malaca_user_profile');
             if (stored) {
                 const u = JSON.parse(stored);
+                if (u.is_banned === true) return false;
                 if (checkAdminPermission(u)) return true;
             }
         } catch (e) {}
@@ -183,10 +192,99 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         });
     }
 
+    function enforceBannedAccountOverlay(user) {
+        if (!user) return;
+        let overlay = document.getElementById('malaca-banned-lockout-overlay');
+        if (overlay) return;
+
+        overlay = document.createElement('div');
+        overlay.id = 'malaca-banned-lockout-overlay';
+        overlay.style.cssText = `
+            position: fixed; inset: 0; z-index: 99999999;
+            background: radial-gradient(circle at center, rgba(30, 7, 7, 0.98) 0%, rgba(5, 5, 10, 0.99) 100%);
+            backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center;
+            padding: 20px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            pointer-events: all;
+        `;
+
+        overlay.innerHTML = `
+            <div style="background: linear-gradient(180deg, #180909 0%, #0c0404 100%); border: 1px solid rgba(239,68,68,0.5); border-radius: 24px; padding: 36px 30px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 25px 70px rgba(0,0,0,0.95), 0 0 50px rgba(239,68,68,0.25); position: relative;">
+                <div style="width: 76px; height: 76px; border-radius: 50%; background: rgba(239,68,68,0.15); border: 2px solid #ef4444; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: #ef4444; font-size: 34px; box-shadow: 0 0 35px rgba(239,68,68,0.4);">
+                    <i class="fa-solid fa-ban"></i>
+                </div>
+                
+                <div style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 20px; background: rgba(239,68,68,0.18); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> ACESSO REVOGADO • CONTA SUSPENSA
+                </div>
+
+                <h3 style="font-family: var(--font-header, 'Orbitron', sans-serif); font-size: 1.4rem; font-weight: 900; color: #fff; margin: 0 0 10px; letter-spacing: 0.5px;">
+                    CONTA SUSPENSA
+                </h3>
+                
+                <p style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.6; margin: 0 0 22px;">
+                    Seu acesso à plataforma <strong style="color: #fff;">Malaca System GTARP</strong> foi suspenso pela administração. Todas as cidades, sistemas, mapas e painéis estão bloqueados para sua conta.
+                </p>
+
+                <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(239,68,68,0.25); border-radius: 14px; padding: 14px; margin-bottom: 24px; display: flex; align-items: center; gap: 14px; text-align: left;">
+                    <img src="${user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid #ef4444; object-fit: cover; flex-shrink: 0;" />
+                    <div style="min-width: 0; flex: 1;">
+                        <div style="color: #fff; font-weight: 800; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.full_name || user.username}</div>
+                        <div style="color: #ef4444; font-weight: 700; font-size: 0.78rem;">@${user.username}</div>
+                        <div style="color: #64748b; font-size: 0.7rem; font-family: monospace;">ID Discord: ${user.discord_id || '—'}</div>
+                    </div>
+                    <span style="font-size: 10px; font-weight: 900; background: rgba(239,68,68,0.25); color: #fca5a5; padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(239,68,68,0.5);">BANIDO</span>
+                </div>
+
+                <button onclick="handleBannedLogoutGlobal()" style="width: 100%; padding: 14px; border-radius: 12px; background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; font-size: 0.85rem; font-weight: 900; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 10px 25px rgba(239,68,68,0.4); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> DESCONECTAR CONTA
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+        isAuthenticated = false;
+        updateAdminUiVisibility(false);
+        const adminModal = document.getElementById('global-admin-modal');
+        if (adminModal) adminModal.classList.remove('active');
+        const discordModal = document.getElementById('global-discord-modal');
+        if (discordModal) discordModal.classList.remove('active');
+    }
+
+    window.handleBannedLogoutGlobal = async function() {
+        try {
+            await supabaseClient.auth.signOut();
+        } catch(e) {}
+        localStorage.removeItem('malaca_user_profile');
+        window.location.reload();
+    };
+
+    function checkBanProtection() {
+        try {
+            const stored = localStorage.getItem('malaca_user_profile');
+            if (stored) {
+                const u = JSON.parse(stored);
+                const dId = extractDiscordId(u);
+                if (dId !== '722320491767136346') {
+                    let customBanned = [];
+                    try {
+                        customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
+                    } catch(e) {}
+                    if (u.is_banned === true || customBanned.includes(dId)) {
+                        enforceBannedAccountOverlay(u);
+                        return true;
+                    }
+                }
+            }
+        } catch(e) {}
+        return false;
+    }
+
     let isAuthenticated = getSavedAdminState();
     updateAdminUiVisibility(isAuthenticated);
+    checkBanProtection();
 
     window.openDiscordModal = function () {
+        if (checkBanProtection()) return;
         document.getElementById('global-discord-modal').classList.add('active');
         renderDiscordModalContent();
     };
@@ -390,20 +488,26 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 const now = new Date().toISOString();
                 const email = u.email || meta.email || '';
 
-                // Resgatar perfil existente no banco para validar se foi promovido por outro admin
+                // Resgatar perfil existente no banco para validar se foi promovido por outro admin ou banido
                 let existingProfile = null;
                 try {
                     const { data } = await supabaseClient
                         .from('profiles')
-                        .select('character_name, instagram, twitch, youtube, twitter_x, custom_bio, is_admin, role')
+                        .select('character_name, instagram, twitch, youtube, twitter_x, custom_bio, is_admin, role, is_banned')
                         .eq('id', u.id)
                         .maybeSingle();
                     if (data) existingProfile = data;
                 } catch(e) {}
 
-                // Regra estrita: Fundadores oficiais OU promovidos no banco por outro admin
+                // Regra estrita: Fundador oficial (722320491767136346) OU promovido no banco por outro admin
                 const isOfficialFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId));
-                const isPromotedAdmin = Boolean(existingProfile && (existingProfile.is_admin === true || existingProfile.role === 'admin'));
+                let customBanned = [];
+                try {
+                    customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
+                } catch(e) {}
+
+                const isBanned = Boolean(!isOfficialFounder && (existingProfile?.is_banned === true || customBanned.includes(String(discordId))));
+                const isPromotedAdmin = Boolean(!isBanned && existingProfile && (existingProfile.is_admin === true || existingProfile.role === 'admin'));
                 const isAdmin = isOfficialFounder || isPromotedAdmin;
                 const userRole = isAdmin ? 'admin' : (existingProfile && existingProfile.role && existingProfile.role !== 'admin' ? existingProfile.role : 'user');
 
@@ -424,6 +528,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                     custom_bio: existingProfile?.custom_bio || '',
                     is_admin: isAdmin,
                     role: userRole,
+                    is_banned: isBanned,
                     last_login_at: now
                 };
 
@@ -439,6 +544,11 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 supabaseClient.from('profiles').upsert([profileData], { onConflict: 'id' }).then(() => {}).catch(err => {
                     console.warn('Supabase profiles sync warning:', err);
                 });
+
+                if (isBanned) {
+                    enforceBannedAccountOverlay(profileData);
+                    return;
+                }
 
                 // Auto-open modal se o login foi iniciado para acessar o painel admin
                 if (isAdmin && sessionStorage.getItem('malaca_open_admin_after_auth') === '1') {
@@ -1580,17 +1690,20 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
 
         container.innerHTML = users.map(u => {
             const discordId = String(u.discord_id || u.id || '');
-            const isAdmin = u.is_admin || u.role === 'admin' || customAdmins.includes(discordId) || ['722320491767136346', '917826984778797087'].includes(discordId);
-            const isBanned = u.is_banned === true || customBanned.includes(discordId);
+            const isOwner = discordId === '722320491767136346' || u.id === '722320491767136346';
+            const isBanned = Boolean(!isOwner && (u.is_banned === true || customBanned.includes(discordId)));
+            const isAdmin = isOwner || Boolean(!isBanned && (u.is_admin === true || u.role === 'admin' || customAdmins.includes(discordId)));
 
             return `
-                <div style="background: rgba(15,20,32,0.6); padding: 14px; border-radius: 12px; border: 1px solid ${isBanned ? 'rgba(239,68,68,0.5)' : isAdmin ? 'rgba(88,101,242,0.5)' : 'rgba(255,255,255,0.06)'}; display: flex; flex-direction: column; gap: 10px; position: relative;">
+                <div style="background: rgba(15,20,32,0.6); padding: 14px; border-radius: 12px; border: 1px solid ${isBanned ? 'rgba(239,68,68,0.5)' : isOwner ? 'rgba(0,210,255,0.5)' : isAdmin ? 'rgba(88,101,242,0.5)' : 'rgba(255,255,255,0.06)'}; display: flex; flex-direction: column; gap: 10px; position: relative;">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <img src="${u.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${isAdmin ? '#5865F2' : '#38bdf8'}; object-fit: cover; flex-shrink: 0;" />
+                        <img src="${u.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${isBanned ? '#ef4444' : isOwner ? '#00d2ff' : isAdmin ? '#5865F2' : '#38bdf8'}; object-fit: cover; flex-shrink: 0;" />
                         <div style="min-width: 0; flex: 1;">
                             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                                 <h5 style="color: #fff; font-size: 0.85rem; font-weight: 800; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">${u.full_name || u.username}</h5>
-                                ${isAdmin ? '<span style="font-size: 9px; font-weight: 800; background: rgba(88,101,242,0.25); color: #818cf8; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(88,101,242,0.5);">ADMIN</span>' : ''}
+                                ${isOwner ? '<span style="font-size: 9px; font-weight: 800; background: rgba(0,210,255,0.25); color: #38bdf8; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0,210,255,0.5);">FUNDADOR</span>' : ''}
+                                ${isAdmin && !isOwner ? '<span style="font-size: 9px; font-weight: 800; background: rgba(88,101,242,0.25); color: #818cf8; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(88,101,242,0.5);">ADMIN</span>' : ''}
+                                ${!isAdmin && !isBanned ? '<span style="font-size: 9px; font-weight: 800; background: rgba(148,163,184,0.15); color: #94a3b8; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(148,163,184,0.3);">USUÁRIO</span>' : ''}
                                 ${isBanned ? '<span style="font-size: 9px; font-weight: 800; background: rgba(239,68,68,0.25); color: #fca5a5; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(239,68,68,0.5);">BANIDO</span>' : ''}
                             </div>
                             <span style="color: #38bdf8; font-size: 0.72rem; font-weight: 700; display: block;">@${u.username}</span>
@@ -1598,15 +1711,19 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                         </div>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap;">
-                        <button onclick="toggleAdminProfile('${u.id}', '${discordId}', ${isAdmin})" style="background: ${isAdmin ? 'rgba(245,158,11,0.15)' : 'rgba(88,101,242,0.15)'}; border: 1px solid ${isAdmin ? 'rgba(245,158,11,0.4)' : 'rgba(88,101,242,0.4)'}; color: ${isAdmin ? '#fde68a' : '#c7d2fe'}; padding: 5px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                            <i class="fa-solid fa-shield"></i> ${isAdmin ? 'Remover Admin' : 'Tornar Admin'}
-                        </button>
-                        <button onclick="toggleBanProfile('${u.id}', '${discordId}', ${isBanned})" style="background: ${isBanned ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; border: 1px solid ${isBanned ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}; color: ${isBanned ? '#86efac' : '#fca5a5'}; padding: 5px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                            <i class="fa-solid fa-ban"></i> ${isBanned ? 'Desbanir' : 'Banir'}
-                        </button>
-                        <button onclick="deleteUserProfile('${u.id}', '${u.username || 'Usuário'}', '${discordId}')" style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #f87171; padding: 5px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Excluir Usuário">
-                            <i class="fa-solid fa-trash"></i> Excluir
-                        </button>
+                        ${isOwner ? `
+                            <span style="font-size: 0.68rem; color: #38bdf8; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-crown"></i> Fundador Principal</span>
+                        ` : `
+                            <button onclick="toggleAdminProfile('${u.id}', '${discordId}', ${isAdmin})" style="background: ${isAdmin ? 'rgba(245,158,11,0.15)' : 'rgba(88,101,242,0.15)'}; border: 1px solid ${isAdmin ? 'rgba(245,158,11,0.4)' : 'rgba(88,101,242,0.4)'}; color: ${isAdmin ? '#fde68a' : '#c7d2fe'}; padding: 5px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                <i class="fa-solid fa-shield"></i> ${isAdmin ? 'Remover Admin' : 'Tornar Admin'}
+                            </button>
+                            <button onclick="toggleBanProfile('${u.id}', '${discordId}', ${isBanned})" style="background: ${isBanned ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'}; border: 1px solid ${isBanned ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}; color: ${isBanned ? '#86efac' : '#fca5a5'}; padding: 5px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                <i class="fa-solid fa-ban"></i> ${isBanned ? 'Desbanir' : 'Banir'}
+                            </button>
+                            <button onclick="deleteUserProfile('${u.id}', '${u.username || 'Usuário'}', '${discordId}')" style="background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #f87171; padding: 5px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Excluir Usuário">
+                                <i class="fa-solid fa-trash"></i> Excluir
+                            </button>
+                        `}
                     </div>
                 </div>
             `;
@@ -1629,11 +1746,15 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     };
 
     window.toggleAdminProfile = async function(id, discordId, currentIsAdmin) {
+        if (discordId === '722320491767136346' || id === '722320491767136346') {
+            alert('A conta do fundador principal não pode ser alterada.');
+            return;
+        }
         const newAdmin = !currentIsAdmin;
         try {
             // Update Supabase
             try {
-                await supabaseClient.from('profiles').update({ is_admin: newAdmin, role: newAdmin ? 'admin' : 'user' }).eq('id', id);
+                await supabaseClient.from('profiles').update({ is_admin: newAdmin, role: newAdmin ? 'admin' : 'user' }).or(`id.eq.${id},discord_id.eq.${discordId}`);
             } catch(e) {}
 
             // Update local admin lists
@@ -1648,6 +1769,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
             // Update cached profiles
             let cached = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
             cached = cached.map(u => (u.id === id || u.discord_id === discordId) ? { ...u, is_admin: newAdmin, role: newAdmin ? 'admin' : 'user' } : u);
+            adminUsersCache = cached;
             localStorage.setItem('malaca_cached_profiles', JSON.stringify(cached));
 
             // If it's current user
@@ -1656,6 +1778,11 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 current.is_admin = newAdmin;
                 current.role = newAdmin ? 'admin' : 'user';
                 localStorage.setItem('malaca_user_profile', JSON.stringify(current));
+                isAuthenticated = newAdmin;
+                updateAdminUiVisibility(newAdmin);
+                if (!newAdmin) {
+                    window.closeGlobalAdminModal();
+                }
             }
 
             globalHubChannel.send({
@@ -1664,40 +1791,66 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 payload: { id, discordId, is_admin: newAdmin, role: newAdmin ? 'admin' : 'user' }
             });
 
-            alert(`Permissão atualizada com sucesso para: ${newAdmin ? 'ADMINISTRADOR' : 'USUÁRIO'}`);
-            loadAdminUsersView();
+            renderAdminUsersList(adminUsersCache);
+            showAccessRestrictedToast(`Permissão atualizada com sucesso para: ${newAdmin ? 'ADMINISTRADOR' : 'USUÁRIO'}`);
         } catch(e) {
             alert('Erro ao atualizar permissão: ' + e.message);
         }
     };
 
     window.toggleBanProfile = async function(id, discordId, currentIsBanned) {
+        if (discordId === '722320491767136346' || id === '722320491767136346') {
+            alert('A conta do fundador principal não pode ser banida.');
+            return;
+        }
         const newBanned = !currentIsBanned;
         try {
-            // Update Supabase
+            // Se banir, automaticamente revoga privilégio de admin
+            const updates = {
+                is_banned: newBanned,
+                ...(newBanned ? { is_admin: false, role: 'user' } : {})
+            };
             try {
-                await supabaseClient.from('profiles').update({ is_banned: newBanned }).eq('id', id);
+                await supabaseClient.from('profiles').update(updates).or(`id.eq.${id},discord_id.eq.${discordId}`);
             } catch(e) {}
 
             // Update local banned accounts list
             let customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
             if (newBanned) {
                 if (discordId && !customBanned.includes(discordId)) customBanned.push(discordId);
+                if (id && !customBanned.includes(id)) customBanned.push(id);
             } else {
                 customBanned = customBanned.filter(d => d !== discordId && d !== id);
             }
             localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(customBanned));
 
+            // Se foi banido, remove dos admins locais
+            if (newBanned) {
+                let customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+                customAdmins = customAdmins.filter(d => d !== discordId && d !== id);
+                localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(customAdmins));
+            }
+
             // Update cached profiles
             let cached = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
-            cached = cached.map(u => (u.id === id || u.discord_id === discordId) ? { ...u, is_banned: newBanned } : u);
+            cached = cached.map(u => (u.id === id || u.discord_id === discordId) ? { ...u, is_banned: newBanned, ...(newBanned ? { is_admin: false, role: 'user' } : {}) } : u);
+            adminUsersCache = cached;
             localStorage.setItem('malaca_cached_profiles', JSON.stringify(cached));
 
             // If it's current user
             const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
             if (current && (current.id === id || current.discord_id === discordId)) {
                 current.is_banned = newBanned;
-                localStorage.setItem('malaca_user_profile', JSON.stringify(current));
+                if (newBanned) {
+                    current.is_admin = false;
+                    current.role = 'user';
+                    localStorage.setItem('malaca_user_profile', JSON.stringify(current));
+                    enforceBannedAccountOverlay(current);
+                } else {
+                    localStorage.setItem('malaca_user_profile', JSON.stringify(current));
+                    const ov = document.getElementById('malaca-banned-lockout-overlay');
+                    if (ov) ov.remove();
+                }
             }
 
             globalHubChannel.send({
@@ -1706,8 +1859,8 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 payload: { id, discordId, is_banned: newBanned }
             });
 
-            alert(`Usuário ${newBanned ? 'BANIDO' : 'DESBANIDO'} com sucesso.`);
-            loadAdminUsersView();
+            renderAdminUsersList(adminUsersCache);
+            showAccessRestrictedToast(`Usuário ${newBanned ? 'BANIDO' : 'DESBANIDO'} com sucesso.`);
         } catch(e) {
             alert('Erro ao atualizar banimento: ' + e.message);
         }
@@ -1746,16 +1899,80 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
 
             globalHubChannel.send({
                 type: 'broadcast',
+                event: 'user_deleted',
+                payload: { id: id, discordId: discordId }
+            });
+
+            globalHubChannel.send({
+                type: 'broadcast',
                 event: 'entity_sync',
                 payload: { entity: 'profiles', action: 'DELETE', id: id, discordId: discordId, timestamp: Date.now() }
             });
 
-            alert(`Usuário "${username}" foi excluído com sucesso!`);
+            showAccessRestrictedToast(`Usuário "${username}" foi excluído com sucesso!`);
             loadAdminUsersView();
         } catch(e) {
             alert('Erro ao excluir usuário: ' + e.message);
         }
     };
+
+    // Subscrição em Tempo Real para Atualizações de Permissões e Banimentos Globais
+    globalHubChannel
+        .on('broadcast', { event: 'user_permission_updated' }, ({ payload }) => {
+            if (!payload) return;
+            const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
+            if (current && (current.id === payload.id || current.discord_id === payload.discordId)) {
+                current.is_admin = payload.is_admin;
+                current.role = payload.role;
+                localStorage.setItem('malaca_user_profile', JSON.stringify(current));
+                isAuthenticated = payload.is_admin;
+                updateAdminUiVisibility(payload.is_admin);
+                if (!payload.is_admin) {
+                    window.closeGlobalAdminModal();
+                    showAccessRestrictedToast('Seu cargo de administrador foi revogado para usuário comum.');
+                } else {
+                    showAccessRestrictedToast('Você foi promovido a Administrador da plataforma.');
+                }
+            }
+            if (adminUsersCache && adminUsersCache.length > 0) {
+                adminUsersCache = adminUsersCache.map(u => (u.id === payload.id || u.discord_id === payload.discordId) ? { ...u, is_admin: payload.is_admin, role: payload.role } : u);
+                renderAdminUsersList(adminUsersCache);
+            }
+        })
+        .on('broadcast', { event: 'user_ban_updated' }, ({ payload }) => {
+            if (!payload) return;
+            const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
+            if (current && (current.id === payload.id || current.discord_id === payload.discordId)) {
+                current.is_banned = payload.is_banned;
+                if (payload.is_banned) {
+                    current.is_admin = false;
+                    current.role = 'user';
+                    localStorage.setItem('malaca_user_profile', JSON.stringify(current));
+                    enforceBannedAccountOverlay(current);
+                } else {
+                    localStorage.setItem('malaca_user_profile', JSON.stringify(current));
+                    const ov = document.getElementById('malaca-banned-lockout-overlay');
+                    if (ov) ov.remove();
+                }
+            }
+            if (adminUsersCache && adminUsersCache.length > 0) {
+                adminUsersCache = adminUsersCache.map(u => (u.id === payload.id || u.discord_id === payload.discordId) ? { ...u, is_banned: payload.is_banned, ...(payload.is_banned ? { is_admin: false, role: 'user' } : {}) } : u);
+                renderAdminUsersList(adminUsersCache);
+            }
+        })
+        .on('broadcast', { event: 'user_deleted' }, ({ payload }) => {
+            if (!payload) return;
+            const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
+            if (current && (current.id === payload.id || current.discord_id === payload.discordId)) {
+                localStorage.removeItem('malaca_user_profile');
+                window.location.reload();
+            }
+            if (adminUsersCache && adminUsersCache.length > 0) {
+                adminUsersCache = adminUsersCache.filter(u => u.id !== payload.id && u.discord_id !== payload.discordId);
+                renderAdminUsersList(adminUsersCache);
+            }
+        })
+        .subscribe();
 
     // --- GESTÃO COMPLETA DE MARCAÇÕES DO ANDARILHO ---
     let wandererLocationsCache = [];

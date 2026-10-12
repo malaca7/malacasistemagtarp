@@ -7,14 +7,16 @@
     <meta name="description" content="Acesso restrito ao Painel Administrativo do Malaca System GTARP.">
     <script>
         (function() {
-            var DEFAULT_ADMIN_DISCORD_IDS = ['722320491767136346', '917826984778797087'];
+            var DEFAULT_ADMIN_DISCORD_IDS = ['722320491767136346'];
             var isAdmin = false;
             try {
                 var stored = localStorage.getItem('malaca_user_profile');
                 if (stored) {
                     var user = JSON.parse(stored);
                     var dId = user.discord_id || '';
-                    if (dId && DEFAULT_ADMIN_DISCORD_IDS.indexOf(dId) !== -1) {
+                    if (user.is_banned === true) {
+                        isAdmin = false;
+                    } else if (dId && DEFAULT_ADMIN_DISCORD_IDS.indexOf(dId) !== -1) {
                         isAdmin = true;
                     } else if (user.is_admin === true || user.role === 'admin') {
                         isAdmin = true;
