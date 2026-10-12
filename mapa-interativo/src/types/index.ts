@@ -157,3 +157,12 @@ export interface PlatformSettings {
   require_auth_for_interactive_map?: boolean;
 }
 
+export interface AccessLog {
+  id: string;
+  user_id?: string;
+  discord_id?: string;
+  username: string;
+  logged_at: string;
+  user_agent?: string;
+}
+

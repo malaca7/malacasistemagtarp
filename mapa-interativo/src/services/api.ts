@@ -1291,5 +1291,26 @@ export const ApiService = {
       return true;
     }
   },
+
+  async fetchAccessLogs(): Promise<AccessLog[]> {
+    try {
+      const { data, error } = await supabase
+        .from('access_logs')
+        .select('*')
+        .order('logged_at', { ascending: false })
+        .limit(100);
+      if (!error && data) return data;
+    } catch {}
+    return [];
+  },
+
+  async clearAccessLogs(): Promise<boolean> {
+    try {
+      await supabase.from('access_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      return true;
+    } catch {
+      return false;
+    }
+  },
 };
 

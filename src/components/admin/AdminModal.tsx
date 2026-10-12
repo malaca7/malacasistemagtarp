@@ -1222,7 +1222,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 <ArrowDown className="w-3 h-3" />
                               </button>
                             </div>
-                            <img src={c.banner_image_url || '/images/hero_banner.jpg'} alt={c.name} className="w-12 h-12 rounded-lg object-cover border border-slate-700" />
+                            <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+                              <Building2 className="w-5 h-5" />
+                            </div>
                             <div>
                               <h5 className="font-bold text-white text-xs">{c.name}</h5>
                               <span className="text-[10px] text-[#38bdf8] font-mono">/{c.slug}</span>

@@ -24,7 +24,8 @@
                 }
             } catch(e) {}
 
-            window.location.replace('/painel/');
+            var targetUrl = '/painel/' + (window.location.search || '') + (window.location.hash || '');
+            window.location.replace(targetUrl);
         })();
     </script>
 </head>

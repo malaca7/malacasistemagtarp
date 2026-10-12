@@ -46,6 +46,23 @@ export const App: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    // Detect and handle OAuth error redirect
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      let hashParams = new URLSearchParams();
+      if (window.location.hash && window.location.hash.includes('=')) {
+        hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      }
+      const oauthErr = urlParams.get('error') || hashParams.get('error');
+      const oauthDesc = urlParams.get('error_description') || hashParams.get('error_description');
+
+      if (oauthErr || oauthDesc) {
+        window.history.replaceState(null, document.title, window.location.pathname);
+        setToastMessage('Aviso de Autenticação: Falha no trigger do Supabase. Conecte-se via Acesso Direto ou Cadastre-se.');
+        setDiscordAuthOpen(true);
+      }
+    }
+
     AuthService.syncDiscordUser()
       .then((u) => {
         setUser(u);
@@ -86,7 +103,7 @@ export const App: React.FC = () => {
       }
     });
 
-    const liveChannel = supabase.channel('malaca_realtime_global_hub_app')
+    const liveChannel = supabase.channel('malaca_realtime_global_hub')
       .on('broadcast', { event: 'user_permission_updated' }, ({ payload }) => {
         if (!payload) return;
         setUser((prev) => {
@@ -110,6 +127,32 @@ export const App: React.FC = () => {
             };
             localStorage.setItem('malaca_user_profile', JSON.stringify(updated));
             if (payload.is_banned) setAdminOpen(false);
+            return updated;
+          }
+          return prev;
+        });
+      })
+      .on('broadcast', { event: 'user_deleted' }, ({ payload }) => {
+        if (!payload) return;
+        setUser((prev) => {
+          if (prev && (prev.id === payload.id || prev.discord_id === payload.discordId)) {
+            localStorage.removeItem('malaca_user_profile');
+            return null;
+          }
+          return prev;
+        });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
+        const changed = (payload.new || payload.old) as any;
+        if (!changed) return;
+        setUser((prev) => {
+          if (prev && (prev.id === changed.id || prev.discord_id === changed.discord_id)) {
+            if (payload.eventType === 'DELETE') {
+              localStorage.removeItem('malaca_user_profile');
+              return null;
+            }
+            const updated = { ...prev, ...changed };
+            localStorage.setItem('malaca_user_profile', JSON.stringify(updated));
             return updated;
           }
           return prev;

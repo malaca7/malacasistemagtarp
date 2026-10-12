@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, AuthService, checkAdminPermission } from '../services/auth';
-import { LogOut, Calendar, ShieldCheck, Clock, Hash, Shield, Sparkles, UserCheck, Save, CheckCircle2, User } from 'lucide-react';
+import { LogOut, Calendar, ShieldCheck, Clock, Hash, Shield, Sparkles, UserCheck, Save, CheckCircle2, User, Layers } from 'lucide-react';
 
 interface DiscordAuthModalProps {
   isOpen: boolean;
@@ -256,16 +256,27 @@ export const DiscordAuthModal: React.FC<DiscordAuthModalProps> = ({
                 <p className="text-[11px] text-slate-300 leading-relaxed">
                   Você possui privilégios de administrador. Acesse o painel para gerenciar pontos do mapa, andarilho, servidores, sistemas e usuários.
                 </p>
-                <button
-                  onClick={() => {
-                    onClose();
-                    if (onOpenAdmin) onOpenAdmin();
-                  }}
-                  className="w-full py-2.5 rounded-xl font-header font-black text-xs bg-gradient-to-r from-[#5865F2] to-[#2563eb] hover:from-[#4752C4] hover:to-[#1d4ed8] text-white flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-[#5865F2]/40 active:scale-[0.98]"
-                >
-                  <ShieldCheck className="w-4 h-4 text-[#38bdf8]" />
-                  <span>ACESSAR PAINEL ADMINISTRATIVO</span>
-                </button>
+                <div className="flex flex-col gap-2">
+                  <a
+                    href="/painel/"
+                    className="w-full py-2.5 rounded-xl font-header font-black text-xs bg-gradient-to-r from-[#5865F2] to-[#2563eb] hover:from-[#4752C4] hover:to-[#1d4ed8] text-white flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-[#5865F2]/40 active:scale-[0.98]"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-[#38bdf8]" />
+                    <span>ACESSAR PAINEL ADMINISTRATIVO</span>
+                  </a>
+                  {onOpenAdmin && (
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onOpenAdmin();
+                      }}
+                      className="w-full py-2 rounded-xl font-header font-bold text-[11px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                    >
+                      <Layers className="w-3.5 h-3.5 text-[#38bdf8]" />
+                      <span>Gerenciar Pontos do Mapa (Nesta Janela)</span>
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -303,32 +314,34 @@ export const DiscordAuthModal: React.FC<DiscordAuthModalProps> = ({
             </button>
           </div>
         ) : (
-          /* LOGGED OUT LOGIN PROMPT */
-          <div className="py-6 space-y-6 text-center">
-            <div className="w-16 h-16 rounded-full bg-[#5865F2]/10 border-2 border-[#5865F2] flex items-center justify-center mx-auto text-[#5865F2] shadow-[0_0_20px_#5865F2]/30 animate-pulse">
+          /* LOGGED OUT EXCLUSIVE DISCORD OAUTH PROMPT */
+          <div className="py-8 px-2 space-y-6 text-center flex-1 flex flex-col justify-center items-center">
+            <div className="w-16 h-16 rounded-full bg-[#5865F2]/15 border-2 border-[#5865F2] flex items-center justify-center text-[#5865F2] shadow-[0_0_30px_#5865F2]/40">
               <i className="fa-brands fa-discord text-3xl"></i>
             </div>
 
-            <div>
-              <h4 className="font-header text-xl font-extrabold text-white">
-                LOGIN COM DISCORD
+            <div className="space-y-2">
+              <h4 className="font-header text-lg font-black text-white tracking-wide">
+                AUTENTICAÇÃO OFICIAL DISCORD
               </h4>
-              <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto leading-relaxed">
-                Autenticação simples e 100% segura. Não utilize e-mail ou senhas. No primeiro acesso seu perfil será salvo automaticamente.
+              <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                Login e cadastro integrados exclusivamente via <strong>Discord OAuth2</strong> com o Supabase. Sem formulários manuais, seguro, rápido e unificado.
               </p>
             </div>
 
             <button
+              type="button"
               onClick={() => AuthService.loginWithDiscord()}
-              className="w-full py-3.5 rounded-xl font-header font-bold text-sm bg-[#5865F2] hover:bg-[#4752C4] text-white flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-[#5865F2]/40 active:scale-95"
+              className="w-full py-3.5 rounded-xl font-header font-black text-xs bg-gradient-to-r from-[#5865F2] to-[#4752C4] hover:brightness-110 text-white flex items-center justify-center gap-2.5 transition-all shadow-[0_10px_30px_rgba(88,101,242,0.4)] active:scale-98 cursor-pointer uppercase tracking-wider"
             >
               <i className="fa-brands fa-discord text-xl"></i>
               <span>ENTRAR COM O DISCORD</span>
             </button>
 
-            <p className="text-[10px] text-slate-500">
-              Ao se conectar, você aceita o registro de acesso no servidor Supabase.
-            </p>
+            <div className="pt-2 flex items-center justify-center gap-2 text-[11px] text-slate-500 font-medium">
+              <i className="fa-solid fa-shield-halved text-emerald-400"></i>
+              <span>Sessão única e sincronizada com o painel administrativo</span>
+            </div>
           </div>
         )}
       </div>

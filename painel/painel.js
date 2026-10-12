@@ -50,15 +50,43 @@ function getBannedListFromStorage() {
     }
 }
 
+function extractDiscordId(u) {
+    if (!u) return '';
+    if (u.discord_id && typeof u.discord_id === 'string' && u.discord_id.trim()) {
+        return u.discord_id.trim();
+    }
+    if (Array.isArray(u.identities) && u.identities.length > 0) {
+        const discordIdentity = u.identities.find(i => i.provider === 'discord') || u.identities[0];
+        if (discordIdentity) {
+            if (discordIdentity.id) return String(discordIdentity.id).trim();
+            if (discordIdentity.identity_data) {
+                if (discordIdentity.identity_data.provider_id) return String(discordIdentity.identity_data.provider_id).trim();
+                if (discordIdentity.identity_data.sub) return String(discordIdentity.identity_data.sub).trim();
+            }
+        }
+    }
+    const meta = u.user_metadata || u.raw_user_meta_data || {};
+    if (meta.provider_id) return String(meta.provider_id).trim();
+    if (meta.sub && !String(meta.sub).includes('-')) return String(meta.sub).trim();
+    if (meta.id && !String(meta.id).includes('-')) return String(meta.id).trim();
+
+    if (u.id && typeof u.id === 'string' && /^\d{15,22}$/.test(u.id.trim())) {
+        return u.id.trim();
+    }
+    if (u.sub && typeof u.sub === 'string' && /^\d{15,22}$/.test(u.sub.trim())) {
+        return u.sub.trim();
+    }
+    return '';
+}
+
 function checkIsUserBanned(profile) {
     if (!profile) return false;
-    const dId = String(profile.discord_id || profile.provider_id || '').trim();
-    if (dId && DEFAULT_ADMIN_DISCORD_IDS.includes(dId)) return false;
-    if (profile.is_banned === true) return true;
-    if (profile.role === 'banned') return true;
+    const dId = extractDiscordId(profile) || profile.discord_id || '';
+    if (dId && DEFAULT_ADMIN_DISCORD_IDS.includes(String(dId))) return false;
+    if (profile.is_banned === true || profile.role === 'banned') return true;
     const bannedList = getBannedListFromStorage();
-    if (dId && bannedList.includes(dId)) return true;
-    if (profile.id && bannedList.includes(profile.id)) return true;
+    if (dId && bannedList.includes(String(dId))) return true;
+    if (profile.id && bannedList.includes(String(profile.id))) return true;
     return false;
 }
 
@@ -66,65 +94,184 @@ function checkIsUserBanned(profile) {
 function checkIsAdmin(profile) {
     if (!profile) return false;
     if (checkIsUserBanned(profile)) return false;
-    const dId = String(profile.discord_id || profile.provider_id || '').trim();
-    if (dId && DEFAULT_ADMIN_DISCORD_IDS.includes(dId)) return true;
+    const dId = extractDiscordId(profile) || profile.discord_id || '';
+    if (dId && DEFAULT_ADMIN_DISCORD_IDS.includes(String(dId))) return true;
     return profile.is_admin === true || profile.role === 'admin';
 }
 
 function checkIsOwner(profile) {
     if (!profile) return false;
-    const dId = String(profile.discord_id || profile.provider_id || '').trim();
-    return DEFAULT_ADMIN_DISCORD_IDS.includes(dId);
+    const dId = extractDiscordId(profile) || profile.discord_id || '';
+    return DEFAULT_ADMIN_DISCORD_IDS.includes(String(dId));
 }
+
+// Listener em tempo real para sincronização da sessão de autenticação Discord Supabase
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') {
+        if (session && session.user) {
+            currentUser = session.user;
+            await initPainel();
+        }
+    }
+});
 
 // Inicializa verificação de autenticação
 async function initPainel() {
     const root = document.getElementById('painel-app-root');
     if (!root) return;
 
+    // Intercepta erros OAuth
+    const urlParams = new URLSearchParams(window.location.search);
+    let hashParams = new URLSearchParams();
+    if (window.location.hash && window.location.hash.includes('=')) {
+        hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    }
+    const oauthError = urlParams.get('error') || hashParams.get('error');
+    const oauthErrorDesc = urlParams.get('error_description') || hashParams.get('error_description');
+
+    if (oauthError || oauthErrorDesc) {
+        window.history.replaceState(null, document.title, window.location.pathname);
+        console.warn('OAuth Error no painel:', oauthError, oauthErrorDesc);
+    }
+
+    // Se houver parâmetros de autenticação OAuth na URL, aguarda a troca do token
+    const hasOAuthTokens = window.location.hash.includes('access_token=') || window.location.search.includes('code=');
+
     root.innerHTML = `
         <div class="painel-gate-container">
             <div style="text-align: center; color: #94a3b8;">
                 <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: #00d2ff; margin-bottom: 16px;"></i>
-                <h3 style="font-family: var(--font-heading); font-size: 1.2rem; color: #fff; margin-bottom: 8px;">Autenticando Acesso ao Painel...</h3>
-                <p style="font-size: 0.85rem;">Validando credenciais administrativas no Supabase.</p>
+                <h3 style="font-family: var(--font-heading); font-size: 1.2rem; color: #fff; margin-bottom: 8px;">
+                    ${hasOAuthTokens ? 'Concluindo Autenticação Discord...' : 'Verificando Sessão de Administrador...'}
+                </h3>
+                <p style="font-size: 0.85rem;">Validando credenciais do Discord e permissões no Supabase.</p>
             </div>
         </div>
     `;
 
     try {
-        const { data: { session } } = await supabaseClient.auth.getSession();
+        let { data: { session } } = await supabaseClient.auth.getSession();
         
+        // Se há tokens na URL mas a sessão ainda não sincronizou, tenta aguardar até 1.5s
+        if (!session && hasOAuthTokens) {
+            for (let i = 0; i < 6; i++) {
+                await new Promise(r => setTimeout(r, 250));
+                const check = await supabaseClient.auth.getSession();
+                if (check.data?.session) {
+                    session = check.data.session;
+                    break;
+                }
+            }
+        }
+
         let profile = null;
         if (session && session.user) {
             currentUser = session.user;
-            const discordId = session.user.user_metadata?.provider_id || session.user.user_metadata?.sub || session.user.id;
-            
-            const { data: dbProfile } = await supabaseClient
-                .from('profiles')
-                .select('*')
-                .or(`id.eq.${session.user.id},discord_id.eq.${discordId}`)
-                .maybeSingle();
+            let savedProfile = null;
+            try {
+                const rawSaved = localStorage.getItem('malaca_user_profile');
+                if (rawSaved) savedProfile = JSON.parse(rawSaved);
+            } catch(e) {}
 
-            if (dbProfile) {
-                profile = dbProfile;
-            } else {
-                profile = {
-                    id: session.user.id,
-                    discord_id: discordId,
-                    username: session.user.user_metadata?.preferred_username || session.user.user_metadata?.full_name || 'Admin',
-                    full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'Administrador',
-                    avatar_url: session.user.user_metadata?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png',
-                    is_admin: DEFAULT_ADMIN_DISCORD_IDS.includes(discordId),
-                    role: DEFAULT_ADMIN_DISCORD_IDS.includes(discordId) ? 'admin' : 'user',
-                    is_banned: false
-                };
+            const discordId = extractDiscordId(session.user) || extractDiscordId(savedProfile) || savedProfile?.discord_id || '';
+            const isFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId));
+            
+            // Busca apenas colunas reais existentes no schema do Supabase
+            let dbProfile = null;
+            try {
+                const orConditions = [];
+                if (session.user.id) orConditions.push(`id.eq.${session.user.id}`);
+                if (discordId) orConditions.push(`discord_id.eq.${discordId}`);
+                if (orConditions.length > 0) {
+                    const { data } = await supabaseClient
+                        .from('profiles')
+                        .select('id, discord_id, username, full_name, avatar_url, email, is_admin, role, created_at, last_login_at')
+                        .or(orConditions.join(','))
+                        .maybeSingle();
+                    if (data) dbProfile = data;
+                }
+            } catch(e) {}
+
+            const isAdmin = isFounder || (dbProfile && (dbProfile.is_admin === true || dbProfile.role === 'admin'));
+            const userRole = isAdmin ? 'admin' : (dbProfile?.role || 'user');
+            const now = new Date().toISOString();
+
+            const meta = session.user.user_metadata || {};
+            profile = {
+                id: session.user.id,
+                discord_id: String(discordId),
+                username: meta.preferred_username || meta.global_name || meta.name || dbProfile?.username || 'Discord User',
+                full_name: meta.full_name || meta.global_name || meta.name || dbProfile?.full_name || 'Usuário',
+                avatar_url: meta.avatar_url || meta.picture || dbProfile?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png',
+                email: session.user.email || dbProfile?.email,
+                is_admin: isAdmin,
+                role: userRole,
+                created_at: dbProfile?.created_at || session.user.created_at || now,
+                last_login_at: now
+            };
+
+            // Salva perfil limpo no Supabase de forma assíncrona
+            const cleanUpsert = {
+                id: session.user.id,
+                discord_id: String(discordId),
+                username: profile.username,
+                full_name: profile.full_name,
+                avatar_url: profile.avatar_url,
+                email: profile.email || undefined,
+                is_admin: isAdmin,
+                role: userRole,
+                last_login_at: now
+            };
+            supabaseClient.from('profiles').upsert([cleanUpsert], { onConflict: 'id' }).catch(() => {});
+
+            // Limpa parâmetros OAuth da barra de endereço
+            if (hasOAuthTokens) {
+                window.history.replaceState(null, '', window.location.pathname);
             }
-        } else {
-            // Tenta fallback local salvo
+        }
+
+        // Se não houver sessão ativa direta no client, resgata a sessão sincronizada do site
+        if (!profile) {
             const stored = localStorage.getItem('malaca_user_profile');
             if (stored) {
-                profile = JSON.parse(stored);
+                try {
+                    const parsed = JSON.parse(stored);
+                    if (parsed && typeof parsed === 'object') {
+                        const discordId = extractDiscordId(parsed) || parsed.discord_id || '';
+                        const isFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId));
+                        
+                        let dbProfile = null;
+                        const orConditions = [];
+                        if (parsed.id) orConditions.push(`id.eq.${parsed.id}`);
+                        if (discordId) orConditions.push(`discord_id.eq.${discordId}`);
+                        if (orConditions.length > 0) {
+                            try {
+                                const { data } = await supabaseClient
+                                    .from('profiles')
+                                    .select('id, discord_id, username, full_name, avatar_url, email, is_admin, role, created_at, last_login_at')
+                                    .or(orConditions.join(','))
+                                    .maybeSingle();
+                                if (data) dbProfile = data;
+                            } catch(e) {}
+                        }
+
+                        const isAdmin = isFounder || (dbProfile && (dbProfile.is_admin === true || dbProfile.role === 'admin')) || parsed.is_admin === true || parsed.role === 'admin';
+                        const userRole = isAdmin ? 'admin' : (dbProfile?.role || parsed.role || 'user');
+
+                        profile = {
+                            ...parsed,
+                            ...(dbProfile || {}),
+                            discord_id: String(discordId || parsed.discord_id || ''),
+                            username: dbProfile?.username || parsed.username || 'MALACA7X',
+                            full_name: dbProfile?.full_name || parsed.full_name || parsed.username || 'Administrador',
+                            avatar_url: dbProfile?.avatar_url || parsed.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png',
+                            is_admin: isAdmin,
+                            role: userRole
+                        };
+                    }
+                } catch(e) {
+                    console.warn('Erro ao processar sessão salva no painel:', e);
+                }
             }
         }
 
@@ -134,6 +281,9 @@ async function initPainel() {
             renderLoginGate(root);
             return;
         }
+
+        // Mantém sessão local sincronizada com o site
+        localStorage.setItem('malaca_user_profile', JSON.stringify(profile));
 
         if (checkIsUserBanned(profile)) {
             renderBannedGate(root, profile);
@@ -154,7 +304,7 @@ async function initPainel() {
     }
 }
 
-// TELA: Login Necessário
+// TELA: Login Necessário Exclusivo Discord OAuth
 function renderLoginGate(root) {
     root.innerHTML = `
         <div class="painel-gate-container">
@@ -164,11 +314,13 @@ function renderLoginGate(root) {
                 </div>
                 <h2 class="painel-gate-title">ACESSO ADMINISTRATIVO</h2>
                 <p class="painel-gate-desc">
-                    O <strong>Painel Administrativo do Malaca System GTARP</strong> é uma área independente de alta segurança. Faça login com uma conta Discord autorizada para gerenciar a plataforma.
+                    O <strong>Painel Administrativo do Malaca System GTARP</strong> é restrito a administradores autorizados. Faça login com sua conta Discord oficial conectada ao Supabase.
                 </p>
-                <button id="btn-login-discord-painel" class="btn-gate-primary">
+                
+                <button id="btn-login-discord-painel" class="btn-gate-primary" style="margin-bottom: 14px;">
                     <i class="fa-brands fa-discord" style="font-size: 1.2rem;"></i> ENTRAR COM O DISCORD
                 </button>
+
                 <a href="/" class="btn-gate-secondary">
                     <i class="fa-solid fa-arrow-left"></i> Voltar à Página Inicial
                 </a>
@@ -245,7 +397,16 @@ function renderBannedGate(root, profile) {
 // LOGIN COM DISCORD OAUTH
 async function handleDiscordLogin() {
     try {
-        const redirectUrl = window.location.origin + '/painel/';
+        const btn = document.getElementById('btn-login-discord-painel');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Redirecionando para o Discord...`;
+        }
+        let origin = window.location.origin;
+        if (window.location.hostname.includes('cda.malaca.com.br') || window.location.hostname.includes('malaca.com.br')) {
+            origin = 'https://cda.malaca.com.br';
+        }
+        const redirectUrl = origin + '/painel/';
         const { error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'discord',
             options: {
@@ -256,6 +417,11 @@ async function handleDiscordLogin() {
         if (error) throw error;
     } catch (e) {
         alert('Erro ao conectar com o Discord: ' + (e.message || 'Tente novamente.'));
+        const btn = document.getElementById('btn-login-discord-painel');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-brands fa-discord" style="font-size: 1.2rem;"></i> ENTRAR COM O DISCORD`;
+        }
     }
 }
 
@@ -711,28 +877,14 @@ window.painelToggleBan = async function(userId, discordId, makeBanned) {
 
     try {
         const updateData = { 
-            is_banned: makeBanned,
             role: makeBanned ? 'banned' : 'user',
             ...(makeBanned ? { is_admin: false } : {})
         };
 
-        let updateResult = await supabaseClient
+        const updateResult = await supabaseClient
             .from('profiles')
             .update(updateData)
             .or(`id.eq.${userId},discord_id.eq.${discordId}`);
-
-        // Fallback automático caso a coluna is_banned ainda não exista no schema cache do Supabase
-        if (updateResult.error && (updateResult.error.message || '').includes('is_banned')) {
-            console.warn('Coluna is_banned não encontrada no schema cache, aplicando fallback com role=banned');
-            const fallbackData = {
-                role: makeBanned ? 'banned' : 'user',
-                ...(makeBanned ? { is_admin: false } : {})
-            };
-            updateResult = await supabaseClient
-                .from('profiles')
-                .update(fallbackData)
-                .or(`id.eq.${userId},discord_id.eq.${discordId}`);
-        }
 
         if (updateResult.error) throw updateResult.error;
 
@@ -990,4 +1142,8 @@ window.painelSwitchTab = function(tab) {
 };
 
 // Inicialização ao carregar a página
-document.addEventListener('DOMContentLoaded', initPainel);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPainel);
+} else {
+    initPainel();
+}

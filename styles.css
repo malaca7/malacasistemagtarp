@@ -3864,82 +3864,162 @@ body {
     color: #00d2ff;
 }
 
+/* --- HUB TOP TAG & STATUS PILL (NO-IMAGE CLEAN CARDS) --- */
+.hub-card-top-tag-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hub-card-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    padding: 2px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+}
+
+.hub-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 6px #22c55e;
+}
+
+/* --- HUB EXPLORE CARDS (REDESIGNED NO-IMAGES HIGH-TECH CARDS) --- */
 .hub-explore-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
 }
 
+@media (max-width: 1024px) {
+    .hub-explore-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .hub-explore-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .hub-explore-card {
     background: #060d1a;
-    border: 1px solid rgba(0, 210, 255, 0.2);
-    border-radius: 14px;
-    overflow: hidden;
+    border: 1px solid rgba(0, 210, 255, 0.22);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
     text-decoration: none;
     color: inherit;
-    transition: all 0.3s ease;
-}
-
-.hub-explore-card:hover {
-    border-color: rgba(56, 189, 248, 0.5);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 30px rgba(0, 210, 255, 0.2);
-}
-
-.hub-explore-thumb {
+    transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
     position: relative;
-    width: 100%;
-    height: 120px;
     overflow: hidden;
 }
 
-.hub-explore-thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s ease;
-}
-
-.hub-explore-card:hover .hub-explore-thumb img {
-    transform: scale(1.08);
-}
-
-.hub-explore-overlay {
+.hub-explore-card::before {
+    content: '';
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to bottom, rgba(10, 14, 26, 0.1) 0%, rgba(10, 14, 26, 0.85) 100%);
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00d2ff, transparent);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+.hub-explore-card:hover {
+    border-color: rgba(0, 210, 255, 0.6);
+    background: #0b1528;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 210, 255, 0.25);
+}
+
+.hub-explore-card:hover::before {
+    opacity: 1;
+}
+
+.hub-explore-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.hub-explore-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(0, 210, 255, 0.12);
+    border: 1px solid rgba(0, 210, 255, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    color: #38bdf8;
+    transition: all 0.3s ease;
+}
+
+.hub-explore-card:hover .hub-explore-icon-box {
+    transform: scale(1.1) rotate(4deg);
+    background: rgba(0, 210, 255, 0.25);
+    border-color: #00d2ff;
+    box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+}
+
+.hub-explore-badge {
+    font-family: var(--font-header);
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #00d2ff;
+    background: rgba(0, 210, 255, 0.1);
+    border: 1px solid rgba(0, 210, 255, 0.3);
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
 }
 
 .hub-explore-info {
-    padding: 14px 16px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
+    padding: 0;
 }
 
 .hub-explore-name {
     font-family: var(--font-body);
-    font-size: 0.88rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #ffffff;
 }
 
-.hub-explore-type {
-    font-size: 0.72rem;
-    color: #64748b;
-    font-weight: 500;
-    letter-spacing: 0.5px;
+.hub-explore-desc {
+    font-size: 0.82rem;
+    color: #8b9cb5;
+    line-height: 1.45;
 }
 
-.hub-explore-stars {
+.hub-explore-bottom {
     display: flex;
-    gap: 2px;
-    color: #fbbf24;
-    font-size: 0.68rem;
-    margin-top: 4px;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: auto;
 }
 
 /* --- HUB FOOTER --- */

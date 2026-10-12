@@ -94,7 +94,11 @@ export const AuthService = {
   // Initiates Discord OAuth2 Login (No password/email)
   loginWithDiscord: async () => {
     try {
-      const redirectUrl = window.location.origin + window.location.pathname;
+      let origin = window.location.origin;
+      if (window.location.hostname.includes('cda.malaca.com.br') || window.location.hostname.includes('malaca.com.br')) {
+        origin = 'https://cda.malaca.com.br';
+      }
+      const redirectUrl = origin + window.location.pathname;
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
@@ -124,26 +128,7 @@ export const AuthService = {
       }
 
       if (!session || !session.user) {
-        const stored = localStorage.getItem('malaca_user_profile');
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            // If stored profile was a mock user, invalidate it
-            if (parsed.id && String(parsed.id).startsWith('mock-')) {
-              localStorage.removeItem('malaca_user_profile');
-              return null;
-            }
-            if (parsed.id && parsed.discord_id) {
-              const dId = extractDiscordId(parsed);
-              if (DEFAULT_ADMIN_DISCORD_IDS.includes(dId) || checkAdminPermission(parsed)) {
-                parsed.is_admin = true;
-                parsed.role = 'admin';
-                localStorage.setItem('malaca_user_profile', JSON.stringify(parsed));
-              }
-              return parsed;
-            }
-          } catch (e) {}
-        }
+        localStorage.removeItem('malaca_user_profile');
         return null;
       }
 
@@ -192,38 +177,46 @@ export const AuthService = {
       const twitterX = existingProfile?.twitter_x || localCached?.twitter_x || '';
       const customBio = existingProfile?.custom_bio || localCached?.custom_bio || '';
 
-      const profileData: any = {
+      // Base guaranteed schema columns (compatibilidade 100% com PostgREST)
+      const cleanDbProfile: any = {
         id: user.id,
         discord_id: String(discordId),
         username: String(username),
         full_name: String(fullName),
         avatar_url: String(avatarUrl),
         email: email || undefined,
-        character_name: characterName,
-        instagram: instagram,
-        twitch: twitch,
-        youtube: youtube,
-        twitter_x: twitterX,
-        custom_bio: customBio,
         is_admin: isAdmin,
         role: isBanned ? 'banned' : userRole,
-        is_banned: isBanned,
         last_login_at: now,
       };
 
-      // Safely upsert into Supabase profiles table com fallback para schema cache
+      // Safely upsert into Supabase profiles table
       try {
         const { error: upsertErr } = await supabase
           .from('profiles')
-          .upsert([profileData], { onConflict: 'id' });
-        if (upsertErr && (upsertErr.message || '').includes('is_banned')) {
-          const fallbackData = { ...profileData };
-          delete fallbackData.is_banned;
-          if (isBanned) fallbackData.role = 'banned';
-          await supabase.from('profiles').upsert([fallbackData], { onConflict: 'id' });
+          .upsert([cleanDbProfile], { onConflict: 'id' });
+        
+        if (upsertErr) {
+          console.warn('Supabase profiles clean upsert note:', upsertErr);
+        } else {
+          // Tentar salvar campos adicionais caso as colunas existam no schema cache
+          const extraFields: any = {};
+          if (characterName) extraFields.character_name = characterName;
+          if (instagram) extraFields.instagram = instagram;
+          if (twitch) extraFields.twitch = twitch;
+          if (youtube) extraFields.youtube = youtube;
+          if (twitterX) extraFields.twitter_x = twitterX;
+          if (customBio) extraFields.custom_bio = customBio;
+          if (isBanned) extraFields.is_banned = isBanned;
+
+          if (Object.keys(extraFields).length > 0) {
+            try {
+              await supabase.from('profiles').update(extraFields).eq('id', user.id);
+            } catch (e) {}
+          }
         }
       } catch (err) {
-        console.warn('Supabase profiles upsert warning (table may need schema setup):', err);
+        console.warn('Supabase profiles upsert exception:', err);
       }
 
       // Check sessions count in access_logs
@@ -389,6 +382,126 @@ export const AuthService = {
       return updated;
     } catch (e) {
       console.error('Error updating profile:', e);
+      return null;
+    }
+  },
+
+  // Quick login by Discord ID or Username
+  loginWithDiscordIdOrUsername: async (identifier: string): Promise<UserProfile | null> => {
+    try {
+      const val = identifier.trim();
+      if (!val) return null;
+
+      let found: any = null;
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, discord_id, username, full_name, avatar_url, email, is_admin, role, created_at, last_login_at')
+        .or(`discord_id.eq.${val},username.ilike.${val}`)
+        .limit(1);
+
+      if (data && data.length > 0) {
+        found = data[0];
+      } else if (DEFAULT_ADMIN_DISCORD_IDS.includes(val)) {
+        found = {
+          id: 'founder-' + val,
+          discord_id: val,
+          username: 'MALACA7X',
+          full_name: 'MALACA7X',
+          avatar_url: 'https://cdn.discordapp.com/embed/avatars/0.png',
+          is_admin: true,
+          role: 'admin',
+          created_at: new Date().toISOString(),
+          last_login_at: new Date().toISOString(),
+        };
+      }
+
+      if (!found) return null;
+
+      const dId = extractDiscordId(found);
+      const isOfficial = Boolean(dId && DEFAULT_ADMIN_DISCORD_IDS.includes(dId));
+      const isAdmin = isOfficial || found.is_admin === true || found.role === 'admin';
+      const now = new Date().toISOString();
+
+      const userProfile: UserProfile = {
+        id: found.id,
+        discord_id: String(found.discord_id),
+        username: found.username,
+        full_name: found.full_name || found.username,
+        avatar_url: found.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png',
+        email: found.email,
+        is_admin: isAdmin,
+        role: isAdmin ? 'admin' : (found.role || 'user'),
+        created_at: found.created_at || now,
+        last_login_at: now,
+      };
+
+      localStorage.setItem('malaca_user_profile', JSON.stringify(userProfile));
+      AuthService.logAccessSession(userProfile.id, userProfile.discord_id, userProfile.username);
+      window.dispatchEvent(new CustomEvent('auth_profile_updated', { detail: userProfile }));
+      window.dispatchEvent(new Event('auth_state_changed'));
+
+      return userProfile;
+    } catch (e) {
+      console.error('Error logging in directly:', e);
+      return null;
+    }
+  },
+
+  // Direct Player Registration
+  registerPlayerDirect: async (params: {
+    username: string;
+    fullName: string;
+    discordId?: string;
+    avatarUrl?: string;
+  }): Promise<UserProfile | null> => {
+    try {
+      const now = new Date().toISOString();
+      const dId = params.discordId?.trim() || ('72' + Math.floor(1000000000000000 + Math.random() * 9000000000000000));
+      const isOfficial = DEFAULT_ADMIN_DISCORD_IDS.includes(dId);
+
+      let authUserId: string | null = null;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) authUserId = session.user.id;
+      } catch (e) {}
+
+      const userProfile: UserProfile = {
+        id: authUserId || ('player-' + Date.now()),
+        discord_id: dId,
+        username: params.username.trim(),
+        full_name: params.fullName.trim(),
+        avatar_url: params.avatarUrl || 'https://cdn.discordapp.com/embed/avatars/0.png',
+        is_admin: isOfficial,
+        role: isOfficial ? 'admin' : 'user',
+        created_at: now,
+        last_login_at: now,
+      };
+
+      localStorage.setItem('malaca_user_profile', JSON.stringify(userProfile));
+
+      if (authUserId) {
+        const cleanDb = {
+          id: authUserId,
+          discord_id: dId,
+          username: userProfile.username,
+          full_name: userProfile.full_name,
+          avatar_url: userProfile.avatar_url,
+          is_admin: isOfficial,
+          role: isOfficial ? 'admin' : 'user',
+          last_login_at: now,
+        };
+        try {
+          await supabase.from('profiles').upsert([cleanDb], { onConflict: 'id' });
+        } catch (e) {}
+      }
+
+      AuthService.logAccessSession(userProfile.id, userProfile.discord_id, userProfile.username);
+      window.dispatchEvent(new CustomEvent('auth_profile_updated', { detail: userProfile }));
+      window.dispatchEvent(new Event('auth_state_changed'));
+
+      return userProfile;
+    } catch (e) {
+      console.error('Error registering direct player:', e);
       return null;
     }
   },

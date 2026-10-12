@@ -41,6 +41,8 @@ export default defineConfig({
         lockpick: resolve(__dirname, "lockpick/index.html"),
         caixinha: resolve(__dirname, "caixinha/index.html"),
         hacking: resolve(__dirname, "hacking/index.html"),
+        painel: resolve(__dirname, "painel/index.html"),
+        admin: resolve(__dirname, "admin/index.html"),
       },
     },
   },

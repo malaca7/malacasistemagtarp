@@ -60,6 +60,40 @@ CREATE TABLE IF NOT EXISTS public.servers (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 3.1. TABELA DE SISTEMAS DA PLATAFORMA
+CREATE TABLE IF NOT EXISTS public.systems (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+    tag VARCHAR(100),
+    description TEXT,
+    icon VARCHAR(100) DEFAULT 'fa-compass',
+    image_url TEXT,
+    link TEXT,
+    city_ids JSONB DEFAULT '[]'::jsonb,
+    likes INT DEFAULT 0,
+    dislikes INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Garantir colunas likes/dislikes caso a tabela já exista
+DO $$ BEGIN
+    ALTER TABLE public.systems ADD COLUMN IF NOT EXISTS likes INT DEFAULT 0;
+    ALTER TABLE public.systems ADD COLUMN IF NOT EXISTS dislikes INT DEFAULT 0;
+EXCEPTION WHEN others THEN null; END $$;
+
+-- 3.2. TABELA DE COMPATIBILIDADE WANDERER_LOCATIONS
+CREATE TABLE IF NOT EXISTS public.wanderer_locations (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    name VARCHAR(255) NOT NULL,
+    city_id TEXT,
+    coords JSONB NOT NULL DEFAULT '{"x": 0, "y": 0}'::jsonb,
+    hint TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- 4. TABELA DE LOCAIS DO MAPA
 CREATE TABLE IF NOT EXISTS public.map_locations (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -180,7 +214,6 @@ BEGIN
         email,
         is_admin,
         role,
-        is_banned,
         created_at,
         last_login_at
     )
@@ -193,7 +226,6 @@ BEGIN
         new.email,
         v_is_admin,
         CASE WHEN v_is_admin THEN 'admin' ELSE 'user' END,
-        false,
         NOW(),
         NOW()
     )
@@ -206,6 +238,8 @@ BEGIN
         role = CASE WHEN v_discord_id = '722320491767136346' THEN 'admin' ELSE public.profiles.role END;
 
     RETURN new;
+EXCEPTION WHEN others THEN
+    RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -216,7 +250,9 @@ CREATE TRIGGER on_auth_user_created
 
 -- 12. ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.servers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.systems ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.map_locations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wanderer_locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wanderer_confirmations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wanderer_cycles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
@@ -227,8 +263,12 @@ ALTER TABLE public.access_logs ENABLE ROW LEVEL SECURITY;
 -- Limpeza de políticas existentes para evitar conflitos na recriação
 DROP POLICY IF EXISTS "Servidores visíveis para todos" ON public.servers;
 DROP POLICY IF EXISTS "Permitir gestão de servidores" ON public.servers;
+DROP POLICY IF EXISTS "Sistemas visíveis para todos" ON public.systems;
+DROP POLICY IF EXISTS "Permitir gestão de sistemas" ON public.systems;
 DROP POLICY IF EXISTS "Locais visíveis para todos" ON public.map_locations;
 DROP POLICY IF EXISTS "Permitir gestão de locais" ON public.map_locations;
+DROP POLICY IF EXISTS "wanderer_locations_select" ON public.wanderer_locations;
+DROP POLICY IF EXISTS "wanderer_locations_all" ON public.wanderer_locations;
 DROP POLICY IF EXISTS "Confirmações visíveis para todos" ON public.wanderer_confirmations;
 DROP POLICY IF EXISTS "Visitantes podem adicionar confirmações" ON public.wanderer_confirmations;
 DROP POLICY IF EXISTS "Permitir remoção de confirmações" ON public.wanderer_confirmations;
@@ -247,8 +287,14 @@ DROP POLICY IF EXISTS "Allow public select access_logs" ON public.access_logs;
 CREATE POLICY "Servidores visíveis para todos" ON public.servers FOR SELECT USING (true);
 CREATE POLICY "Permitir gestão de servidores" ON public.servers FOR ALL USING (true) WITH CHECK (true);
 
+CREATE POLICY "Sistemas visíveis para todos" ON public.systems FOR SELECT USING (true);
+CREATE POLICY "Permitir gestão de sistemas" ON public.systems FOR ALL USING (true) WITH CHECK (true);
+
 CREATE POLICY "Locais visíveis para todos" ON public.map_locations FOR SELECT USING (true);
 CREATE POLICY "Permitir gestão de locais" ON public.map_locations FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "wanderer_locations_select" ON public.wanderer_locations FOR SELECT USING (true);
+CREATE POLICY "wanderer_locations_all" ON public.wanderer_locations FOR ALL USING (true) WITH CHECK (true);
 
 CREATE POLICY "Confirmações visíveis para todos" ON public.wanderer_confirmations FOR SELECT USING (true);
 CREATE POLICY "Visitantes podem adicionar confirmações" ON public.wanderer_confirmations FOR INSERT WITH CHECK (true);
@@ -292,22 +338,28 @@ INSERT INTO public.map_locations (server_id, name, category, description, x, y, 
 ('cda-server-uuid', 'Andarilho - Paleto Galinheiro', 'local_possivel', 'Possível localização do Andarilho no Galinheiro de Paleto', 448, 823, '#a78bfa')
 ON CONFLICT DO NOTHING;
 
--- 14. ATIVAÇÃO DO REALTIME
-DO $$ BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
-EXCEPTION WHEN others THEN null; END $$;
+-- 14. ATIVAÇÃO DO REALTIME COMPLETA E REPLICA IDENTITY FULL
+ALTER TABLE public.servers REPLICA IDENTITY FULL;
+ALTER TABLE public.systems REPLICA IDENTITY FULL;
+ALTER TABLE public.map_locations REPLICA IDENTITY FULL;
+ALTER TABLE public.wanderer_locations REPLICA IDENTITY FULL;
+ALTER TABLE public.wanderer_confirmations REPLICA IDENTITY FULL;
+ALTER TABLE public.wanderer_cycles REPLICA IDENTITY FULL;
+ALTER TABLE public.comments REPLICA IDENTITY FULL;
+ALTER TABLE public.suggestions REPLICA IDENTITY FULL;
+ALTER TABLE public.profiles REPLICA IDENTITY FULL;
+ALTER TABLE public.access_logs REPLICA IDENTITY FULL;
 
-DO $$ BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.wanderer_confirmations;
-EXCEPTION WHEN others THEN null; END $$;
-
-DO $$ BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.map_locations;
-EXCEPTION WHEN others THEN null; END $$;
-
-DO $$ BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
-EXCEPTION WHEN others THEN null; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.servers; EXCEPTION WHEN others THEN null; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.systems; EXCEPTION WHEN others THEN null; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.map_locations; EXCEPTION WHEN others THEN null; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.wanderer_locations; EXCEPTION WHEN others THEN null; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.wanderer_confirmations; EXCEPTION WHEN others THEN null; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.wanderer_cycles; EXCEPTION WHEN others THEN null; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.comments; EXCEPTION WHEN others THEN null; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.suggestions; EXCEPTION WHEN others THEN null; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles; EXCEPTION WHEN others THEN null; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.access_logs; EXCEPTION WHEN others THEN null; END $$;
 
 -- 15. TABELA DE CONFIGURAÇÕES GLOBAIS DA PLATAFORMA
 CREATE TABLE IF NOT EXISTS public.platform_settings (
@@ -323,6 +375,7 @@ CREATE TABLE IF NOT EXISTS public.platform_settings (
 );
 
 ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.platform_settings REPLICA IDENTITY FULL;
 CREATE POLICY "Permitir leitura de platform_settings" ON public.platform_settings FOR SELECT USING (true);
 CREATE POLICY "Permitir edicao de platform_settings" ON public.platform_settings FOR ALL USING (true) WITH CHECK (true);
 
@@ -332,10 +385,6 @@ ON CONFLICT (id) DO NOTHING;
 
 DO $$ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.platform_settings;
-EXCEPTION WHEN others THEN null; END $$;
-
-DO $$ BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.access_logs;
 EXCEPTION WHEN others THEN null; END $$;
 
 -- Recarregar o cache de schema da API PostgREST

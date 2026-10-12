@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, AuthService, checkAdminPermission } from '../services/auth';
-import { LogOut, Calendar, ShieldCheck, Clock, Hash, Shield, Sparkles, UserCheck, Save, CheckCircle2, User } from 'lucide-react';
+import { LogOut, Calendar, ShieldCheck, Clock, Hash, Shield, Sparkles, UserCheck, Save, CheckCircle2, User, Layers } from 'lucide-react';
 
 interface DiscordAuthModalProps {
   isOpen: boolean;
@@ -256,16 +256,27 @@ export const DiscordAuthModal: React.FC<DiscordAuthModalProps> = ({
                 <p className="text-[11px] text-slate-300 leading-relaxed">
                   Você possui privilégios de administrador. Acesse o painel para gerenciar pontos do mapa, andarilho, servidores, sistemas e usuários.
                 </p>
-                <button
-                  onClick={() => {
-                    onClose();
-                    if (onOpenAdmin) onOpenAdmin();
-                  }}
-                  className="w-full py-2.5 rounded-xl font-header font-black text-xs bg-gradient-to-r from-[#5865F2] to-[#2563eb] hover:from-[#4752C4] hover:to-[#1d4ed8] text-white flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-[#5865F2]/40 active:scale-[0.98]"
-                >
-                  <ShieldCheck className="w-4 h-4 text-[#38bdf8]" />
-                  <span>ACESSAR PAINEL ADMINISTRATIVO</span>
-                </button>
+                <div className="flex flex-col gap-2">
+                  <a
+                    href="/painel/"
+                    className="w-full py-2.5 rounded-xl font-header font-black text-xs bg-gradient-to-r from-[#5865F2] to-[#2563eb] hover:from-[#4752C4] hover:to-[#1d4ed8] text-white flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-[#5865F2]/40 active:scale-[0.98]"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-[#38bdf8]" />
+                    <span>ACESSAR PAINEL ADMINISTRATIVO</span>
+                  </a>
+                  {onOpenAdmin && (
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onOpenAdmin();
+                      }}
+                      className="w-full py-2 rounded-xl font-header font-bold text-[11px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                    >
+                      <Layers className="w-3.5 h-3.5 text-[#38bdf8]" />
+                      <span>Gerenciar Pontos do Mapa (Nesta Janela)</span>
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -311,19 +322,19 @@ export const DiscordAuthModal: React.FC<DiscordAuthModalProps> = ({
 
             <div>
               <h4 className="font-header text-xl font-extrabold text-white">
-                LOGIN COM DISCORD
+                LOGIN & CADASTRO COM DISCORD
               </h4>
               <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto leading-relaxed">
-                Autenticação simples e 100% segura. Não utilize e-mail ou senhas. No primeiro acesso seu perfil será salvo automaticamente.
+                Autenticação e cadastro oficial 100% integrados via Discord OAuth2 no Supabase. No primeiro acesso seu perfil é criado automaticamente com foto e identificação real.
               </p>
             </div>
 
             <button
               onClick={() => AuthService.loginWithDiscord()}
-              className="w-full py-3.5 rounded-xl font-header font-bold text-sm bg-[#5865F2] hover:bg-[#4752C4] text-white flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-[#5865F2]/40 active:scale-95"
+              className="w-full py-3.5 rounded-xl font-header font-bold text-sm bg-gradient-to-r from-[#5865F2] to-[#4752C4] hover:brightness-110 text-white flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-[#5865F2]/40 active:scale-95 cursor-pointer"
             >
               <i className="fa-brands fa-discord text-xl"></i>
-              <span>ENTRAR COM O DISCORD</span>
+              <span>ENTRAR OU CADASTRAR COM DISCORD</span>
             </button>
 
             <p className="text-[10px] text-slate-500">

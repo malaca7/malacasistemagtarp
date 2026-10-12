@@ -26,7 +26,12 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                         <span class="global-admin-subtitle">Gestão Global da Plataforma, Cidades & Sistemas</span>
                     </div>
                 </div>
-                <button class="global-admin-close" onclick="closeGlobalAdminModal()"><i class="fa-solid fa-xmark"></i></button>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <a href="/painel/" class="global-admin-nav-btn" style="text-decoration: none; padding: 6px 14px; font-size: 11px; background: rgba(0,210,255,0.15); border: 1px solid rgba(0,210,255,0.4); color: #38bdf8; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir Painel Completo
+                    </a>
+                    <button class="global-admin-close" onclick="closeGlobalAdminModal()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
             </div>
 
             <div id="global-admin-content" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
@@ -108,6 +113,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
     const DEFAULT_ADMIN_DISCORD_IDS = ['722320491767136346']; // Fundador Inato Principal (MALACA7X)
+    let isAuthenticated = false;
 
     function extractDiscordId(u) {
         if (!u) return '';
@@ -279,7 +285,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         return false;
     }
 
-    let isAuthenticated = getSavedAdminState();
+    isAuthenticated = getSavedAdminState();
     updateAdminUiVisibility(isAuthenticated);
     checkBanProtection();
 
@@ -294,7 +300,26 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     };
 
     window.openGlobalAdminModal = function () {
-        window.location.href = '/painel/';
+        const stored = localStorage.getItem('malaca_user_profile');
+        let user = null;
+        try { user = stored ? JSON.parse(stored) : null; } catch(e) {}
+        
+        const isAuth = user && (user.is_admin === true || user.role === 'admin' || checkAdminPermission(user));
+        if (!isAuth) {
+            window.openDiscordModal();
+            return;
+        }
+
+        isAuthenticated = true;
+        updateAdminUiVisibility(true);
+
+        const modal = document.getElementById('global-admin-modal');
+        if (modal) {
+            modal.classList.add('active');
+            renderAdminContent();
+        } else {
+            window.location.href = '/painel/';
+        }
     };
 
     window.closeGlobalAdminModal = function () {
@@ -312,7 +337,11 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Conectando ao Discord...`;
         }
         try {
-            const redirectUrl = window.location.origin + window.location.pathname;
+            let origin = window.location.origin;
+            if (window.location.hostname.includes('cda.malaca.com.br') || window.location.hostname.includes('malaca.com.br')) {
+                origin = 'https://cda.malaca.com.br';
+            }
+            const redirectUrl = origin + window.location.pathname;
             const { error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'discord',
                 options: {
@@ -358,7 +387,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
             subtitle.textContent = 'Perfil e Registro de Acesso';
             body.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 16px; padding: 16px; background: linear-gradient(135deg, #18181b 0%, #000000 100%); border-radius: 14px; border: 1px solid rgba(0,210,255,0.3); margin-bottom: 16px;">
-                    <img src="${user.avatar_url}" style="width: 56px; height: 56px; border-radius: 50%; border: 2px solid ${isAdmin ? '#f59e0b' : '#38bdf8'}; object-fit: cover;" />
+                    <img src="${user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" style="width: 56px; height: 56px; border-radius: 50%; border: 2px solid ${isAdmin ? '#f59e0b' : '#38bdf8'}; object-fit: cover;" />
                     <div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <h4 style="font-size: 16px; font-weight: 900; color: #fff;">${user.full_name || user.username}</h4>
@@ -379,20 +408,25 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                             <span style="font-size: 9px; font-weight: 900; background: rgba(88,101,242,0.3); color: #c7d2fe; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(88,101,242,0.5);">ADMINISTRADOR</span>
                         </div>
                         <p style="font-size: 11px; color: #94a3b8; line-height: 1.4; margin-bottom: 12px;">Sua conta possui acesso administrativo para gerenciar cidades, sistemas, usuários e configurações da plataforma.</p>
-                        <button onclick="closeDiscordModal(); openGlobalAdminModal();" style="width: 100%; padding: 10px; border-radius: 8px; background: linear-gradient(135deg, #5865F2 0%, #2563eb 100%); color: #fff; font-size: 12px; font-weight: 900; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(88,101,242,0.35); transition: all 0.2s ease;">
-                            <i class="fa-solid fa-gauge-high"></i> ACESSAR PAINEL ADMINISTRATIVO
-                        </button>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <a href="/painel/" style="width: 100%; padding: 11px; border-radius: 8px; background: linear-gradient(135deg, #5865F2 0%, #2563eb 100%); color: #fff; font-size: 12px; font-weight: 900; text-decoration: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(88,101,242,0.35); transition: all 0.2s ease;">
+                                <i class="fa-solid fa-gauge-high"></i> ACESSAR PAINEL ADMINISTRATIVO
+                            </a>
+                            <button onclick="closeDiscordModal(); openGlobalAdminModal();" style="width: 100%; padding: 8px; border-radius: 8px; background: rgba(0,210,255,0.08); border: 1px solid rgba(0,210,255,0.25); color: #38bdf8; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s ease;">
+                                <i class="fa-solid fa-window-restore"></i> Abrir em Janela Modal Rápida
+                            </button>
+                        </div>
                     </div>
                 ` : ''}
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
                     <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);">
                         <span style="font-size: 10px; color: #94a3b8; display: block; font-weight: 700;">DATA DE CADASTRO</span>
-                        <span style="font-size: 12px; font-weight: 800; color: #fff; font-family: monospace;">${new Date(user.created_at).toLocaleDateString('pt-BR')}</span>
+                        <span style="font-size: 12px; font-weight: 800; color: #fff; font-family: monospace;">${new Date(user.created_at || Date.now()).toLocaleDateString('pt-BR')}</span>
                     </div>
                     <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);">
                         <span style="font-size: 10px; color: #94a3b8; display: block; font-weight: 700;">ÚLTIMO LOGIN</span>
-                        <span style="font-size: 12px; font-weight: 800; color: #38bdf8; font-family: monospace;">${new Date(user.last_login_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</span>
+                        <span style="font-size: 12px; font-weight: 800; color: #38bdf8; font-family: monospace;">${new Date(user.last_login_at || Date.now()).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</span>
                     </div>
                 </div>
 
@@ -406,20 +440,23 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 </button>
             `;
         } else {
-            title.textContent = 'Autenticação Discord';
-            subtitle.textContent = 'Login Exclusivo via OAuth2';
+            title.textContent = 'Autenticação Oficial';
+            subtitle.textContent = 'Login e Cadastro via Discord OAuth2';
             body.innerHTML = `
-                <div style="text-align: center; padding: 16px 0;">
-                    <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(88,101,242,0.15); border: 2px solid #5865F2; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #5865F2; font-size: 28px;">
+                <div style="text-align: center; padding: 12px 6px;">
+                    <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(88,101,242,0.18); border: 2px solid #5865F2; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #5865F2; font-size: 32px; box-shadow: 0 0 30px rgba(88,101,242,0.4);">
                         <i class="fa-brands fa-discord"></i>
                     </div>
-                    <h3 style="font-size: 18px; font-weight: 900; color: #fff; margin-bottom: 8px;">LOGIN COM DISCORD</h3>
-                    <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin-bottom: 24px; max-width: 320px; margin-left: auto; margin-right: auto;">
-                        Autenticação simples e segura. Sem e-mail ou senhas. Seu perfil será criado automaticamente no primeiro acesso.
+                    <h3 style="font-size: 18px; font-weight: 900; color: #fff; margin-bottom: 8px; letter-spacing: 0.5px;">AUTENTICAÇÃO DISCORD</h3>
+                    <p style="font-size: 12px; color: #94a3b8; line-height: 1.6; margin-bottom: 22px; max-width: 360px; margin-left: auto; margin-right: auto;">
+                        Login e cadastro oficiais exclusivos via <strong>Discord OAuth2</strong> sincronizados com o Supabase. Sem formulários manuais, seguro e instantâneo.
                     </p>
-                    <button onclick="loginWithDiscordGlobal()" style="width: 100%; padding: 14px; border-radius: 12px; background: #5865F2; color: #fff; font-size: 13px; font-weight: 800; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; shadow: 0 10px 25px rgba(88,101,242,0.3);">
-                        <i class="fa-brands fa-discord" style="font-size: 18px;"></i> ENTRAR COM O DISCORD
+                    <button onclick="loginWithDiscordGlobal()" id="btn-login-discord-global" style="width: 100%; padding: 14px; border-radius: 12px; background: linear-gradient(135deg, #5865F2, #4752C4); color: #fff; font-size: 13px; font-weight: 800; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 25px rgba(88,101,242,0.45); transition: all 0.2s ease;">
+                        <i class="fa-brands fa-discord" style="font-size: 20px;"></i> ENTRAR COM O DISCORD
                     </button>
+                    <div style="margin-top: 18px; font-size: 11px; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <i class="fa-solid fa-lock" style="color: #22c55e;"></i> Mesma sessão unificada para o site e painel administrativo
+                    </div>
                 </div>
             `;
         }
@@ -432,7 +469,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         const navBtns = document.querySelectorAll('.hub-discord-btn');
         navBtns.forEach(btn => {
             if (user) {
-                btn.innerHTML = `<img src="${user.avatar_url}" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #38bdf8;" /> <span style="font-family: monospace;">${user.username}</span>`;
+                btn.innerHTML = `<img src="${user.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #38bdf8;" /> <span style="font-family: monospace;">${user.username}</span>`;
                 btn.style.background = '#18181b';
                 btn.style.borderColor = 'rgba(0,210,255,0.5)';
             } else {
@@ -458,12 +495,12 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 const now = new Date().toISOString();
                 const email = u.email || meta.email || '';
 
-                // Resgatar perfil existente no banco para validar se foi promovido por outro admin ou banido
+                // Resgatar perfil existente no banco consultando apenas colunas reais existentes
                 let existingProfile = null;
                 try {
                     const { data } = await supabaseClient
                         .from('profiles')
-                        .select('character_name, instagram, twitch, youtube, twitter_x, custom_bio, is_admin, role, is_banned')
+                        .select('id, discord_id, username, full_name, avatar_url, email, is_admin, role, created_at, last_login_at')
                         .eq('id', u.id)
                         .maybeSingle();
                     if (data) existingProfile = data;
@@ -476,47 +513,52 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                     customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
                 } catch(e) {}
 
-                const isBanned = Boolean(!isOfficialFounder && (existingProfile?.is_banned === true || customBanned.includes(String(discordId))));
+                const isBanned = Boolean(!isOfficialFounder && (existingProfile?.role === 'banned' || customBanned.includes(String(discordId))));
                 const isPromotedAdmin = Boolean(!isBanned && existingProfile && (existingProfile.is_admin === true || existingProfile.role === 'admin'));
                 const isAdmin = isOfficialFounder || isPromotedAdmin;
-                const userRole = isAdmin ? 'admin' : (existingProfile && existingProfile.role && existingProfile.role !== 'admin' ? existingProfile.role : 'user');
+                const userRole = isBanned ? 'banned' : (isAdmin ? 'admin' : (existingProfile?.role || 'user'));
 
                 isAuthenticated = isAdmin;
 
-                const profileData = {
+                // Envia para o Supabase apenas colunas válidas existentes no PostgREST
+                const cleanDbProfile = {
                     id: u.id,
                     discord_id: String(discordId),
                     username: String(username),
                     full_name: String(fullName),
                     avatar_url: String(avatarUrl),
                     email: email || undefined,
-                    character_name: existingProfile?.character_name || '',
-                    instagram: existingProfile?.instagram || '',
-                    twitch: existingProfile?.twitch || '',
-                    youtube: existingProfile?.youtube || '',
-                    twitter_x: existingProfile?.twitter_x || '',
-                    custom_bio: existingProfile?.custom_bio || '',
                     is_admin: isAdmin,
                     role: userRole,
-                    is_banned: isBanned,
                     last_login_at: now
                 };
 
+                let localCached = {};
+                try {
+                    localCached = JSON.parse(localStorage.getItem('malaca_user_profile') || '{}');
+                } catch(e) {}
+
                 const profile = {
-                    ...profileData,
-                    created_at: u.created_at || now
+                    ...cleanDbProfile,
+                    character_name: localCached.character_name || '',
+                    instagram: localCached.instagram || '',
+                    twitch: localCached.twitch || '',
+                    youtube: localCached.youtube || '',
+                    twitter_x: localCached.twitter_x || '',
+                    custom_bio: localCached.custom_bio || '',
+                    created_at: existingProfile?.created_at || u.created_at || now
                 };
 
                 localStorage.setItem('malaca_user_profile', JSON.stringify(profile));
                 updateAdminUiVisibility(isAdmin);
 
-                // Upsert into Supabase profiles table asynchronously
-                supabaseClient.from('profiles').upsert([profileData], { onConflict: 'id' }).then(() => {}).catch(err => {
+                // Upsert no Supabase
+                supabaseClient.from('profiles').upsert([cleanDbProfile], { onConflict: 'id' }).then(() => {}).catch(err => {
                     console.warn('Supabase profiles sync warning:', err);
                 });
 
                 if (isBanned) {
-                    enforceBannedAccountOverlay(profileData);
+                    enforceBannedAccountOverlay(profile);
                     return;
                 }
 
@@ -587,7 +629,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         }
     });
 
-    // Realtime Hub Broadcast Listeners
+    // Realtime Hub Broadcast & Database Sync Listeners
     globalHubChannel
         .on('broadcast', { event: 'servers_updated' }, (payload) => {
             if (payload?.payload?.servers && Array.isArray(payload.payload.servers)) {
@@ -606,6 +648,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 const pathParts = window.location.pathname.split('/');
                 const pathSlug = pathParts[2] || pathParts[1];
                 if (pathSlug && typeof window.loadCitySystems === 'function') window.loadCitySystems(pathSlug);
+                if (typeof window.initSystemVotes === 'function') window.initSystemVotes();
             }
         })
         .on('broadcast', { event: 'entity_sync' }, async (response) => {
@@ -620,8 +663,68 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 const pathParts = window.location.pathname.split('/');
                 const pathSlug = pathParts[2] || pathParts[1];
                 if (pathSlug && typeof window.loadCitySystems === 'function') window.loadCitySystems(pathSlug);
+                if (typeof window.initSystemVotes === 'function') window.initSystemVotes();
             } else if (ent === 'settings') {
                 checkGlobalAnnouncementBanner();
+            } else if (ent === 'profiles') {
+                if (typeof window.loadAdminUsersView === 'function') window.loadAdminUsersView();
+            } else if (ent === 'wanderer_locations' || ent === 'wanderer') {
+                if (typeof window.loadAdminWandererListView === 'function') window.loadAdminWandererListView();
+            }
+        })
+        .on('broadcast', { event: 'user_permission_updated' }, ({ payload }) => {
+            if (!payload) return;
+            const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
+            if (current && (current.id === payload.id || current.discord_id === payload.discordId || current.id === payload.userId)) {
+                current.is_admin = payload.is_admin ?? payload.isAdmin;
+                current.role = payload.role ?? (payload.isAdmin ? 'admin' : 'user');
+                localStorage.setItem('malaca_user_profile', JSON.stringify(current));
+                isAuthenticated = checkAdminPermission(current);
+                updateAdminUiVisibility(isAuthenticated);
+                if (!isAuthenticated) {
+                    window.closeGlobalAdminModal();
+                    showAccessRestrictedToast('Seu cargo de administrador foi revogado para usuário comum.');
+                } else {
+                    showAccessRestrictedToast('Você foi promovido a Administrador da plataforma.');
+                }
+            }
+            if (adminUsersCache && adminUsersCache.length > 0) {
+                adminUsersCache = adminUsersCache.map(u => (u.id === payload.id || u.discord_id === payload.discordId || u.id === payload.userId) ? { ...u, is_admin: payload.is_admin ?? payload.isAdmin, role: payload.role ?? (payload.isAdmin ? 'admin' : 'user') } : u);
+                renderAdminUsersList(adminUsersCache);
+            }
+        })
+        .on('broadcast', { event: 'user_ban_updated' }, ({ payload }) => {
+            if (!payload) return;
+            const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
+            const targetBanned = payload.is_banned ?? payload.isBanned;
+            if (current && (current.id === payload.id || current.discord_id === payload.discordId || current.id === payload.userId)) {
+                current.is_banned = targetBanned;
+                if (targetBanned) {
+                    current.is_admin = false;
+                    current.role = 'user';
+                    localStorage.setItem('malaca_user_profile', JSON.stringify(current));
+                    enforceBannedAccountOverlay(current);
+                } else {
+                    localStorage.setItem('malaca_user_profile', JSON.stringify(current));
+                    const ov = document.getElementById('malaca-banned-lockout-overlay');
+                    if (ov) ov.remove();
+                }
+            }
+            if (adminUsersCache && adminUsersCache.length > 0) {
+                adminUsersCache = adminUsersCache.map(u => (u.id === payload.id || u.discord_id === payload.discordId || u.id === payload.userId) ? { ...u, is_banned: targetBanned, ...(targetBanned ? { is_admin: false, role: 'user' } : {}) } : u);
+                renderAdminUsersList(adminUsersCache);
+            }
+        })
+        .on('broadcast', { event: 'user_deleted' }, ({ payload }) => {
+            if (!payload) return;
+            const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
+            if (current && (current.id === payload.id || current.discord_id === payload.discordId)) {
+                localStorage.removeItem('malaca_user_profile');
+                window.location.reload();
+            }
+            if (adminUsersCache && adminUsersCache.length > 0) {
+                adminUsersCache = adminUsersCache.filter(u => u.id !== payload.id && u.discord_id !== payload.discordId);
+                renderAdminUsersList(adminUsersCache);
             }
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'servers' }, async () => {
@@ -635,6 +738,40 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
             const pathParts = window.location.pathname.split('/');
             const pathSlug = pathParts[2] || pathParts[1];
             if (pathSlug && typeof window.loadCitySystems === 'function') window.loadCitySystems(pathSlug);
+            if (typeof window.initSystemVotes === 'function') window.initSystemVotes();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
+            const p = (payload.new || payload.old);
+            if (!p) return;
+            const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
+            if (current && (current.id === p.id || current.discord_id === p.discord_id)) {
+                if (payload.eventType === 'DELETE') {
+                    localStorage.removeItem('malaca_user_profile');
+                    syncDiscordNavButton();
+                    updateAdminUiVisibility(false);
+                    window.location.reload();
+                    return;
+                }
+                const updated = { ...current, ...p };
+                localStorage.setItem('malaca_user_profile', JSON.stringify(updated));
+                isAuthenticated = checkAdminPermission(updated);
+                updateAdminUiVisibility(isAuthenticated);
+                if (checkBanProtection()) return;
+                syncDiscordNavButton();
+            }
+            if (adminUsersCache && adminUsersCache.length > 0) {
+                if (payload.eventType === 'DELETE') {
+                    adminUsersCache = adminUsersCache.filter(u => u.id !== p.id && u.discord_id !== p.discord_id);
+                } else {
+                    const idx = adminUsersCache.findIndex(u => u.id === p.id || u.discord_id === p.discord_id);
+                    if (idx >= 0) {
+                        adminUsersCache[idx] = { ...adminUsersCache[idx], ...p };
+                    } else if (payload.new) {
+                        adminUsersCache.unshift(payload.new);
+                    }
+                }
+                renderAdminUsersList(adminUsersCache);
+            }
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'platform_settings' }, () => {
             checkGlobalAnnouncementBanner();
@@ -645,6 +782,20 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         .on('broadcast', { event: 'wanderer_cycle_reset' }, () => {
             localStorage.removeItem('cidade_alta_user_confirmations');
             localStorage.removeItem('malaca_wanderer_cycle_state');
+            if (typeof window.loadAdminWandererListView === 'function') window.loadAdminWandererListView();
+        })
+        .on('broadcast', { event: 'wanderer_locations_updated' }, (payload) => {
+            if (payload?.payload?.locations) {
+                wandererLocationsCache = payload.payload.locations;
+                localStorage.setItem('malaca_wanderer_custom_locations', JSON.stringify(wandererLocationsCache));
+                renderAdminWandererList(wandererLocationsCache);
+            }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'wanderer_locations' }, () => {
+            if (typeof window.loadAdminWandererListView === 'function') window.loadAdminWandererListView();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'map_locations' }, () => {
+            if (typeof window.loadAdminWandererListView === 'function') window.loadAdminWandererListView();
         })
         .subscribe();
 
@@ -861,7 +1012,11 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
 
     window.loginAdminWithDiscord = function() {
         sessionStorage.setItem('malaca_open_admin_after_auth', '1');
-        const redirectUrl = window.location.origin + window.location.pathname;
+        let origin = window.location.origin;
+        if (window.location.hostname.includes('cda.malaca.com.br') || window.location.hostname.includes('malaca.com.br')) {
+            origin = 'https://cda.malaca.com.br';
+        }
+        const redirectUrl = origin + window.location.pathname;
         supabaseClient.auth.signInWithOAuth({
             provider: 'discord',
             options: { redirectTo: redirectUrl, scopes: 'identify email' }
@@ -871,6 +1026,20 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     function renderAdminContent() {
         const container = document.getElementById('global-admin-content');
         if (!container) return;
+
+        if (!isAuthenticated) {
+            isAuthenticated = getSavedAdminState();
+        }
+
+        if (!isAuthenticated) {
+            const stored = localStorage.getItem('malaca_user_profile');
+            let u = null;
+            try { u = stored ? JSON.parse(stored) : null; } catch(e) {}
+            if (u && checkAdminPermission(u)) {
+                isAuthenticated = true;
+                updateAdminUiVisibility(true);
+            }
+        }
 
         if (!isAuthenticated) {
             window.closeGlobalAdminModal();
@@ -1891,65 +2060,6 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
             alert('Erro ao excluir usuário: ' + e.message);
         }
     };
-
-    // Subscrição em Tempo Real para Atualizações de Permissões e Banimentos Globais
-    globalHubChannel
-        .on('broadcast', { event: 'user_permission_updated' }, ({ payload }) => {
-            if (!payload) return;
-            const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
-            if (current && (current.id === payload.id || current.discord_id === payload.discordId)) {
-                current.is_admin = payload.is_admin;
-                current.role = payload.role;
-                localStorage.setItem('malaca_user_profile', JSON.stringify(current));
-                isAuthenticated = payload.is_admin;
-                updateAdminUiVisibility(payload.is_admin);
-                if (!payload.is_admin) {
-                    window.closeGlobalAdminModal();
-                    showAccessRestrictedToast('Seu cargo de administrador foi revogado para usuário comum.');
-                } else {
-                    showAccessRestrictedToast('Você foi promovido a Administrador da plataforma.');
-                }
-            }
-            if (adminUsersCache && adminUsersCache.length > 0) {
-                adminUsersCache = adminUsersCache.map(u => (u.id === payload.id || u.discord_id === payload.discordId) ? { ...u, is_admin: payload.is_admin, role: payload.role } : u);
-                renderAdminUsersList(adminUsersCache);
-            }
-        })
-        .on('broadcast', { event: 'user_ban_updated' }, ({ payload }) => {
-            if (!payload) return;
-            const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
-            if (current && (current.id === payload.id || current.discord_id === payload.discordId)) {
-                current.is_banned = payload.is_banned;
-                if (payload.is_banned) {
-                    current.is_admin = false;
-                    current.role = 'user';
-                    localStorage.setItem('malaca_user_profile', JSON.stringify(current));
-                    enforceBannedAccountOverlay(current);
-                } else {
-                    localStorage.setItem('malaca_user_profile', JSON.stringify(current));
-                    const ov = document.getElementById('malaca-banned-lockout-overlay');
-                    if (ov) ov.remove();
-                }
-            }
-            if (adminUsersCache && adminUsersCache.length > 0) {
-                adminUsersCache = adminUsersCache.map(u => (u.id === payload.id || u.discord_id === payload.discordId) ? { ...u, is_banned: payload.is_banned, ...(payload.is_banned ? { is_admin: false, role: 'user' } : {}) } : u);
-                renderAdminUsersList(adminUsersCache);
-            }
-        })
-        .on('broadcast', { event: 'user_deleted' }, ({ payload }) => {
-            if (!payload) return;
-            const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
-            if (current && (current.id === payload.id || current.discord_id === payload.discordId)) {
-                localStorage.removeItem('malaca_user_profile');
-                window.location.reload();
-            }
-            if (adminUsersCache && adminUsersCache.length > 0) {
-                adminUsersCache = adminUsersCache.filter(u => u.id !== payload.id && u.discord_id !== payload.discordId);
-                renderAdminUsersList(adminUsersCache);
-            }
-        })
-        .subscribe();
-
     // --- GESTÃO COMPLETA DE MARCAÇÕES DO ANDARILHO ---
     let wandererLocationsCache = [];
     let editingWandererPointId = null;
@@ -2443,8 +2553,149 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         } catch(e) {}
     }
 
+    // OAuth Redirect Error Interception & Recovery
+    function checkOAuthRedirectError() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            let hashParams = new URLSearchParams();
+            if (window.location.hash && window.location.hash.includes('=')) {
+                hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+            }
+            const error = urlParams.get('error') || hashParams.get('error');
+            const errorDesc = urlParams.get('error_description') || hashParams.get('error_description');
+
+            if (error || errorDesc) {
+                console.warn('OAuth Redirect Error detected:', error, errorDesc);
+                // Sanitize address bar immediately so user does not see raw server error
+                window.history.replaceState({}, document.title, window.location.pathname);
+
+                showOAuthErrorRecoveryModal(error, errorDesc);
+            }
+        } catch(e) {
+            console.error('Error checking OAuth error params:', e);
+        }
+    }
+
+    function showOAuthErrorRecoveryModal(error, errorDesc) {
+        const decodedDesc = decodeURIComponent(errorDesc || error || 'Erro de autenticação');
+        const isBannedColError = decodedDesc.includes('is_banned') || decodedDesc.includes('42703');
+
+        let existing = document.getElementById('oauth-error-modal-overlay');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'oauth-error-modal-overlay';
+        modal.style.cssText = `
+            position: fixed; inset: 0; background: rgba(3, 7, 18, 0.88); backdrop-filter: blur(12px);
+            z-index: 100000; display: flex; align-items: center; justify-content: center; padding: 20px;
+        `;
+
+        modal.innerHTML = `
+            <div style="background: #090e1a; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 20px; max-width: 540px; width: 100%; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 30px rgba(239,68,68,0.2); position: relative; font-family: var(--font-body, sans-serif); color: #fff;">
+                <button onclick="document.getElementById('oauth-error-modal-overlay').remove()" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.06); border: none; color: #94a3b8; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 18px;">
+                    <div style="width: 48px; height: 48px; border-radius: 14px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 22px; flex-shrink: 0;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <span style="font-size: 10px; font-weight: 800; color: #f87171; letter-spacing: 1px; text-transform: uppercase;">AVISO DE AUTENTICAÇÃO DISCORD</span>
+                        <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; margin: 2px 0 0 0;">Erro no Trigger do Supabase</h3>
+                    </div>
+                </div>
+
+                <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 12px; padding: 14px; margin-bottom: 20px;">
+                    <p style="font-size: 12px; color: #cbd5e1; line-height: 1.6; margin: 0 0 8px 0;">
+                        ${isBannedColError 
+                            ? 'O login do Discord falhou porque o trigger do banco de dados (Supabase) tentou gravar a coluna <code>is_banned</code> que ainda não foi criada na tabela <code>public.profiles</code>.' 
+                            : `O provedor de autenticação retornou: <br><code style="color: #f87171; font-size: 11px;">${decodedDesc}</code>`}
+                    </p>
+                    <div style="font-size: 11px; color: #38bdf8; font-weight: 600;">
+                        <i class="fa-solid fa-circle-check" style="color: #22c55e;"></i> Não se preocupe: você pode acessar imediatamente via <strong>Login Direto</strong> (por Nickname ou ID) sem travar seu uso!
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button id="btn-open-supabase-sql" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 12px; color: #fff; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(16,185,129,0.3);">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> ABRIR SUPABASE SQL EDITOR (COPIAR & EXECUTAR)
+                    </button>
+
+                    <button id="btn-oauth-direct-login" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #00d2ff, #2563eb); border: none; border-radius: 12px; color: #fff; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 20px rgba(0,210,255,0.3);">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i> CONECTAR VIA ACESSO RÁPIDO / NICKNAME
+                    </button>
+
+                    <button id="btn-copy-sql-fix" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(0,210,255,0.3); border-radius: 12px; color: #38bdf8; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fa-solid fa-copy"></i> COPIAR SQL DE CORREÇÃO (PARA O SUPABASE)
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const sqlFix = `-- 1. ADICIONA A COLUNA is_banned CASO NÃO EXISTA
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false;
+
+-- 2. RECRIAR O TRIGGER BLINDADO COM EXCEPTION HANDLER
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+    INSERT INTO public.profiles (
+        id, discord_id, username, full_name, avatar_url, email, is_admin, role, is_banned, created_at, last_login_at
+    )
+    VALUES (
+        new.id,
+        COALESCE(new.raw_user_meta_data->>'provider_id', new.raw_user_meta_data->>'sub', new.id::text),
+        COALESCE(new.raw_user_meta_data->>'preferred_username', new.raw_user_meta_data->>'user_name', new.raw_user_meta_data->>'name', 'Discord User'),
+        COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'global_name', new.raw_user_meta_data->>'name', 'Discord User'),
+        COALESCE(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture', 'https://cdn.discordapp.com/embed/avatars/0.png'),
+        new.email,
+        (COALESCE(new.raw_user_meta_data->>'provider_id', new.raw_user_meta_data->>'sub', new.id::text) = '722320491767136346'),
+        CASE WHEN (COALESCE(new.raw_user_meta_data->>'provider_id', new.raw_user_meta_data->>'sub', new.id::text) = '722320491767136346') THEN 'admin' ELSE 'user' END,
+        false,
+        NOW(),
+        NOW()
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        last_login_at = NOW(),
+        avatar_url = EXCLUDED.avatar_url,
+        username = EXCLUDED.username;
+    RETURN new;
+EXCEPTION WHEN others THEN
+    RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;`;
+
+        document.getElementById('btn-open-supabase-sql')?.addEventListener('click', () => {
+            navigator.clipboard.writeText(sqlFix).then(() => {
+                window.open('https://supabase.com/dashboard/project/pdzytmdssswiyjwohvwn/sql/new', '_blank');
+                alert('Comando SQL copiado para a área de transferência! Cole (Ctrl+V) no Supabase SQL Editor aberto na nova aba e clique em RUN.');
+            }).catch(() => {
+                window.open('https://supabase.com/dashboard/project/pdzytmdssswiyjwohvwn/sql/new', '_blank');
+            });
+        });
+
+        document.getElementById('btn-oauth-direct-login')?.addEventListener('click', () => {
+            modal.remove();
+            if (typeof window.openDiscordModalGlobal === 'function') {
+                window.openDiscordModalGlobal();
+            }
+        });
+
+        document.getElementById('btn-copy-sql-fix')?.addEventListener('click', () => {
+            navigator.clipboard.writeText(sqlFix).then(() => {
+                alert('Comando SQL copiado com sucesso! Execute no SQL Editor do Supabase para corrigir definitivamente o login Discord OAuth.');
+            }).catch(() => {
+                prompt('Copie o comando SQL abaixo para rodar no Supabase:', sqlFix);
+            });
+        });
+    }
+
     // Auto-open modal ONLY if user is authenticated admin; otherwise sanitize URL
     document.addEventListener('DOMContentLoaded', () => {
+        checkOAuthRedirectError();
         const params = new URLSearchParams(window.location.search);
         if (params.get('admin') === 'true' || params.get('admin') === '1') {
             if (isAuthenticated) {
@@ -2459,6 +2710,7 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         checkGlobalAnnouncementBanner();
         updateAdminUiVisibility(isAuthenticated);
     });
+    checkOAuthRedirectError();
     checkGlobalAuthProtection();
     checkGlobalAnnouncementBanner();
     updateAdminUiVisibility(isAuthenticated);

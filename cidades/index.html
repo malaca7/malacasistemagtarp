@@ -66,6 +66,10 @@
                 <div class="hub-cards-grid" id="custom-cities-grid">
                     <!-- Cidade 1: CDA -->
                     <a href="/cidades/cda/" class="hub-card" id="city-card-cda">
+                        <div class="hub-card-top-tag-row">
+                            <span class="hub-card-tag"><i class="fa-solid fa-server"></i> SERVIDORES OFICIAIS</span>
+                            <span class="hub-card-status-pill"><span class="hub-status-dot"></span> ONLINE</span>
+                        </div>
                         <div class="hub-card-header">
                             <div class="hub-card-icon">
                                 <i class="fa-solid fa-building-flag"></i>
@@ -95,6 +99,10 @@
 
                     <!-- Cidade 2: VALLEY -->
                     <a href="/cidades/valley/" class="hub-card" id="city-card-valley">
+                        <div class="hub-card-top-tag-row">
+                            <span class="hub-card-tag"><i class="fa-solid fa-server"></i> VALLEY HUB</span>
+                            <span class="hub-card-status-pill"><span class="hub-status-dot"></span> ONLINE</span>
+                        </div>
                         <div class="hub-card-header">
                             <div class="hub-card-icon">
                                 <i class="fa-solid fa-mountain-city"></i>
@@ -124,6 +132,10 @@
 
                     <!-- Cidade 3: LOS SANTOS -->
                     <a href="/cidades/los-santos/" class="hub-card" id="city-card-los-santos">
+                        <div class="hub-card-top-tag-row">
+                            <span class="hub-card-tag"><i class="fa-solid fa-server"></i> LOS SANTOS HUB</span>
+                            <span class="hub-card-status-pill"><span class="hub-status-dot"></span> ONLINE</span>
+                        </div>
                         <div class="hub-card-header">
                             <div class="hub-card-icon">
                                 <i class="fa-solid fa-shield-halved"></i>
@@ -201,15 +213,11 @@
                     const card = document.createElement('a');
                     card.href = `/cidades/${encodeURIComponent(city.slug)}/`;
                     card.className = 'hub-card';
-                    const imgUrl = city.image_url || city.banner_image_url || '/images/hero_banner.jpg';
 
                     card.innerHTML = `
-                        <div class="hub-card-banner" style="width: 100%; height: 130px; border-radius: 12px; overflow: hidden; margin-bottom: 14px; border: 1px solid rgba(0,210,255,0.3); position: relative;">
-                            <img src="${imgUrl}" alt="${city.name}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease;" class="city-card-cover" />
-                            <div style="position: absolute; inset: 0; background: linear-gradient(0deg, rgba(13,13,13,0.95) 0%, rgba(0,0,0,0.2) 60%);"></div>
-                            <span style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.75); border: 1px solid rgba(0,210,255,0.4); color: #38bdf8; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; text-transform: uppercase;">
-                                <i class="fa-solid fa-circle-check" style="color: #22c55e; margin-right: 4px;"></i> ATIVA
-                            </span>
+                        <div class="hub-card-top-tag-row">
+                            <span class="hub-card-tag"><i class="fa-solid fa-server"></i> ${city.subtitle || 'CIDADE RP'}</span>
+                            <span class="hub-card-status-pill"><span class="hub-status-dot"></span> ONLINE</span>
                         </div>
                         <div class="hub-card-header">
                             <div class="hub-card-icon">

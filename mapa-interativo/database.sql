@@ -221,6 +221,8 @@ BEGIN
         role = CASE WHEN v_discord_id = '722320491767136346' THEN 'admin' ELSE public.profiles.role END;
 
     RETURN new;
+EXCEPTION WHEN others THEN
+    RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

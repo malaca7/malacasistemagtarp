@@ -645,7 +645,7 @@ class RealtimeSyncManager {
   }
 
   public broadcastEntityChange(
-    entity: 'locations' | 'comments' | 'suggestions' | 'servers' | 'systems' | 'profiles' | 'settings',
+    entity: 'locations' | 'comments' | 'suggestions' | 'servers' | 'systems' | 'wanderer' | 'profiles' | 'settings',
     action: RealtimeChangeType,
     data?: any,
     id?: string,
