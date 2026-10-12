@@ -60,9 +60,9 @@ export const Header: React.FC<HeaderProps> = ({
         <a href="/plataforma/" className="hover:text-[#ffc046] transition-colors py-1">PLATAFORMA</a>
       </nav>
 
-      {/* Fan Site Badge */}
+      {/* Official Platform Badge */}
       <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-black uppercase tracking-widest shadow-sm">
-        <span>⭐ FÃ-SITE CIDADE ALTA & VALLEY</span>
+        <span>⭐ PLATAFORMA OFICIAL • MALACA SYSTEM</span>
       </div>
 
       {/* Actions & User Discord Auth Button */}

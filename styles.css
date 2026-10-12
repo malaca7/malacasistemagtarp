@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap');
 
-/* VARIABLES AND THEME CONFIGURATION (FÃ-SITE OFICIAL CIDADE ALTA & VALLEY GG) */
+/* VARIABLES AND THEME CONFIGURATION (PLATAFORMA OFICIAL MALACA SYSTEM GTARP) */
 :root {
     --bg-primary: #0c0e17;
     --bg-secondary: #131622;
@@ -48,6 +48,7 @@ h1, h2, h3, h4, h5, h6, .hub-nav-link, .hub-hero-title, .hub-card-title, .hub-se
     letter-spacing: 0.05em;
 }
 
+.cda-platform-badge,
 .cda-fan-badge {
     display: inline-flex;
     align-items: center;
