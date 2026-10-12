@@ -1,4 +1,4 @@
-import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https://pdzytmdssswiyjwohvwn.supabase.co`,n=e(t,`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkenl0bWRzc3N3aXlqd29odnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1ODI0NjQsImV4cCI6MjEwNzE1ODQ2NH0.RxTwiHG5JRHK02u1eBx3cFXI_3fKYMrxuI2op846FME`,{auth:{persistSession:!0,autoRefreshToken:!0,detectSessionInUrl:!0}}),r=[`722320491767136346`],i=null,a=`dashboard`,o=[],s=[],c=[],l=``,u=n.channel(`malaca_realtime_global_hub`);u.on(`broadcast`,{event:`user_permission_updated`},e=>{e?.payload?.userId===i?.id||e?.payload?.discordId===i?.discord_id?p():C()}).on(`broadcast`,{event:`user_ban_updated`},e=>{e?.payload?.userId===i?.id||e?.payload?.discordId===i?.discord_id?p():C()}).subscribe();function d(e){if(!e||e.is_banned===!0)return!1;let t=String(e.discord_id||e.provider_id||``).trim();return t&&r.includes(t)?!0:e.is_admin===!0||e.role===`admin`}function f(e){if(!e)return!1;let t=String(e.discord_id||e.provider_id||``).trim();return r.includes(t)}async function p(){let e=document.getElementById(`painel-app-root`);if(e){e.innerHTML=`
+import{t as e}from"./dist-CPfJrQXr.js";/* empty css               */var t=`https://pdzytmdssswiyjwohvwn.supabase.co`,n=e(t,`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkenl0bWRzc3N3aXlqd29odnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1ODI0NjQsImV4cCI6MjEwNzE1ODQ2NH0.RxTwiHG5JRHK02u1eBx3cFXI_3fKYMrxuI2op846FME`,{auth:{persistSession:!0,autoRefreshToken:!0,detectSessionInUrl:!0}}),r=[`722320491767136346`],i=null,a=`dashboard`,o=[],s=[],c=[],l=``,u=n.channel(`malaca_realtime_global_hub`);u.on(`broadcast`,{event:`user_permission_updated`},e=>{e?.payload?.userId===i?.id||e?.payload?.discordId===i?.discord_id?h():T()}).on(`broadcast`,{event:`user_ban_updated`},e=>{e?.payload?.userId===i?.id||e?.payload?.discordId===i?.discord_id?h():T()}).subscribe();function d(){try{return JSON.parse(localStorage.getItem(`malaca_banned_discord_accounts`)||`[]`)}catch{return[]}}function f(e){if(!e)return!1;let t=String(e.discord_id||e.provider_id||``).trim();if(t&&r.includes(t))return!1;if(e.is_banned===!0||e.role===`banned`)return!0;let n=d();return!!(t&&n.includes(t)||e.id&&n.includes(e.id))}function p(e){if(!e||f(e))return!1;let t=String(e.discord_id||e.provider_id||``).trim();return t&&r.includes(t)?!0:e.is_admin===!0||e.role===`admin`}function m(e){if(!e)return!1;let t=String(e.discord_id||e.provider_id||``).trim();return r.includes(t)}async function h(){let e=document.getElementById(`painel-app-root`);if(e){e.innerHTML=`
         <div class="painel-gate-container">
             <div style="text-align: center; color: #94a3b8;">
                 <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: #00d2ff; margin-bottom: 16px;"></i>
@@ -6,7 +6,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 <p style="font-size: 0.85rem;">Validando credenciais administrativas no Supabase.</p>
             </div>
         </div>
-    `;try{let{data:{session:t}}=await n.auth.getSession(),a=null;if(t&&t.user){t.user;let e=t.user.user_metadata?.provider_id||t.user.user_metadata?.sub||t.user.id,{data:i}=await n.from(`profiles`).select(`*`).or(`id.eq.${t.user.id},discord_id.eq.${e}`).maybeSingle();a=i||{id:t.user.id,discord_id:e,username:t.user.user_metadata?.preferred_username||t.user.user_metadata?.full_name||`Admin`,full_name:t.user.user_metadata?.full_name||t.user.user_metadata?.name||`Administrador`,avatar_url:t.user.user_metadata?.avatar_url||`https://cdn.discordapp.com/embed/avatars/0.png`,is_admin:r.includes(e),role:r.includes(e)?`admin`:`user`,is_banned:!1}}else{let e=localStorage.getItem(`malaca_user_profile`);e&&(a=JSON.parse(e))}if(i=a,!a){m(e);return}if(a.is_banned===!0){g(e,a);return}if(!d(a)){h(e,a);return}v(e)}catch(t){console.error(`Erro na inicialização do painel:`,t),m(e)}}}function m(e){e.innerHTML=`
+    `;try{let{data:{session:t}}=await n.auth.getSession(),a=null;if(t&&t.user){t.user;let e=t.user.user_metadata?.provider_id||t.user.user_metadata?.sub||t.user.id,{data:i}=await n.from(`profiles`).select(`*`).or(`id.eq.${t.user.id},discord_id.eq.${e}`).maybeSingle();a=i||{id:t.user.id,discord_id:e,username:t.user.user_metadata?.preferred_username||t.user.user_metadata?.full_name||`Admin`,full_name:t.user.user_metadata?.full_name||t.user.user_metadata?.name||`Administrador`,avatar_url:t.user.user_metadata?.avatar_url||`https://cdn.discordapp.com/embed/avatars/0.png`,is_admin:r.includes(e),role:r.includes(e)?`admin`:`user`,is_banned:!1}}else{let e=localStorage.getItem(`malaca_user_profile`);e&&(a=JSON.parse(e))}if(i=a,!a){g(e);return}if(f(a)){v(e,a);return}if(!p(a)){_(e,a);return}b(e)}catch(t){console.error(`Erro na inicialização do painel:`,t),g(e)}}}function g(e){e.innerHTML=`
         <div class="painel-gate-container">
             <div class="painel-gate-card">
                 <div class="painel-gate-icon">
@@ -24,7 +24,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </a>
             </div>
         </div>
-    `,document.getElementById(`btn-login-discord-painel`)?.addEventListener(`click`,_)}function h(e,t){e.innerHTML=`
+    `,document.getElementById(`btn-login-discord-painel`)?.addEventListener(`click`,y)}function _(e,t){e.innerHTML=`
         <div class="painel-gate-container">
             <div class="painel-gate-card">
                 <div class="painel-gate-icon danger">
@@ -50,7 +50,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </button>
             </div>
         </div>
-    `,document.getElementById(`btn-switch-account-painel`)?.addEventListener(`click`,async()=>{await n.auth.signOut(),localStorage.removeItem(`malaca_user_profile`),_()})}function g(e,t){e.innerHTML=`
+    `,document.getElementById(`btn-switch-account-painel`)?.addEventListener(`click`,async()=>{await n.auth.signOut(),localStorage.removeItem(`malaca_user_profile`),y()})}function v(e,t){e.innerHTML=`
         <div class="painel-gate-container">
             <div class="painel-gate-card" style="border-color: rgba(239,68,68,0.5);">
                 <div class="painel-gate-icon danger">
@@ -65,7 +65,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </button>
             </div>
         </div>
-    `,document.getElementById(`btn-banned-logout-painel`)?.addEventListener(`click`,async()=>{await n.auth.signOut(),localStorage.removeItem(`malaca_user_profile`),window.location.href=`/`})}async function _(){try{let e=window.location.origin+`/painel/`,{error:t}=await n.auth.signInWithOAuth({provider:`discord`,options:{redirectTo:e,scopes:`identify email`}});if(t)throw t}catch(e){alert(`Erro ao conectar com o Discord: `+(e.message||`Tente novamente.`))}}function v(e){let t=f(i);e.innerHTML=`
+    `,document.getElementById(`btn-banned-logout-painel`)?.addEventListener(`click`,async()=>{await n.auth.signOut(),localStorage.removeItem(`malaca_user_profile`),window.location.href=`/`})}async function y(){try{let e=window.location.origin+`/painel/`,{error:t}=await n.auth.signInWithOAuth({provider:`discord`,options:{redirectTo:e,scopes:`identify email`}});if(t)throw t}catch(e){alert(`Erro ao conectar com o Discord: `+(e.message||`Tente novamente.`))}}function b(e){let t=m(i);e.innerHTML=`
         <header class="painel-header">
             <div class="painel-brand">
                 <div class="painel-brand-icon">
@@ -144,7 +144,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 <!-- Conteúdo da aba ativa -->
             </main>
         </div>
-    `,document.querySelectorAll(`.painel-nav-item`).forEach(e=>{e.addEventListener(`click`,()=>{let t=e.getAttribute(`data-tab`);t&&y(t)})}),document.getElementById(`btn-painel-logout`)?.addEventListener(`click`,async()=>{confirm(`Deseja realmente encerrar a sessão de administrador?`)&&(await n.auth.signOut(),localStorage.removeItem(`malaca_user_profile`),window.location.href=`/`)}),b(),y(a)}function y(e){a=e,document.querySelectorAll(`.painel-nav-item`).forEach(t=>{t.classList.toggle(`active`,t.getAttribute(`data-tab`)===e)});let t=document.getElementById(`painel-tab-content`);t&&(e===`dashboard`?x(t):e===`users`?S(t):e===`andarilho`?T(t):e===`cities`?E(t):e===`systems`?D(t):e===`settings`&&O(t))}async function b(){try{let{data:e}=await n.from(`profiles`).select(`*`).order(`created_at`,{ascending:!1});if(e){o=e;let t=document.getElementById(`badge-users-count`);t&&(t.textContent=e.length)}let{data:t}=await n.from(`servers`).select(`*`).order(`created_at`,{ascending:!0});if(t){s=t;let e=document.getElementById(`badge-cities-count`);e&&(e.textContent=t.length)}let{data:r}=await n.from(`systems`).select(`*`).order(`created_at`,{ascending:!0});if(r){c=r;let e=document.getElementById(`badge-systems-count`);e&&(e.textContent=r.length)}if(a===`dashboard`){let e=document.getElementById(`painel-tab-content`);e&&x(e)}else a===`users`&&w()}catch(e){console.warn(`Erro ao carregar dados do dashboard:`,e)}}function x(e){e.innerHTML=`
+    `,document.querySelectorAll(`.painel-nav-item`).forEach(e=>{e.addEventListener(`click`,()=>{let t=e.getAttribute(`data-tab`);t&&x(t)})}),document.getElementById(`btn-painel-logout`)?.addEventListener(`click`,async()=>{confirm(`Deseja realmente encerrar a sessão de administrador?`)&&(await n.auth.signOut(),localStorage.removeItem(`malaca_user_profile`),window.location.href=`/`)}),S(),x(a)}function x(e){a=e,document.querySelectorAll(`.painel-nav-item`).forEach(t=>{t.classList.toggle(`active`,t.getAttribute(`data-tab`)===e)});let t=document.getElementById(`painel-tab-content`);t&&(e===`dashboard`?C(t):e===`users`?w(t):e===`andarilho`?D(t):e===`cities`?O(t):e===`systems`?k(t):e===`settings`&&A(t))}async function S(){try{let{data:e}=await n.from(`profiles`).select(`*`).order(`created_at`,{ascending:!1});if(e){o=e;let t=document.getElementById(`badge-users-count`);t&&(t.textContent=e.length)}let{data:t}=await n.from(`servers`).select(`*`).order(`created_at`,{ascending:!0});if(t){s=t;let e=document.getElementById(`badge-cities-count`);e&&(e.textContent=t.length)}let{data:r}=await n.from(`systems`).select(`*`).order(`created_at`,{ascending:!0});if(r){c=r;let e=document.getElementById(`badge-systems-count`);e&&(e.textContent=r.length)}if(a===`dashboard`){let e=document.getElementById(`painel-tab-content`);e&&C(e)}else a===`users`&&E()}catch(e){console.warn(`Erro ao carregar dados do dashboard:`,e)}}function C(e){e.innerHTML=`
         <div class="painel-page-title-area">
             <div>
                 <h1 class="painel-page-title">VISÃO GERAL DA PLATAFORMA</h1>
@@ -159,7 +159,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
             <div class="painel-stat-card">
                 <div class="painel-stat-label"><i class="fa-solid fa-users" style="color: #38bdf8;"></i> Total de Usuários</div>
                 <div class="painel-stat-value" style="color: #38bdf8;">${o.length||0}</div>
-                <div class="painel-stat-sub">${o.filter(e=>e.is_admin===!0||r.includes(e.discord_id)).length} Administradores • ${o.filter(e=>e.is_banned===!0).length} Banidos</div>
+                <div class="painel-stat-sub">${o.filter(e=>e.is_admin===!0||r.includes(e.discord_id)).length} Administradores • ${o.filter(e=>f(e)).length} Banidos</div>
             </div>
 
             <div class="painel-stat-card">
@@ -229,7 +229,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </div>
             </div>
         </div>
-    `}function S(e){e.innerHTML=`
+    `}function w(e){e.innerHTML=`
         <div class="painel-page-title-area">
             <div>
                 <h1 class="painel-page-title">GESTÃO DE USUÁRIOS & ADMINS</h1>
@@ -254,12 +254,12 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </div>
             </div>
         </div>
-    `,document.getElementById(`painel-user-search`)?.addEventListener(`input`,e=>{l=e.target.value.toLowerCase().trim(),w()}),C()}async function C(){try{let{data:e,error:t}=await n.from(`profiles`).select(`*`).order(`created_at`,{ascending:!1});if(!t&&e){o=e;let t=document.getElementById(`badge-users-count`);t&&(t.textContent=e.length)}}catch{}w()}function w(){let e=document.getElementById(`painel-users-list-container`);if(!e)return;let t=o;if(l&&(t=t.filter(e=>{let t=(e.full_name||``).toLowerCase(),n=(e.username||``).toLowerCase(),r=(e.discord_id||``).toLowerCase();return t.includes(l)||n.includes(l)||r.includes(l)})),t.length===0){e.innerHTML=`
+    `,document.getElementById(`painel-user-search`)?.addEventListener(`input`,e=>{l=e.target.value.toLowerCase().trim(),E()}),T()}async function T(){try{let{data:e,error:t}=await n.from(`profiles`).select(`*`).order(`created_at`,{ascending:!1});if(!t&&e){o=e;let t=document.getElementById(`badge-users-count`);t&&(t.textContent=e.length)}}catch{}E()}function E(){let e=document.getElementById(`painel-users-list-container`);if(!e)return;let t=o;if(l&&(t=t.filter(e=>{let t=(e.full_name||``).toLowerCase(),n=(e.username||``).toLowerCase(),r=(e.discord_id||``).toLowerCase();return t.includes(l)||n.includes(l)||r.includes(l)})),t.length===0){e.innerHTML=`
             <div style="padding: 40px; text-align: center; color: #64748b; grid-column: 1 / -1;">
                 <i class="fa-solid fa-user-slash" style="font-size: 32px; margin-bottom: 12px; display: block; color: #475569;"></i>
                 Nenhum usuário encontrado com os termos pesquisados.
             </div>
-        `;return}e.innerHTML=t.map(e=>{let t=String(e.discord_id||``).trim(),n=r.includes(t),i=e.is_admin===!0||n,a=e.is_banned===!0,o=``;return o=n?`<span class="badge-fundador"><i class="fa-solid fa-crown"></i> FUNDADOR</span>`:a?`<span class="badge-banido"><i class="fa-solid fa-ban"></i> BANIDO</span>`:i?`<span class="badge-admin"><i class="fa-solid fa-shield"></i> ADMIN</span>`:`<span class="badge-user">USUÁRIO</span>`,`
+        `;return}e.innerHTML=t.map(e=>{let t=String(e.discord_id||``).trim(),n=r.includes(t),i=e.is_admin===!0||n,a=f(e),o=``;return o=n?`<span class="badge-fundador"><i class="fa-solid fa-crown"></i> FUNDADOR</span>`:a?`<span class="badge-banido"><i class="fa-solid fa-ban"></i> BANIDO</span>`:i?`<span class="badge-admin"><i class="fa-solid fa-shield"></i> ADMIN</span>`:`<span class="badge-user">USUÁRIO</span>`,`
             <div class="painel-user-card" id="user-card-${e.id}">
                 <div class="painel-user-header">
                     <img src="${e.avatar_url||`https://cdn.discordapp.com/embed/avatars/0.png`}" class="painel-user-avatar" alt="Avatar" />
@@ -305,7 +305,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                     `}
                 </div>
             </div>
-        `}).join(``)}window.painelToggleAdmin=async function(e,t,i){if(r.includes(t)&&!i){alert(`O Fundador Superadmin não pode ser rebaixado.`);return}try{let{error:r}=await n.from(`profiles`).update({is_admin:i,role:i?`admin`:`user`}).or(`id.eq.${e},discord_id.eq.${t}`);if(r)throw r;o=o.map(n=>n.id===e||n.discord_id===t?{...n,is_admin:i,role:i?`admin`:`user`}:n),u.send({type:`broadcast`,event:`user_permission_updated`,payload:{userId:e,discordId:t,isAdmin:i}}),w()}catch(e){alert(`Falha ao atualizar permissões de administrador: `+e.message)}},window.painelToggleBan=async function(e,t,i){if(r.includes(t)){alert(`O Fundador Superadmin não pode ser banido.`);return}if(confirm(`Tem certeza que deseja ${i?`banir`:`desbanir`} este usuário?`))try{let r={is_banned:i};i&&(r.is_admin=!1,r.role=`user`);let{error:a}=await n.from(`profiles`).update(r).or(`id.eq.${e},discord_id.eq.${t}`);if(a)throw a;o=o.map(n=>n.id===e||n.discord_id===t?{...n,is_banned:i,is_admin:!i&&n.is_admin,role:i?`user`:n.role}:n),u.send({type:`broadcast`,event:`user_ban_updated`,payload:{userId:e,discordId:t,isBanned:i}}),w()}catch(e){alert(`Falha ao alterar banimento: `+e.message)}},window.painelDeleteUser=async function(e,t){if(r.includes(t)){alert(`O Fundador Superadmin não pode ser excluído.`);return}if(confirm(`Deseja realmente excluir este usuário da plataforma?`))try{let{error:r}=await n.from(`profiles`).delete().or(`id.eq.${e},discord_id.eq.${t}`);if(r)throw r;o=o.filter(n=>n.id!==e&&n.discord_id!==t),w()}catch(e){alert(`Falha ao excluir usuário: `+e.message)}};function T(e){e.innerHTML=`
+        `}).join(``)}window.painelToggleAdmin=async function(e,t,i){if(r.includes(t)&&!i){alert(`O Fundador Superadmin não pode ser rebaixado.`);return}try{let{error:r}=await n.from(`profiles`).update({is_admin:i,role:i?`admin`:`user`}).or(`id.eq.${e},discord_id.eq.${t}`);if(r)throw r;o=o.map(n=>n.id===e||n.discord_id===t?{...n,is_admin:i,role:i?`admin`:`user`}:n),u.send({type:`broadcast`,event:`user_permission_updated`,payload:{userId:e,discordId:t,isAdmin:i}}),E()}catch(e){alert(`Falha ao atualizar permissões de administrador: `+e.message)}},window.painelToggleBan=async function(e,t,i){if(r.includes(t)||r.includes(e)){alert(`O Fundador Superadmin não pode ser banido.`);return}if(confirm(`Tem certeza que deseja ${i?`banir`:`desbanir`} este usuário?`))try{let r={is_banned:i,role:i?`banned`:`user`,...i?{is_admin:!1}:{}},a=await n.from(`profiles`).update(r).or(`id.eq.${e},discord_id.eq.${t}`);if(a.error&&(a.error.message||``).includes(`is_banned`)){console.warn(`Coluna is_banned não encontrada no schema cache, aplicando fallback com role=banned`);let r={role:i?`banned`:`user`,...i?{is_admin:!1}:{}};a=await n.from(`profiles`).update(r).or(`id.eq.${e},discord_id.eq.${t}`)}if(a.error)throw a.error;let s=d();if(i?(t&&!s.includes(t)&&s.push(t),e&&!s.includes(e)&&s.push(e)):s=s.filter(n=>n!==t&&n!==e),localStorage.setItem(`malaca_banned_discord_accounts`,JSON.stringify(s)),i){let n=JSON.parse(localStorage.getItem(`malaca_admin_discord_accounts`)||`[]`);n=n.filter(n=>n!==t&&n!==e),localStorage.setItem(`malaca_admin_discord_accounts`,JSON.stringify(n))}o=o.map(n=>n.id===e||n.discord_id===t?{...n,is_banned:i,is_admin:!i&&n.is_admin,role:i?`banned`:n.is_admin?`admin`:`user`}:n),u.send({type:`broadcast`,event:`user_ban_updated`,payload:{userId:e,discordId:t,isBanned:i}}),E()}catch(e){alert(`Falha ao alterar banimento: `+e.message)}},window.painelDeleteUser=async function(e,t){if(r.includes(t)){alert(`O Fundador Superadmin não pode ser excluído.`);return}if(confirm(`Deseja realmente excluir este usuário da plataforma?`))try{let{error:r}=await n.from(`profiles`).delete().or(`id.eq.${e},discord_id.eq.${t}`);if(r)throw r;o=o.filter(n=>n.id!==e&&n.discord_id!==t),E()}catch(e){alert(`Falha ao excluir usuário: `+e.message)}};function D(e){e.innerHTML=`
         <div class="painel-page-title-area">
             <div>
                 <h1 class="painel-page-title">CICLOS DO ANDARILHO & COORDENADAS</h1>
@@ -348,7 +348,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </div>
             </div>
         </div>
-    `}window.painelTriggerCycleChange=function(){alert(`Virada de ciclo disparada com sucesso! Coordenadas do Andarilho sincronizadas.`)};function E(e){e.innerHTML=`
+    `}window.painelTriggerCycleChange=function(){alert(`Virada de ciclo disparada com sucesso! Coordenadas do Andarilho sincronizadas.`)};function O(e){e.innerHTML=`
         <div class="painel-page-title-area">
             <div>
                 <h1 class="painel-page-title">CIDADES & SERVIDORES</h1>
@@ -374,7 +374,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </div>
             `).join(``)}
         </div>
-    `}function D(e){e.innerHTML=`
+    `}function k(e){e.innerHTML=`
         <div class="painel-page-title-area">
             <div>
                 <h1 class="painel-page-title">SISTEMAS & MINIJOGOS</h1>
@@ -397,7 +397,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </div>
             `).join(``)}
         </div>
-    `}function O(e){e.innerHTML=`
+    `}function A(e){e.innerHTML=`
         <div class="painel-page-title-area">
             <div>
                 <h1 class="painel-page-title">CONFIGURAÇÕES GLOBAIS</h1>
@@ -438,4 +438,4 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </div>
             </div>
         </div>
-    `}window.painelClearCaches=function(){localStorage.removeItem(`malaca_custom_servers`),localStorage.removeItem(`malaca_custom_systems`),localStorage.removeItem(`malaca_admin_users_cache`),alert(`Caches da plataforma limpos com sucesso! Dados sincronizados.`),b()},window.painelRefreshData=function(){b()},window.painelSwitchTab=function(e){y(e)},document.addEventListener(`DOMContentLoaded`,p);
+    `}window.painelClearCaches=function(){localStorage.removeItem(`malaca_custom_servers`),localStorage.removeItem(`malaca_custom_systems`),localStorage.removeItem(`malaca_admin_users_cache`),alert(`Caches da plataforma limpos com sucesso! Dados sincronizados.`),S()},window.painelRefreshData=function(){S()},window.painelSwitchTab=function(e){x(e)},document.addEventListener(`DOMContentLoaded`,h);
