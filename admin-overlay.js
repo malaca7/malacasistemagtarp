@@ -1775,13 +1775,19 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         }
         const newBanned = !currentIsBanned;
         try {
-            // Se banir, automaticamente revoga privilégio de admin
             const updates = {
                 is_banned: newBanned,
-                ...(newBanned ? { is_admin: false, role: 'user' } : {})
+                role: newBanned ? 'banned' : 'user',
+                ...(newBanned ? { is_admin: false } : {})
             };
             try {
-                await supabaseClient.from('profiles').update(updates).or(`id.eq.${id},discord_id.eq.${discordId}`);
+                let res = await supabaseClient.from('profiles').update(updates).or(`id.eq.${id},discord_id.eq.${discordId}`);
+                if (res.error && (res.error.message || '').includes('is_banned')) {
+                    await supabaseClient.from('profiles').update({
+                        role: newBanned ? 'banned' : 'user',
+                        ...(newBanned ? { is_admin: false } : {})
+                    }).or(`id.eq.${id},discord_id.eq.${discordId}`);
+                }
             } catch(e) {}
 
             // Update local banned accounts list

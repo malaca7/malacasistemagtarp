@@ -67,7 +67,7 @@ export const checkAdminPermission = (userOrProfile: any): boolean => {
   }
 
   // Se o usuário estiver banido, perde qualquer privilégio administrativo
-  if (userOrProfile.is_banned === true) {
+  if (userOrProfile.is_banned === true || userOrProfile.role === 'banned') {
     return false;
   }
 
@@ -159,7 +159,7 @@ export const AuthService = {
       try {
         const { data } = await supabase
           .from('profiles')
-          .select('character_name, instagram, twitch, youtube, twitter_x, custom_bio, is_admin, role, is_banned, created_at')
+          .select('*')
           .eq('id', user.id)
           .maybeSingle();
         if (data) existingProfile = data;
@@ -176,10 +176,10 @@ export const AuthService = {
         customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
       } catch (e) {}
 
-      const isBanned = Boolean(!isOfficialFounder && (existingProfile?.is_banned === true || customBanned.includes(String(discordId))));
+      const isBanned = Boolean(!isOfficialFounder && (existingProfile?.is_banned === true || existingProfile?.role === 'banned' || customBanned.includes(String(discordId))));
       const isPromotedAdmin = Boolean(!isBanned && (existingProfile?.is_admin === true || existingProfile?.role === 'admin'));
       const isAdmin = isOfficialFounder || isPromotedAdmin;
-      const userRole = isAdmin ? ('admin' as const) : ('user' as const);
+      const userRole = isBanned ? ('user' as const) : (isAdmin ? ('admin' as const) : ('user' as const));
       const now = new Date().toISOString();
 
       // Se existir cache local, usar como fallback secundário
@@ -192,7 +192,7 @@ export const AuthService = {
       const twitterX = existingProfile?.twitter_x || localCached?.twitter_x || '';
       const customBio = existingProfile?.custom_bio || localCached?.custom_bio || '';
 
-      const profileData = {
+      const profileData: any = {
         id: user.id,
         discord_id: String(discordId),
         username: String(username),
@@ -206,16 +206,22 @@ export const AuthService = {
         twitter_x: twitterX,
         custom_bio: customBio,
         is_admin: isAdmin,
-        role: userRole,
+        role: isBanned ? 'banned' : userRole,
         is_banned: isBanned,
         last_login_at: now,
       };
 
-      // Safely upsert into Supabase profiles table
+      // Safely upsert into Supabase profiles table com fallback para schema cache
       try {
-        await supabase
+        const { error: upsertErr } = await supabase
           .from('profiles')
           .upsert([profileData], { onConflict: 'id' });
+        if (upsertErr && (upsertErr.message || '').includes('is_banned')) {
+          const fallbackData = { ...profileData };
+          delete fallbackData.is_banned;
+          if (isBanned) fallbackData.role = 'banned';
+          await supabase.from('profiles').upsert([fallbackData], { onConflict: 'id' });
+        }
       } catch (err) {
         console.warn('Supabase profiles upsert warning (table may need schema setup):', err);
       }

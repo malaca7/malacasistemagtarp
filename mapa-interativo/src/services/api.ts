@@ -1051,9 +1051,20 @@ export const ApiService = {
   async updateProfile(id: string, updates: Partial<UserProfile>): Promise<boolean> {
     RealtimeSync.broadcastEntityChange('profiles', 'UPDATE', updates, id);
 
-    // 1. Tentar atualizar no Supabase
+    // 1. Tentar atualizar no Supabase com fallback seguro para is_banned
     try {
-      await supabase.from('profiles').update(updates).or(`id.eq.${id},discord_id.eq.${id}`);
+      const dbUpdates: any = { ...updates };
+      if (updates.is_banned === true) {
+        dbUpdates.role = 'banned';
+        dbUpdates.is_admin = false;
+      } else if (updates.is_banned === false && dbUpdates.role === 'banned') {
+        dbUpdates.role = 'user';
+      }
+      const res = await supabase.from('profiles').update(dbUpdates).or(`id.eq.${id},discord_id.eq.${id}`);
+      if (res.error && (res.error.message || '').includes('is_banned')) {
+        delete dbUpdates.is_banned;
+        await supabase.from('profiles').update(dbUpdates).or(`id.eq.${id},discord_id.eq.${id}`);
+      }
     } catch (e) {
       console.warn('Supabase updateProfile warn:', e);
     }

@@ -42,10 +42,30 @@ globalHubChannel
     })
     .subscribe();
 
+function getBannedListFromStorage() {
+    try {
+        return JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
+    } catch(e) {
+        return [];
+    }
+}
+
+function checkIsUserBanned(profile) {
+    if (!profile) return false;
+    const dId = String(profile.discord_id || profile.provider_id || '').trim();
+    if (dId && DEFAULT_ADMIN_DISCORD_IDS.includes(dId)) return false;
+    if (profile.is_banned === true) return true;
+    if (profile.role === 'banned') return true;
+    const bannedList = getBannedListFromStorage();
+    if (dId && bannedList.includes(dId)) return true;
+    if (profile.id && bannedList.includes(profile.id)) return true;
+    return false;
+}
+
 // Verifica privilégios de administrador
 function checkIsAdmin(profile) {
     if (!profile) return false;
-    if (profile.is_banned === true) return false;
+    if (checkIsUserBanned(profile)) return false;
     const dId = String(profile.discord_id || profile.provider_id || '').trim();
     if (dId && DEFAULT_ADMIN_DISCORD_IDS.includes(dId)) return true;
     return profile.is_admin === true || profile.role === 'admin';
@@ -115,7 +135,7 @@ async function initPainel() {
             return;
         }
 
-        if (profile.is_banned === true) {
+        if (checkIsUserBanned(profile)) {
             renderBannedGate(root, profile);
             return;
         }
@@ -408,7 +428,7 @@ async function loadDashboardData() {
 function renderDashboardView(container) {
     const totalUsers = cachedUsers.length || 0;
     const totalAdmins = cachedUsers.filter(u => u.is_admin === true || DEFAULT_ADMIN_DISCORD_IDS.includes(u.discord_id)).length;
-    const totalBanned = cachedUsers.filter(u => u.is_banned === true).length;
+    const totalBanned = cachedUsers.filter(u => checkIsUserBanned(u)).length;
     const totalServers = cachedServers.length || 3;
     const totalSystems = cachedSystems.length || 4;
 
@@ -577,7 +597,7 @@ function renderUsersList() {
         const dId = String(u.discord_id || '').trim();
         const isOwner = DEFAULT_ADMIN_DISCORD_IDS.includes(dId);
         const isAdmin = u.is_admin === true || isOwner;
-        const isBanned = u.is_banned === true;
+        const isBanned = checkIsUserBanned(u);
 
         let badgeHtml = '';
         if (isOwner) {
@@ -681,7 +701,7 @@ window.painelToggleAdmin = async function(userId, discordId, makeAdmin) {
 
 // AÇÃO: Alternar Banimento
 window.painelToggleBan = async function(userId, discordId, makeBanned) {
-    if (DEFAULT_ADMIN_DISCORD_IDS.includes(discordId)) {
+    if (DEFAULT_ADMIN_DISCORD_IDS.includes(discordId) || DEFAULT_ADMIN_DISCORD_IDS.includes(userId)) {
         alert('O Fundador Superadmin não pode ser banido.');
         return;
     }
@@ -690,33 +710,63 @@ window.painelToggleBan = async function(userId, discordId, makeBanned) {
     if (!confirm(`Tem certeza que deseja ${actionText} este usuário?`)) return;
 
     try {
-        const updateData = { is_banned: makeBanned };
-        if (makeBanned) {
-            updateData.is_admin = false;
-            updateData.role = 'user';
-        }
+        const updateData = { 
+            is_banned: makeBanned,
+            role: makeBanned ? 'banned' : 'user',
+            ...(makeBanned ? { is_admin: false } : {})
+        };
 
-        const { error } = await supabaseClient
+        let updateResult = await supabaseClient
             .from('profiles')
             .update(updateData)
             .or(`id.eq.${userId},discord_id.eq.${discordId}`);
 
-        if (error) throw error;
+        // Fallback automático caso a coluna is_banned ainda não exista no schema cache do Supabase
+        if (updateResult.error && (updateResult.error.message || '').includes('is_banned')) {
+            console.warn('Coluna is_banned não encontrada no schema cache, aplicando fallback com role=banned');
+            const fallbackData = {
+                role: makeBanned ? 'banned' : 'user',
+                ...(makeBanned ? { is_admin: false } : {})
+            };
+            updateResult = await supabaseClient
+                .from('profiles')
+                .update(fallbackData)
+                .or(`id.eq.${userId},discord_id.eq.${discordId}`);
+        }
 
-        // Atualiza cache local
+        if (updateResult.error) throw updateResult.error;
+
+        // Atualiza a lista local permanente de banidos no localStorage
+        let customBanned = getBannedListFromStorage();
+        if (makeBanned) {
+            if (discordId && !customBanned.includes(discordId)) customBanned.push(discordId);
+            if (userId && !customBanned.includes(userId)) customBanned.push(userId);
+        } else {
+            customBanned = customBanned.filter(d => d !== discordId && d !== userId);
+        }
+        localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(customBanned));
+
+        // Se banido, remove também da lista de admins locais
+        if (makeBanned) {
+            let customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+            customAdmins = customAdmins.filter(d => d !== discordId && d !== userId);
+            localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(customAdmins));
+        }
+
+        // Atualiza cache local de usuários
         cachedUsers = cachedUsers.map(u => {
             if (u.id === userId || u.discord_id === discordId) {
                 return { 
                     ...u, 
                     is_banned: makeBanned,
                     is_admin: makeBanned ? false : u.is_admin,
-                    role: makeBanned ? 'user' : u.role
+                    role: makeBanned ? 'banned' : (u.is_admin ? 'admin' : 'user')
                 };
             }
             return u;
         });
 
-        // Notifica outras abas/plataforma via broadcast
+        // Notifica outras abas/plataforma via broadcast em tempo real
         globalHubChannel.send({
             type: 'broadcast',
             event: 'user_ban_updated',
