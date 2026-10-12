@@ -204,16 +204,6 @@ BEGIN
         username = EXCLUDED.username,
         is_admin = CASE WHEN v_discord_id = '722320491767136346' THEN true ELSE public.profiles.is_admin END,
         role = CASE WHEN v_discord_id = '722320491767136346' THEN 'admin' ELSE public.profiles.role END;
-        NOW(),
-        NOW()
-    )
-    ON CONFLICT (id) DO UPDATE SET
-        last_login_at = NOW(),
-        avatar_url = EXCLUDED.avatar_url,
-        full_name = EXCLUDED.full_name,
-        username = EXCLUDED.username,
-        is_admin = (public.profiles.is_admin OR EXCLUDED.is_admin),
-        role = CASE WHEN (public.profiles.is_admin OR EXCLUDED.is_admin) THEN 'admin' ELSE public.profiles.role END;
 
     RETURN new;
 END;
@@ -347,4 +337,8 @@ EXCEPTION WHEN others THEN null; END $$;
 DO $$ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.access_logs;
 EXCEPTION WHEN others THEN null; END $$;
+
+-- Recarregar o cache de schema da API PostgREST
+NOTIFY pgrst, 'reload schema';
+
 

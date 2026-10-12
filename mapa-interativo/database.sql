@@ -394,3 +394,7 @@ DO $$ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.access_logs;
 EXCEPTION WHEN others THEN null; END $$;
 
+-- Recarregar o cache de schema da API PostgREST
+NOTIFY pgrst, 'reload schema';
+
+

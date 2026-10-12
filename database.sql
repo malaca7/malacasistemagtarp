@@ -472,3 +472,7 @@ UPDATE public.profiles
 SET is_admin = false, role = 'user'
 WHERE discord_id = '917826984778797087' AND is_admin IS NULL;
 
+-- Recarregar o cache de schema da API PostgREST
+NOTIFY pgrst, 'reload schema';
+
+
