@@ -1,14 +1,14 @@
-import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https://pdzytmdssswiyjwohvwn.supabase.co`,n=e(t,`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkenl0bWRzc3N3aXlqd29odnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1ODI0NjQsImV4cCI6MjEwNzE1ODQ2NH0.RxTwiHG5JRHK02u1eBx3cFXI_3fKYMrxuI2op846FME`,{auth:{persistSession:!0,autoRefreshToken:!0,detectSessionInUrl:!0}}),r=[`722320491767136346`],i=null,a=`dashboard`,o=[],s=[],c=[],l=``,u=n.channel(`malaca_realtime_global_hub`);u.on(`broadcast`,{event:`user_permission_updated`},e=>{e?.payload?.userId===i?.id||e?.payload?.discordId===i?.discord_id?h():T()}).on(`broadcast`,{event:`user_ban_updated`},e=>{e?.payload?.userId===i?.id||e?.payload?.discordId===i?.discord_id?h():T()}).subscribe();function d(){try{return JSON.parse(localStorage.getItem(`malaca_banned_discord_accounts`)||`[]`)}catch{return[]}}function f(e){if(!e)return!1;let t=String(e.discord_id||e.provider_id||``).trim();if(t&&r.includes(t))return!1;if(e.is_banned===!0||e.role===`banned`)return!0;let n=d();return!!(t&&n.includes(t)||e.id&&n.includes(e.id))}function p(e){if(!e||f(e))return!1;let t=String(e.discord_id||e.provider_id||``).trim();return t&&r.includes(t)?!0:e.is_admin===!0||e.role===`admin`}function m(e){if(!e)return!1;let t=String(e.discord_id||e.provider_id||``).trim();return r.includes(t)}n.auth.onAuthStateChange(async(e,t)=>{if(e===`SIGNED_IN`||e===`TOKEN_REFRESHED`||e===`INITIAL_SESSION`)t&&t.user&&(t.user,await h());else if(e===`SIGNED_OUT`){i=null;let e=document.getElementById(`painel-app-root`);e&&g(e)}});async function h(){let e=document.getElementById(`painel-app-root`);if(!e)return;let t=new URLSearchParams(window.location.search),a=new URLSearchParams;window.location.hash&&window.location.hash.includes(`=`)&&(a=new URLSearchParams(window.location.hash.replace(/^#/,``)));let o=t.get(`error`)||a.get(`error`),s=t.get(`error_description`)||a.get(`error_description`);(o||s)&&(window.history.replaceState(null,document.title,window.location.pathname),console.warn(`OAuth Error no painel:`,o,s));let c=window.location.hash.includes(`access_token=`)||window.location.search.includes(`code=`);e.innerHTML=`
+import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https://pdzytmdssswiyjwohvwn.supabase.co`,n=e(t,`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkenl0bWRzc3N3aXlqd29odnduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1ODI0NjQsImV4cCI6MjEwNzE1ODQ2NH0.RxTwiHG5JRHK02u1eBx3cFXI_3fKYMrxuI2op846FME`,{auth:{persistSession:!0,autoRefreshToken:!0,detectSessionInUrl:!0}}),r=[`722320491767136346`],i=null,a=`dashboard`,o=[],s=[],c=[],l=``,u=n.channel(`malaca_realtime_global_hub`);u.on(`broadcast`,{event:`user_permission_updated`},e=>{e?.payload?.userId===i?.id||e?.payload?.discordId===i?.discord_id?g():E()}).on(`broadcast`,{event:`user_ban_updated`},e=>{e?.payload?.userId===i?.id||e?.payload?.discordId===i?.discord_id?g():E()}).subscribe();function d(){try{return JSON.parse(localStorage.getItem(`malaca_banned_discord_accounts`)||`[]`)}catch{return[]}}function f(e){if(!e)return``;if(e.discord_id&&typeof e.discord_id==`string`&&e.discord_id.trim())return e.discord_id.trim();if(Array.isArray(e.identities)&&e.identities.length>0){let t=e.identities.find(e=>e.provider===`discord`)||e.identities[0];if(t){if(t.id)return String(t.id).trim();if(t.identity_data){if(t.identity_data.provider_id)return String(t.identity_data.provider_id).trim();if(t.identity_data.sub)return String(t.identity_data.sub).trim()}}}let t=e.user_metadata||e.raw_user_meta_data||{};return t.provider_id?String(t.provider_id).trim():t.sub&&!String(t.sub).includes(`-`)?String(t.sub).trim():t.id&&!String(t.id).includes(`-`)?String(t.id).trim():e.id&&typeof e.id==`string`&&/^\d{15,22}$/.test(e.id.trim())?e.id.trim():e.sub&&typeof e.sub==`string`&&/^\d{15,22}$/.test(e.sub.trim())?e.sub.trim():``}function p(e){if(!e)return!1;let t=f(e);if(t&&r.includes(t))return!1;if(e.is_banned===!0||e.role===`banned`)return!0;let n=d();return!!(t&&n.includes(t)||e.id&&n.includes(e.id))}function m(e){if(!e||p(e))return!1;let t=f(e);return t&&r.includes(t)?!0:e.is_admin===!0||e.role===`admin`}function h(e){if(!e)return!1;let t=f(e);return r.includes(t)}n.auth.onAuthStateChange(async(e,t)=>{if(e===`SIGNED_IN`||e===`TOKEN_REFRESHED`||e===`INITIAL_SESSION`||e===`USER_UPDATED`)t&&t.user&&(t.user,await g());else if(e===`SIGNED_OUT`){i=null,localStorage.removeItem(`malaca_user_profile`);let e=document.getElementById(`painel-app-root`);e&&_(e)}});async function g(){let e=document.getElementById(`painel-app-root`);if(!e)return;let t=new URLSearchParams(window.location.search),a=new URLSearchParams;window.location.hash&&window.location.hash.includes(`=`)&&(a=new URLSearchParams(window.location.hash.replace(/^#/,``)));let o=t.get(`error`)||a.get(`error`),s=t.get(`error_description`)||a.get(`error_description`);(o||s)&&(window.history.replaceState(null,document.title,window.location.pathname),console.warn(`OAuth Error no painel:`,o,s));let c=window.location.hash.includes(`access_token=`)||window.location.search.includes(`code=`);e.innerHTML=`
         <div class="painel-gate-container">
             <div style="text-align: center; color: #94a3b8;">
                 <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: #00d2ff; margin-bottom: 16px;"></i>
                 <h3 style="font-family: var(--font-heading); font-size: 1.2rem; color: #fff; margin-bottom: 8px;">
-                    ${c?`Concluindo Autenticação Discord...`:`Autenticando Acesso ao Painel...`}
+                    ${c?`Concluindo Autenticação Discord...`:`Verificando Sessão Discord...`}
                 </h3>
-                <p style="font-size: 0.85rem;">Validando credenciais administrativas no Supabase.</p>
+                <p style="font-size: 0.85rem;">Validando credenciais do Supabase.</p>
             </div>
         </div>
-    `;try{let{data:{session:t}}=await n.auth.getSession();if(!t&&c)for(let e=0;e<6;e++){await new Promise(e=>setTimeout(e,250));let e=await n.auth.getSession();if(e.data?.session){t=e.data.session;break}}let a=null;if(t&&t.user){t.user;let e=t.user.user_metadata?.provider_id||t.user.user_metadata?.sub||t.user.id,i=r.includes(String(e)),{data:o}=await n.from(`profiles`).select(`id, discord_id, username, full_name, avatar_url, email, is_admin, role, created_at, last_login_at`).or(`id.eq.${t.user.id},discord_id.eq.${e}`).maybeSingle(),s=i||o&&(o.is_admin===!0||o.role===`admin`),l=s?`admin`:o?.role||`user`,u=new Date().toISOString();a={id:t.user.id,discord_id:String(e),username:t.user.user_metadata?.preferred_username||t.user.user_metadata?.full_name||o?.username||`Admin`,full_name:t.user.user_metadata?.full_name||t.user.user_metadata?.name||o?.full_name||`Administrador`,avatar_url:t.user.user_metadata?.avatar_url||o?.avatar_url||`https://cdn.discordapp.com/embed/avatars/0.png`,email:t.user.email||o?.email,is_admin:s,role:l,created_at:o?.created_at||t.user.created_at||u,last_login_at:u};let d={id:t.user.id,discord_id:String(e),username:a.username,full_name:a.full_name,avatar_url:a.avatar_url,email:a.email||void 0,is_admin:s,role:l,last_login_at:u};n.from(`profiles`).upsert([d],{onConflict:`id`}).catch(()=>{}),c&&window.history.replaceState(null,``,window.location.pathname)}else{let e=localStorage.getItem(`malaca_user_profile`);if(e)try{let t=JSON.parse(e);t&&(t.is_admin===!0||t.role===`admin`||r.includes(String(t.discord_id)))&&(a=t)}catch{}}if(i=a,!a){g(e);return}if(localStorage.setItem(`malaca_user_profile`,JSON.stringify(a)),f(a)){v(e,a);return}if(!p(a)){_(e,a);return}b(e)}catch(t){console.error(`Erro na inicialização do painel:`,t),g(e)}}function g(e){e.innerHTML=`
+    `;try{let{data:{session:t}}=await n.auth.getSession();if(!t&&c)for(let e=0;e<6;e++){await new Promise(e=>setTimeout(e,250));let e=await n.auth.getSession();if(e.data?.session){t=e.data.session;break}}let a=null;if(t&&t.user){t.user;let e=f(t.user),i=r.includes(String(e)),o=null;try{let{data:r}=await n.from(`profiles`).select(`id, discord_id, username, full_name, avatar_url, email, is_admin, role, created_at, last_login_at`).or(`id.eq.${t.user.id},discord_id.eq.${e}`).maybeSingle();r&&(o=r)}catch{}let s=i||o&&(o.is_admin===!0||o.role===`admin`),l=s?`admin`:o?.role||`user`,u=new Date().toISOString(),d=t.user.user_metadata||{};a={id:t.user.id,discord_id:String(e),username:d.preferred_username||d.global_name||d.name||o?.username||`Discord User`,full_name:d.full_name||d.global_name||d.name||o?.full_name||`Usuário`,avatar_url:d.avatar_url||d.picture||o?.avatar_url||`https://cdn.discordapp.com/embed/avatars/0.png`,email:t.user.email||o?.email,is_admin:s,role:l,created_at:o?.created_at||t.user.created_at||u,last_login_at:u};let p={id:t.user.id,discord_id:String(e),username:a.username,full_name:a.full_name,avatar_url:a.avatar_url,email:a.email||void 0,is_admin:s,role:l,last_login_at:u};n.from(`profiles`).upsert([p],{onConflict:`id`}).catch(()=>{}),c&&window.history.replaceState(null,``,window.location.pathname)}if(i=a,!a){localStorage.removeItem(`malaca_user_profile`),_(e);return}if(localStorage.setItem(`malaca_user_profile`,JSON.stringify(a)),p(a)){y(e,a);return}if(!m(a)){v(e,a);return}x(e)}catch(t){console.error(`Erro na inicialização do painel:`,t),_(e)}}function _(e){e.innerHTML=`
         <div class="painel-gate-container">
             <div class="painel-gate-card">
                 <div class="painel-gate-icon">
@@ -16,35 +16,19 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </div>
                 <h2 class="painel-gate-title">ACESSO ADMINISTRATIVO</h2>
                 <p class="painel-gate-desc">
-                    O <strong>Painel Administrativo do Malaca System GTARP</strong> é uma área independente de alta segurança. Faça login com uma conta Discord autorizada para gerenciar a plataforma.
+                    O <strong>Painel Administrativo do Malaca System GTARP</strong> é restrito a administradores autorizados. Faça login com sua conta Discord oficial conectada ao Supabase.
                 </p>
                 
-                <button id="btn-login-discord-painel" class="btn-gate-primary" style="margin-bottom: 12px;">
+                <button id="btn-login-discord-painel" class="btn-gate-primary" style="margin-bottom: 14px;">
                     <i class="fa-brands fa-discord" style="font-size: 1.2rem;"></i> ENTRAR COM O DISCORD
                 </button>
-
-                <div style="display: flex; align-items: center; gap: 10px; margin: 14px 0 16px; color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase;">
-                    <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
-                    <span>OU ACESSO DIRETO POR ID</span>
-                    <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; text-align: left;">
-                    <label style="font-size: 11px; font-weight: 700; color: #94a3b8;"><i class="fa-solid fa-id-card"></i> ID Discord do Administrador / Fundador:</label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="text" id="painel-direct-id-input" placeholder="Ex: 722320491767136346" value="722320491767136346" style="flex: 1; padding: 10px 14px; border-radius: 10px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,210,255,0.3); color: #fff; font-family: monospace; font-size: 13px;" />
-                        <button id="btn-painel-direct-login" class="btn-gate-primary" style="width: auto; padding: 10px 16px; font-size: 11px;">
-                            <i class="fa-solid fa-key"></i> ENTRAR
-                        </button>
-                    </div>
-                </div>
 
                 <a href="/" class="btn-gate-secondary">
                     <i class="fa-solid fa-arrow-left"></i> Voltar à Página Inicial
                 </a>
             </div>
         </div>
-    `,document.getElementById(`btn-login-discord-painel`)?.addEventListener(`click`,y),document.getElementById(`btn-painel-direct-login`)?.addEventListener(`click`,async()=>{let t=document.getElementById(`painel-direct-id-input`),a=String(t?.value||``).trim();if(!a){alert(`Por favor, informe seu ID Discord de administrador.`);return}let o=r.includes(a),s=o,c=null;if(!s)try{let{data:e}=await n.from(`profiles`).select(`*`).eq(`discord_id`,a).maybeSingle();e&&(e.is_admin===!0||e.role===`admin`)&&(s=!0,c=e)}catch{}if(s){let t={id:c?.id||`admin-`+a,discord_id:a,username:c?.username||(o?`MALACA7X`:`Administrador`),full_name:c?.full_name||(o?`MALACA7X`:`Administrador`),avatar_url:c?.avatar_url||`https://cdn.discordapp.com/embed/avatars/0.png`,is_admin:!0,role:`admin`,created_at:c?.created_at||new Date().toISOString(),last_login_at:new Date().toISOString()};i=t,localStorage.setItem(`malaca_user_profile`,JSON.stringify(t)),b(e)}else alert(`O ID Discord informado não possui permissões administrativas ativas.`)})}function _(e,t){e.innerHTML=`
+    `,document.getElementById(`btn-login-discord-painel`)?.addEventListener(`click`,b)}function v(e,t){e.innerHTML=`
         <div class="painel-gate-container">
             <div class="painel-gate-card">
                 <div class="painel-gate-icon danger">
@@ -70,7 +54,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </button>
             </div>
         </div>
-    `,document.getElementById(`btn-switch-account-painel`)?.addEventListener(`click`,async()=>{await n.auth.signOut(),localStorage.removeItem(`malaca_user_profile`),y()})}function v(e,t){e.innerHTML=`
+    `,document.getElementById(`btn-switch-account-painel`)?.addEventListener(`click`,async()=>{await n.auth.signOut(),localStorage.removeItem(`malaca_user_profile`),b()})}function y(e,t){e.innerHTML=`
         <div class="painel-gate-container">
             <div class="painel-gate-card" style="border-color: rgba(239,68,68,0.5);">
                 <div class="painel-gate-icon danger">
@@ -85,7 +69,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </button>
             </div>
         </div>
-    `,document.getElementById(`btn-banned-logout-painel`)?.addEventListener(`click`,async()=>{await n.auth.signOut(),localStorage.removeItem(`malaca_user_profile`),window.location.href=`/`})}async function y(){try{let e=document.getElementById(`btn-login-discord-painel`);e&&(e.disabled=!0,e.innerHTML=`<i class="fa-solid fa-spinner fa-spin"></i> Redirecionando para o Discord...`);let t=window.location.origin;(window.location.hostname.includes(`cda.malaca.com.br`)||window.location.hostname.includes(`malaca.com.br`))&&(t=`https://cda.malaca.com.br`);let r=t+`/painel/`,{error:i}=await n.auth.signInWithOAuth({provider:`discord`,options:{redirectTo:r,scopes:`identify email`}});if(i)throw i}catch(e){alert(`Erro ao conectar com o Discord: `+(e.message||`Tente novamente.`));let t=document.getElementById(`btn-login-discord-painel`);t&&(t.disabled=!1,t.innerHTML=`<i class="fa-brands fa-discord" style="font-size: 1.2rem;"></i> ENTRAR COM O DISCORD`)}}function b(e){let t=m(i);e.innerHTML=`
+    `,document.getElementById(`btn-banned-logout-painel`)?.addEventListener(`click`,async()=>{await n.auth.signOut(),localStorage.removeItem(`malaca_user_profile`),window.location.href=`/`})}async function b(){try{let e=document.getElementById(`btn-login-discord-painel`);e&&(e.disabled=!0,e.innerHTML=`<i class="fa-solid fa-spinner fa-spin"></i> Redirecionando para o Discord...`);let t=window.location.origin;(window.location.hostname.includes(`cda.malaca.com.br`)||window.location.hostname.includes(`malaca.com.br`))&&(t=`https://cda.malaca.com.br`);let r=t+`/painel/`,{error:i}=await n.auth.signInWithOAuth({provider:`discord`,options:{redirectTo:r,scopes:`identify email`}});if(i)throw i}catch(e){alert(`Erro ao conectar com o Discord: `+(e.message||`Tente novamente.`));let t=document.getElementById(`btn-login-discord-painel`);t&&(t.disabled=!1,t.innerHTML=`<i class="fa-brands fa-discord" style="font-size: 1.2rem;"></i> ENTRAR COM O DISCORD`)}}function x(e){let t=h(i);e.innerHTML=`
         <header class="painel-header">
             <div class="painel-brand">
                 <div class="painel-brand-icon">
@@ -164,7 +148,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 <!-- Conteúdo da aba ativa -->
             </main>
         </div>
-    `,document.querySelectorAll(`.painel-nav-item`).forEach(e=>{e.addEventListener(`click`,()=>{let t=e.getAttribute(`data-tab`);t&&x(t)})}),document.getElementById(`btn-painel-logout`)?.addEventListener(`click`,async()=>{confirm(`Deseja realmente encerrar a sessão de administrador?`)&&(await n.auth.signOut(),localStorage.removeItem(`malaca_user_profile`),window.location.href=`/`)}),S(),x(a)}function x(e){a=e,document.querySelectorAll(`.painel-nav-item`).forEach(t=>{t.classList.toggle(`active`,t.getAttribute(`data-tab`)===e)});let t=document.getElementById(`painel-tab-content`);t&&(e===`dashboard`?C(t):e===`users`?w(t):e===`andarilho`?D(t):e===`cities`?O(t):e===`systems`?k(t):e===`settings`&&A(t))}async function S(){try{let{data:e}=await n.from(`profiles`).select(`*`).order(`created_at`,{ascending:!1});if(e){o=e;let t=document.getElementById(`badge-users-count`);t&&(t.textContent=e.length)}let{data:t}=await n.from(`servers`).select(`*`).order(`created_at`,{ascending:!0});if(t){s=t;let e=document.getElementById(`badge-cities-count`);e&&(e.textContent=t.length)}let{data:r}=await n.from(`systems`).select(`*`).order(`created_at`,{ascending:!0});if(r){c=r;let e=document.getElementById(`badge-systems-count`);e&&(e.textContent=r.length)}if(a===`dashboard`){let e=document.getElementById(`painel-tab-content`);e&&C(e)}else a===`users`&&E()}catch(e){console.warn(`Erro ao carregar dados do dashboard:`,e)}}function C(e){e.innerHTML=`
+    `,document.querySelectorAll(`.painel-nav-item`).forEach(e=>{e.addEventListener(`click`,()=>{let t=e.getAttribute(`data-tab`);t&&S(t)})}),document.getElementById(`btn-painel-logout`)?.addEventListener(`click`,async()=>{confirm(`Deseja realmente encerrar a sessão de administrador?`)&&(await n.auth.signOut(),localStorage.removeItem(`malaca_user_profile`),window.location.href=`/`)}),C(),S(a)}function S(e){a=e,document.querySelectorAll(`.painel-nav-item`).forEach(t=>{t.classList.toggle(`active`,t.getAttribute(`data-tab`)===e)});let t=document.getElementById(`painel-tab-content`);t&&(e===`dashboard`?w(t):e===`users`?T(t):e===`andarilho`?O(t):e===`cities`?k(t):e===`systems`?A(t):e===`settings`&&j(t))}async function C(){try{let{data:e}=await n.from(`profiles`).select(`*`).order(`created_at`,{ascending:!1});if(e){o=e;let t=document.getElementById(`badge-users-count`);t&&(t.textContent=e.length)}let{data:t}=await n.from(`servers`).select(`*`).order(`created_at`,{ascending:!0});if(t){s=t;let e=document.getElementById(`badge-cities-count`);e&&(e.textContent=t.length)}let{data:r}=await n.from(`systems`).select(`*`).order(`created_at`,{ascending:!0});if(r){c=r;let e=document.getElementById(`badge-systems-count`);e&&(e.textContent=r.length)}if(a===`dashboard`){let e=document.getElementById(`painel-tab-content`);e&&w(e)}else a===`users`&&D()}catch(e){console.warn(`Erro ao carregar dados do dashboard:`,e)}}function w(e){e.innerHTML=`
         <div class="painel-page-title-area">
             <div>
                 <h1 class="painel-page-title">VISÃO GERAL DA PLATAFORMA</h1>
@@ -179,7 +163,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
             <div class="painel-stat-card">
                 <div class="painel-stat-label"><i class="fa-solid fa-users" style="color: #38bdf8;"></i> Total de Usuários</div>
                 <div class="painel-stat-value" style="color: #38bdf8;">${o.length||0}</div>
-                <div class="painel-stat-sub">${o.filter(e=>e.is_admin===!0||r.includes(e.discord_id)).length} Administradores • ${o.filter(e=>f(e)).length} Banidos</div>
+                <div class="painel-stat-sub">${o.filter(e=>e.is_admin===!0||r.includes(e.discord_id)).length} Administradores • ${o.filter(e=>p(e)).length} Banidos</div>
             </div>
 
             <div class="painel-stat-card">
@@ -249,7 +233,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </div>
             </div>
         </div>
-    `}function w(e){e.innerHTML=`
+    `}function T(e){e.innerHTML=`
         <div class="painel-page-title-area">
             <div>
                 <h1 class="painel-page-title">GESTÃO DE USUÁRIOS & ADMINS</h1>
@@ -274,12 +258,12 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </div>
             </div>
         </div>
-    `,document.getElementById(`painel-user-search`)?.addEventListener(`input`,e=>{l=e.target.value.toLowerCase().trim(),E()}),T()}async function T(){try{let{data:e,error:t}=await n.from(`profiles`).select(`*`).order(`created_at`,{ascending:!1});if(!t&&e){o=e;let t=document.getElementById(`badge-users-count`);t&&(t.textContent=e.length)}}catch{}E()}function E(){let e=document.getElementById(`painel-users-list-container`);if(!e)return;let t=o;if(l&&(t=t.filter(e=>{let t=(e.full_name||``).toLowerCase(),n=(e.username||``).toLowerCase(),r=(e.discord_id||``).toLowerCase();return t.includes(l)||n.includes(l)||r.includes(l)})),t.length===0){e.innerHTML=`
+    `,document.getElementById(`painel-user-search`)?.addEventListener(`input`,e=>{l=e.target.value.toLowerCase().trim(),D()}),E()}async function E(){try{let{data:e,error:t}=await n.from(`profiles`).select(`*`).order(`created_at`,{ascending:!1});if(!t&&e){o=e;let t=document.getElementById(`badge-users-count`);t&&(t.textContent=e.length)}}catch{}D()}function D(){let e=document.getElementById(`painel-users-list-container`);if(!e)return;let t=o;if(l&&(t=t.filter(e=>{let t=(e.full_name||``).toLowerCase(),n=(e.username||``).toLowerCase(),r=(e.discord_id||``).toLowerCase();return t.includes(l)||n.includes(l)||r.includes(l)})),t.length===0){e.innerHTML=`
             <div style="padding: 40px; text-align: center; color: #64748b; grid-column: 1 / -1;">
                 <i class="fa-solid fa-user-slash" style="font-size: 32px; margin-bottom: 12px; display: block; color: #475569;"></i>
                 Nenhum usuário encontrado com os termos pesquisados.
             </div>
-        `;return}e.innerHTML=t.map(e=>{let t=String(e.discord_id||``).trim(),n=r.includes(t),i=e.is_admin===!0||n,a=f(e),o=``;return o=n?`<span class="badge-fundador"><i class="fa-solid fa-crown"></i> FUNDADOR</span>`:a?`<span class="badge-banido"><i class="fa-solid fa-ban"></i> BANIDO</span>`:i?`<span class="badge-admin"><i class="fa-solid fa-shield"></i> ADMIN</span>`:`<span class="badge-user">USUÁRIO</span>`,`
+        `;return}e.innerHTML=t.map(e=>{let t=String(e.discord_id||``).trim(),n=r.includes(t),i=e.is_admin===!0||n,a=p(e),o=``;return o=n?`<span class="badge-fundador"><i class="fa-solid fa-crown"></i> FUNDADOR</span>`:a?`<span class="badge-banido"><i class="fa-solid fa-ban"></i> BANIDO</span>`:i?`<span class="badge-admin"><i class="fa-solid fa-shield"></i> ADMIN</span>`:`<span class="badge-user">USUÁRIO</span>`,`
             <div class="painel-user-card" id="user-card-${e.id}">
                 <div class="painel-user-header">
                     <img src="${e.avatar_url||`https://cdn.discordapp.com/embed/avatars/0.png`}" class="painel-user-avatar" alt="Avatar" />
@@ -325,7 +309,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                     `}
                 </div>
             </div>
-        `}).join(``)}window.painelToggleAdmin=async function(e,t,i){if(r.includes(t)&&!i){alert(`O Fundador Superadmin não pode ser rebaixado.`);return}try{let{error:r}=await n.from(`profiles`).update({is_admin:i,role:i?`admin`:`user`}).or(`id.eq.${e},discord_id.eq.${t}`);if(r)throw r;o=o.map(n=>n.id===e||n.discord_id===t?{...n,is_admin:i,role:i?`admin`:`user`}:n),u.send({type:`broadcast`,event:`user_permission_updated`,payload:{userId:e,discordId:t,isAdmin:i}}),E()}catch(e){alert(`Falha ao atualizar permissões de administrador: `+e.message)}},window.painelToggleBan=async function(e,t,i){if(r.includes(t)||r.includes(e)){alert(`O Fundador Superadmin não pode ser banido.`);return}if(confirm(`Tem certeza que deseja ${i?`banir`:`desbanir`} este usuário?`))try{let r={role:i?`banned`:`user`,...i?{is_admin:!1}:{}},a=await n.from(`profiles`).update(r).or(`id.eq.${e},discord_id.eq.${t}`);if(a.error)throw a.error;let s=d();if(i?(t&&!s.includes(t)&&s.push(t),e&&!s.includes(e)&&s.push(e)):s=s.filter(n=>n!==t&&n!==e),localStorage.setItem(`malaca_banned_discord_accounts`,JSON.stringify(s)),i){let n=JSON.parse(localStorage.getItem(`malaca_admin_discord_accounts`)||`[]`);n=n.filter(n=>n!==t&&n!==e),localStorage.setItem(`malaca_admin_discord_accounts`,JSON.stringify(n))}o=o.map(n=>n.id===e||n.discord_id===t?{...n,is_banned:i,is_admin:!i&&n.is_admin,role:i?`banned`:n.is_admin?`admin`:`user`}:n),u.send({type:`broadcast`,event:`user_ban_updated`,payload:{userId:e,discordId:t,isBanned:i}}),E()}catch(e){alert(`Falha ao alterar banimento: `+e.message)}},window.painelDeleteUser=async function(e,t){if(r.includes(t)){alert(`O Fundador Superadmin não pode ser excluído.`);return}if(confirm(`Deseja realmente excluir este usuário da plataforma?`))try{let{error:r}=await n.from(`profiles`).delete().or(`id.eq.${e},discord_id.eq.${t}`);if(r)throw r;o=o.filter(n=>n.id!==e&&n.discord_id!==t),E()}catch(e){alert(`Falha ao excluir usuário: `+e.message)}};function D(e){e.innerHTML=`
+        `}).join(``)}window.painelToggleAdmin=async function(e,t,i){if(r.includes(t)&&!i){alert(`O Fundador Superadmin não pode ser rebaixado.`);return}try{let{error:r}=await n.from(`profiles`).update({is_admin:i,role:i?`admin`:`user`}).or(`id.eq.${e},discord_id.eq.${t}`);if(r)throw r;o=o.map(n=>n.id===e||n.discord_id===t?{...n,is_admin:i,role:i?`admin`:`user`}:n),u.send({type:`broadcast`,event:`user_permission_updated`,payload:{userId:e,discordId:t,isAdmin:i}}),D()}catch(e){alert(`Falha ao atualizar permissões de administrador: `+e.message)}},window.painelToggleBan=async function(e,t,i){if(r.includes(t)||r.includes(e)){alert(`O Fundador Superadmin não pode ser banido.`);return}if(confirm(`Tem certeza que deseja ${i?`banir`:`desbanir`} este usuário?`))try{let r={role:i?`banned`:`user`,...i?{is_admin:!1}:{}},a=await n.from(`profiles`).update(r).or(`id.eq.${e},discord_id.eq.${t}`);if(a.error)throw a.error;let s=d();if(i?(t&&!s.includes(t)&&s.push(t),e&&!s.includes(e)&&s.push(e)):s=s.filter(n=>n!==t&&n!==e),localStorage.setItem(`malaca_banned_discord_accounts`,JSON.stringify(s)),i){let n=JSON.parse(localStorage.getItem(`malaca_admin_discord_accounts`)||`[]`);n=n.filter(n=>n!==t&&n!==e),localStorage.setItem(`malaca_admin_discord_accounts`,JSON.stringify(n))}o=o.map(n=>n.id===e||n.discord_id===t?{...n,is_banned:i,is_admin:!i&&n.is_admin,role:i?`banned`:n.is_admin?`admin`:`user`}:n),u.send({type:`broadcast`,event:`user_ban_updated`,payload:{userId:e,discordId:t,isBanned:i}}),D()}catch(e){alert(`Falha ao alterar banimento: `+e.message)}},window.painelDeleteUser=async function(e,t){if(r.includes(t)){alert(`O Fundador Superadmin não pode ser excluído.`);return}if(confirm(`Deseja realmente excluir este usuário da plataforma?`))try{let{error:r}=await n.from(`profiles`).delete().or(`id.eq.${e},discord_id.eq.${t}`);if(r)throw r;o=o.filter(n=>n.id!==e&&n.discord_id!==t),D()}catch(e){alert(`Falha ao excluir usuário: `+e.message)}};function O(e){e.innerHTML=`
         <div class="painel-page-title-area">
             <div>
                 <h1 class="painel-page-title">CICLOS DO ANDARILHO & COORDENADAS</h1>
@@ -368,7 +352,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </div>
             </div>
         </div>
-    `}window.painelTriggerCycleChange=function(){alert(`Virada de ciclo disparada com sucesso! Coordenadas do Andarilho sincronizadas.`)};function O(e){e.innerHTML=`
+    `}window.painelTriggerCycleChange=function(){alert(`Virada de ciclo disparada com sucesso! Coordenadas do Andarilho sincronizadas.`)};function k(e){e.innerHTML=`
         <div class="painel-page-title-area">
             <div>
                 <h1 class="painel-page-title">CIDADES & SERVIDORES</h1>
@@ -394,7 +378,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </div>
             `).join(``)}
         </div>
-    `}function k(e){e.innerHTML=`
+    `}function A(e){e.innerHTML=`
         <div class="painel-page-title-area">
             <div>
                 <h1 class="painel-page-title">SISTEMAS & MINIJOGOS</h1>
@@ -417,7 +401,7 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </div>
             `).join(``)}
         </div>
-    `}function A(e){e.innerHTML=`
+    `}function j(e){e.innerHTML=`
         <div class="painel-page-title-area">
             <div>
                 <h1 class="painel-page-title">CONFIGURAÇÕES GLOBAIS</h1>
@@ -458,4 +442,4 @@ import{t as e}from"./dist-C4Qc8-Kv.js";/* empty css               */var t=`https
                 </div>
             </div>
         </div>
-    `}window.painelClearCaches=function(){localStorage.removeItem(`malaca_custom_servers`),localStorage.removeItem(`malaca_custom_systems`),localStorage.removeItem(`malaca_admin_users_cache`),alert(`Caches da plataforma limpos com sucesso! Dados sincronizados.`),S()},window.painelRefreshData=function(){S()},window.painelSwitchTab=function(e){x(e)},document.addEventListener(`DOMContentLoaded`,h);
+    `}window.painelClearCaches=function(){localStorage.removeItem(`malaca_custom_servers`),localStorage.removeItem(`malaca_custom_systems`),localStorage.removeItem(`malaca_admin_users_cache`),alert(`Caches da plataforma limpos com sucesso! Dados sincronizados.`),C()},window.painelRefreshData=function(){C()},window.painelSwitchTab=function(e){S(e)},document.addEventListener(`DOMContentLoaded`,g);
