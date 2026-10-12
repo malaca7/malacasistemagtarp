@@ -41,7 +41,9 @@ export default defineConfig({
         mapa: resolve(__dirname, 'mapa-interativo/index.html'),
         lockpick: resolve(__dirname, 'lockpick/index.html'),
         caixinha: resolve(__dirname, 'caixinha/index.html'),
-        hacking: resolve(__dirname, 'hacking/index.html')
+        hacking: resolve(__dirname, 'hacking/index.html'),
+        painel: resolve(__dirname, 'painel/index.html'),
+        admin: resolve(__dirname, 'admin/index.html')
       }
     }
   }

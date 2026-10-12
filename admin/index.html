@@ -24,12 +24,7 @@
                 }
             } catch(e) {}
 
-            if (isAdmin) {
-                window.location.replace('../mapa-interativo/?cidade=cda&admin=true');
-            } else {
-                alert('Acesso restrito: O painel de administração está disponível apenas para administradores autorizados.');
-                window.location.replace('../');
-            }
+            window.location.replace('/painel/');
         })();
     </script>
 </head>

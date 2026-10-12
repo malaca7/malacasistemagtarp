@@ -293,38 +293,8 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         document.getElementById('global-discord-modal').classList.remove('active');
     };
 
-    window.openGlobalAdminModal = async function () {
-        const modal = document.getElementById('global-admin-modal');
-        if (!modal) return;
-
-        if (!isAuthenticated) {
-            if (getSavedAdminState()) {
-                isAuthenticated = true;
-                updateAdminUiVisibility(true);
-            } else {
-                try {
-                    const { data: { session } } = await supabaseClient.auth.getSession();
-                    if (session && session.user && checkAdminPermission(session.user)) {
-                        isAuthenticated = true;
-                        updateAdminUiVisibility(true);
-                    }
-                } catch (e) {}
-            }
-        }
-
-        if (!isAuthenticated) {
-            const stored = localStorage.getItem('malaca_user_profile');
-            if (stored) {
-                showAccessRestrictedToast('Acesso restrito: sua conta não possui privilégios de administrador.');
-            } else {
-                showAccessRestrictedToast('Faça login com sua conta de administrador.');
-                window.openDiscordModal();
-            }
-            return;
-        }
-
-        modal.classList.add('active');
-        renderAdminContent();
+    window.openGlobalAdminModal = function () {
+        window.location.href = '/painel/';
     };
 
     window.closeGlobalAdminModal = function () {
