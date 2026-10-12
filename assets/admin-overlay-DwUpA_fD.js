@@ -214,11 +214,24 @@ import{t as e}from"./dist-C4Qc8-Kv.js";var t=e(`https://pdzytmdssswiyjwohvwn.sup
                     </div>
                 `:`
                     <div style="padding: 4px 0;">
-                        <div style="background: rgba(0,210,255,0.06); border: 1px solid rgba(0,210,255,0.2); border-radius: 12px; padding: 12px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
-                            <i class="fa-solid fa-user-plus" style="font-size: 20px; color: #00d2ff;"></i>
-                            <div style="font-size: 11px; color: #cbd5e1; line-height: 1.4;">
-                                <strong style="color: #fff;">Novo Perfil de Jogador:</strong> Registre sua identidade no RP para explorar os mapas, ferramentas e sistemas.
+                        <!-- Cadastro Oficial com Discord (Herói) -->
+                        <div style="text-align: center; padding: 4px 0 16px;">
+                            <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(88,101,242,0.15); border: 2px solid #5865F2; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: #5865F2; font-size: 24px; box-shadow: 0 0 20px rgba(88,101,242,0.3);">
+                                <i class="fa-brands fa-discord"></i>
                             </div>
+                            <h3 style="font-size: 16px; font-weight: 900; color: #fff; margin-bottom: 4px;">CADASTRO OFICIAL DISCORD</h3>
+                            <p style="font-size: 11px; color: #94a3b8; line-height: 1.5; margin-bottom: 14px;">
+                                Crie sua conta automaticamente no Supabase sincronizando seu Nickname, Avatar e ID oficial do Discord.
+                            </p>
+                            <button onclick="loginWithDiscordGlobal()" id="btn-register-discord-global" style="width: 100%; padding: 13px; border-radius: 12px; background: linear-gradient(135deg, #5865F2, #4752C4); color: #fff; font-size: 13px; font-weight: 800; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 24px rgba(88,101,242,0.35); transition: all 0.2s ease;">
+                                <i class="fa-brands fa-discord" style="font-size: 18px;"></i> CADASTRAR-SE COM O DISCORD
+                            </button>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 10px; margin: 12px 0 16px; color: #64748b; font-size: 10px; font-weight: 800; text-transform: uppercase;">
+                            <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+                            <span>OU CADASTRO MANUAL DE PERSONAGEM</span>
+                            <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
                         </div>
 
                         <form onsubmit="window.handlePlayerRegister(event)">
@@ -787,13 +800,48 @@ import{t as e}from"./dist-C4Qc8-Kv.js";var t=e(`https://pdzytmdssswiyjwohvwn.sup
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <button id="btn-oauth-direct-login" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #00d2ff, #2563eb); border: none; border-radius: 12px; color: #fff; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 20px rgba(0,210,255,0.3);">
+                    <button id="btn-open-supabase-sql" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 12px; color: #fff; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(16,185,129,0.3);">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> ABRIR SUPABASE SQL EDITOR (COPIAR & EXECUTAR)
+                    </button>
+
+                    <button id="btn-oauth-direct-login" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #00d2ff, #2563eb); border: none; border-radius: 12px; color: #fff; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 20px rgba(0,210,255,0.3);">
                         <i class="fa-solid fa-arrow-right-to-bracket"></i> CONECTAR VIA ACESSO RÁPIDO / NICKNAME
                     </button>
 
-                    <button id="btn-copy-sql-fix" style="width: 100%; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(0,210,255,0.3); border-radius: 12px; color: #38bdf8; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <button id="btn-copy-sql-fix" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(0,210,255,0.3); border-radius: 12px; color: #38bdf8; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
                         <i class="fa-solid fa-copy"></i> COPIAR SQL DE CORREÇÃO (PARA O SUPABASE)
                     </button>
                 </div>
             </div>
-        `,document.body.appendChild(a),document.getElementById(`btn-oauth-direct-login`)?.addEventListener(`click`,()=>{a.remove(),typeof window.openDiscordModalGlobal==`function`&&window.openDiscordModalGlobal()}),document.getElementById(`btn-copy-sql-fix`)?.addEventListener(`click`,()=>{let e=`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false;`;navigator.clipboard.writeText(e).then(()=>{alert(`Comando SQL copiado com sucesso! Execute no SQL Editor do Supabase para corrigir definitivamente o login Discord OAuth.`)}).catch(()=>{prompt(`Copie o comando SQL abaixo para rodar no Supabase:`,e)})})}document.addEventListener(`DOMContentLoaded`,()=>{F();let e=new URLSearchParams(window.location.search);if(e.get(`admin`)===`true`||e.get(`admin`)===`1`)if(l)window.openGlobalAdminModal();else{let e=new URL(window.location.href);e.searchParams.delete(`admin`),window.history.replaceState({},``,e.pathname+(e.search?e.search:``))}N(),P(),o(l)}),F(),N(),P(),o(l)})();
+        `,document.body.appendChild(a);let o=`-- 1. ADICIONA A COLUNA is_banned CASO NÃO EXISTA
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false;
+
+-- 2. RECRIAR O TRIGGER BLINDADO COM EXCEPTION HANDLER
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+    INSERT INTO public.profiles (
+        id, discord_id, username, full_name, avatar_url, email, is_admin, role, is_banned, created_at, last_login_at
+    )
+    VALUES (
+        new.id,
+        COALESCE(new.raw_user_meta_data->>'provider_id', new.raw_user_meta_data->>'sub', new.id::text),
+        COALESCE(new.raw_user_meta_data->>'preferred_username', new.raw_user_meta_data->>'user_name', new.raw_user_meta_data->>'name', 'Discord User'),
+        COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'global_name', new.raw_user_meta_data->>'name', 'Discord User'),
+        COALESCE(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture', 'https://cdn.discordapp.com/embed/avatars/0.png'),
+        new.email,
+        (COALESCE(new.raw_user_meta_data->>'provider_id', new.raw_user_meta_data->>'sub', new.id::text) = '722320491767136346'),
+        CASE WHEN (COALESCE(new.raw_user_meta_data->>'provider_id', new.raw_user_meta_data->>'sub', new.id::text) = '722320491767136346') THEN 'admin' ELSE 'user' END,
+        false,
+        NOW(),
+        NOW()
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        last_login_at = NOW(),
+        avatar_url = EXCLUDED.avatar_url,
+        username = EXCLUDED.username;
+    RETURN new;
+EXCEPTION WHEN others THEN
+    RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;`;document.getElementById(`btn-open-supabase-sql`)?.addEventListener(`click`,()=>{navigator.clipboard.writeText(o).then(()=>{window.open(`https://supabase.com/dashboard/project/pdzytmdssswiyjwohvwn/sql/new`,`_blank`),alert(`Comando SQL copiado para a área de transferência! Cole (Ctrl+V) no Supabase SQL Editor aberto na nova aba e clique em RUN.`)}).catch(()=>{window.open(`https://supabase.com/dashboard/project/pdzytmdssswiyjwohvwn/sql/new`,`_blank`)})}),document.getElementById(`btn-oauth-direct-login`)?.addEventListener(`click`,()=>{a.remove(),typeof window.openDiscordModalGlobal==`function`&&window.openDiscordModalGlobal()}),document.getElementById(`btn-copy-sql-fix`)?.addEventListener(`click`,()=>{navigator.clipboard.writeText(o).then(()=>{alert(`Comando SQL copiado com sucesso! Execute no SQL Editor do Supabase para corrigir definitivamente o login Discord OAuth.`)}).catch(()=>{prompt(`Copie o comando SQL abaixo para rodar no Supabase:`,o)})})}document.addEventListener(`DOMContentLoaded`,()=>{F();let e=new URLSearchParams(window.location.search);if(e.get(`admin`)===`true`||e.get(`admin`)===`1`)if(l)window.openGlobalAdminModal();else{let e=new URL(window.location.href);e.searchParams.delete(`admin`),window.history.replaceState({},``,e.pathname+(e.search?e.search:``))}N(),P(),o(l)}),F(),N(),P(),o(l)})();
