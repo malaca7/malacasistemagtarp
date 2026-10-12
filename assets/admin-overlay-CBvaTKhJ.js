@@ -758,4 +758,42 @@ import{t as e}from"./dist-C4Qc8-Kv.js";var t=e(`https://pdzytmdssswiyjwohvwn.sup
                         position: fixed; top: 0; left: 0; right: 0; background: linear-gradient(90deg, #f59e0b, #d97706);
                         color: #000; font-weight: 900; font-size: 0.78rem; padding: 8px 16px; text-align: center;
                         z-index: 99998; box-shadow: 0 4px 15px rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; gap: 8px;
-                    `,document.body.prepend(n)),n.innerHTML=`<i class="fa-solid fa-bullhorn"></i> <span>${e.global_announcement}</span>`):n&&n.remove()}catch{}}document.addEventListener(`DOMContentLoaded`,()=>{let e=new URLSearchParams(window.location.search);if(e.get(`admin`)===`true`||e.get(`admin`)===`1`)if(l)window.openGlobalAdminModal();else{let e=new URL(window.location.href);e.searchParams.delete(`admin`),window.history.replaceState({},``,e.pathname+(e.search?e.search:``))}N(),P(),o(l)}),N(),P(),o(l)})();
+                    `,document.body.prepend(n)),n.innerHTML=`<i class="fa-solid fa-bullhorn"></i> <span>${e.global_announcement}</span>`):n&&n.remove()}catch{}}function F(){try{let e=new URLSearchParams(window.location.search),t=new URLSearchParams;window.location.hash&&window.location.hash.includes(`=`)&&(t=new URLSearchParams(window.location.hash.replace(/^#/,``)));let n=e.get(`error`)||t.get(`error`),r=e.get(`error_description`)||t.get(`error_description`);(n||r)&&(console.warn(`OAuth Redirect Error detected:`,n,r),window.history.replaceState({},document.title,window.location.pathname),I(n,r))}catch(e){console.error(`Error checking OAuth error params:`,e)}}function I(e,t){let n=decodeURIComponent(t||e||`Erro de autenticação`),r=n.includes(`is_banned`)||n.includes(`42703`),i=document.getElementById(`oauth-error-modal-overlay`);i&&i.remove();let a=document.createElement(`div`);a.id=`oauth-error-modal-overlay`,a.style.cssText=`
+            position: fixed; inset: 0; background: rgba(3, 7, 18, 0.88); backdrop-filter: blur(12px);
+            z-index: 100000; display: flex; align-items: center; justify-content: center; padding: 20px;
+        `,a.innerHTML=`
+            <div style="background: #090e1a; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 20px; max-width: 540px; width: 100%; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 30px rgba(239,68,68,0.2); position: relative; font-family: var(--font-body, sans-serif); color: #fff;">
+                <button onclick="document.getElementById('oauth-error-modal-overlay').remove()" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.06); border: none; color: #94a3b8; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 18px;">
+                    <div style="width: 48px; height: 48px; border-radius: 14px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); display: flex; align-items: center; justify-content: center; color: #ef4444; font-size: 22px; flex-shrink: 0;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <span style="font-size: 10px; font-weight: 800; color: #f87171; letter-spacing: 1px; text-transform: uppercase;">AVISO DE AUTENTICAÇÃO DISCORD</span>
+                        <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; margin: 2px 0 0 0;">Erro no Trigger do Supabase</h3>
+                    </div>
+                </div>
+
+                <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 12px; padding: 14px; margin-bottom: 20px;">
+                    <p style="font-size: 12px; color: #cbd5e1; line-height: 1.6; margin: 0 0 8px 0;">
+                        ${r?`O login do Discord falhou porque o trigger do banco de dados (Supabase) tentou gravar a coluna <code>is_banned</code> que ainda não foi criada na tabela <code>public.profiles</code>.`:`O provedor de autenticação retornou: <br><code style="color: #f87171; font-size: 11px;">${n}</code>`}
+                    </p>
+                    <div style="font-size: 11px; color: #38bdf8; font-weight: 600;">
+                        <i class="fa-solid fa-circle-check" style="color: #22c55e;"></i> Não se preocupe: você pode acessar imediatamente via <strong>Login Direto</strong> (por Nickname ou ID) sem travar seu uso!
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button id="btn-oauth-direct-login" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #00d2ff, #2563eb); border: none; border-radius: 12px; color: #fff; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 8px 20px rgba(0,210,255,0.3);">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i> CONECTAR VIA ACESSO RÁPIDO / NICKNAME
+                    </button>
+
+                    <button id="btn-copy-sql-fix" style="width: 100%; padding: 11px; background: rgba(255,255,255,0.06); border: 1px solid rgba(0,210,255,0.3); border-radius: 12px; color: #38bdf8; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fa-solid fa-copy"></i> COPIAR SQL DE CORREÇÃO (PARA O SUPABASE)
+                    </button>
+                </div>
+            </div>
+        `,document.body.appendChild(a),document.getElementById(`btn-oauth-direct-login`)?.addEventListener(`click`,()=>{a.remove(),typeof window.openDiscordModalGlobal==`function`&&window.openDiscordModalGlobal()}),document.getElementById(`btn-copy-sql-fix`)?.addEventListener(`click`,()=>{let e=`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false;`;navigator.clipboard.writeText(e).then(()=>{alert(`Comando SQL copiado com sucesso! Execute no SQL Editor do Supabase para corrigir definitivamente o login Discord OAuth.`)}).catch(()=>{prompt(`Copie o comando SQL abaixo para rodar no Supabase:`,e)})})}document.addEventListener(`DOMContentLoaded`,()=>{F();let e=new URLSearchParams(window.location.search);if(e.get(`admin`)===`true`||e.get(`admin`)===`1`)if(l)window.openGlobalAdminModal();else{let e=new URL(window.location.href);e.searchParams.delete(`admin`),window.history.replaceState({},``,e.pathname+(e.search?e.search:``))}N(),P(),o(l)}),F(),N(),P(),o(l)})();
