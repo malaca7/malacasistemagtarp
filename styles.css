@@ -2586,7 +2586,7 @@ body {
 .hacking-cyberdeck-container {
     position: relative !important;
     width: min(540px, 94vw) !important;
-    aspect-ratio: 646 / 895 !important;
+    aspect-ratio: 737 / 1024 !important;
     background: url('/images/hacking_device.png') center / contain no-repeat !important;
     margin: 0 auto !important;
     filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.9)) !important;
@@ -2596,10 +2596,10 @@ body {
 /* Tela Roxa CRT perfeitamente encaixada na moldura do aparelho físico */
 .cyberdeck-screen {
     position: absolute !important;
-    top: 17.2% !important;
-    left: 18.2% !important;
-    width: 61.8% !important;
-    height: 56.4% !important;
+    top: 12.6% !important;
+    left: 17.5% !important;
+    width: 59.0% !important;
+    height: 49.6% !important;
     background: #1c102b !important;
     border-radius: 4px !important;
     overflow: hidden !important;
@@ -2830,78 +2830,110 @@ body {
     box-shadow: 0 0 20px rgba(0, 210, 255, 0.8) !important;
 }
 
-/* D-Pad Hitboxes sobre a imagem física */
+/* D-Pad Hitboxes e Botões Táteis sobre a imagem física */
 .cyberdeck-dpad-hitbox {
     position: absolute !important;
     cursor: pointer !important;
     background: rgba(255, 255, 255, 0.001) !important;
-    border-radius: 50% !important;
-    transition: background 0.1s, transform 0.1s !important;
+    border-radius: 12px !important;
+    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1) !important;
     z-index: 10 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+}
+
+.cyberdeck-dpad-icon {
+    font-size: clamp(14px, 2.2vw, 22px) !important;
+    color: rgba(255, 255, 255, 0.25) !important;
+    transition: all 0.1s ease !important;
+    pointer-events: none !important;
 }
 
 .cyberdeck-dpad-hitbox:hover {
-    background: rgba(0, 210, 255, 0.25) !important;
-    box-shadow: 0 0 10px rgba(0, 210, 255, 0.6) !important;
+    background: rgba(0, 210, 255, 0.18) !important;
+    box-shadow: 0 0 16px rgba(0, 210, 255, 0.6), inset 0 0 12px rgba(0, 210, 255, 0.35) !important;
+    border: 1px solid rgba(0, 210, 255, 0.7) !important;
 }
 
-.cyberdeck-dpad-hitbox:active {
-    background: rgba(0, 210, 255, 0.5) !important;
-    transform: scale(0.9) !important;
+.cyberdeck-dpad-hitbox:hover .cyberdeck-dpad-icon {
+    color: #00d2ff !important;
+    text-shadow: 0 0 12px #00d2ff, 0 0 20px #38bdf8 !important;
+    transform: scale(1.15) !important;
+}
+
+.cyberdeck-dpad-hitbox:active,
+.cyberdeck-dpad-hitbox.pressed {
+    background: rgba(0, 210, 255, 0.4) !important;
+    box-shadow: 0 0 25px rgba(0, 210, 255, 0.9), inset 0 0 18px rgba(0, 210, 255, 0.7) !important;
+    border: 1.5px solid #00d2ff !important;
+    transform: scale(0.93) translateY(2px) !important;
+}
+
+.cyberdeck-dpad-hitbox:active .cyberdeck-dpad-icon,
+.cyberdeck-dpad-hitbox.pressed .cyberdeck-dpad-icon {
+    color: #ffffff !important;
+    text-shadow: 0 0 16px #00d2ff, 0 0 25px #ffffff !important;
 }
 
 .dpad-hit-up {
-    top: 79.5% !important;
-    left: 20.2% !important;
-    width: 6% !important;
-    height: 4.8% !important;
+    top: 72.1% !important;
+    left: 20.9% !important;
+    width: 12.2% !important;
+    height: 8.8% !important;
 }
 
 .dpad-hit-down {
-    top: 88.5% !important;
-    left: 20.2% !important;
-    width: 6% !important;
-    height: 4.8% !important;
+    top: 85.7% !important;
+    left: 20.9% !important;
+    width: 12.2% !important;
+    height: 8.8% !important;
 }
 
 .dpad-hit-left {
-    top: 84.0% !important;
-    left: 13.5% !important;
-    width: 6% !important;
-    height: 4.8% !important;
+    top: 78.9% !important;
+    left: 8.3% !important;
+    width: 12.2% !important;
+    height: 8.8% !important;
 }
 
 .dpad-hit-right {
-    top: 84.0% !important;
-    left: 26.8% !important;
-    width: 6% !important;
-    height: 4.8% !important;
+    top: 78.9% !important;
+    left: 33.5% !important;
+    width: 12.2% !important;
+    height: 8.8% !important;
 }
 
 /* Botão Enter / Submeter na placa metálica inferior direita */
 .cyberdeck-plate-hitbox {
     position: absolute !important;
-    top: 76.5% !important;
-    left: 53.5% !important;
-    width: 27% !important;
-    height: 11.5% !important;
+    top: 74.2% !important;
+    left: 54.3% !important;
+    width: 29.7% !important;
+    height: 12.6% !important;
     cursor: pointer !important;
     background: rgba(255, 255, 255, 0.001) !important;
-    border-radius: 4px !important;
+    border-radius: 8px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     z-index: 10 !important;
-    transition: background 0.15s, box-shadow 0.15s !important;
+    transition: all 0.15s ease !important;
+    box-sizing: border-box !important;
 }
 
 .cyberdeck-plate-hitbox:hover {
     background: rgba(0, 210, 255, 0.15) !important;
-    box-shadow: 0 0 15px rgba(0, 210, 255, 0.4) !important;
+    box-shadow: 0 0 18px rgba(0, 210, 255, 0.45), inset 0 0 10px rgba(0, 210, 255, 0.25) !important;
+    border: 1px solid rgba(0, 210, 255, 0.5) !important;
 }
 
-.cyberdeck-plate-hitbox:active {
-    background: rgba(0, 210, 255, 0.3) !important;
+.cyberdeck-plate-hitbox:active,
+.cyberdeck-plate-hitbox.pressed {
+    background: rgba(0, 210, 255, 0.35) !important;
+    box-shadow: 0 0 25px rgba(0, 210, 255, 0.8), inset 0 0 15px rgba(0, 210, 255, 0.6) !important;
+    transform: scale(0.96) translateY(2px) !important;
 }
 
 .cyberdeck-plate-hint {
@@ -2911,11 +2943,12 @@ body {
     font-weight: 800 !important;
     letter-spacing: 1px !important;
     pointer-events: none !important;
-    transition: color 0.15s !important;
+    transition: all 0.15s !important;
 }
 
 .cyberdeck-plate-hitbox:hover .cyberdeck-plate-hint {
     color: #00d2ff !important;
+    text-shadow: 0 0 8px #00d2ff !important;
 }
 
 /* ==========================================================================

@@ -26,6 +26,7 @@
 .leaflet-container .leaflet-tile {
   max-width: none !important;
   max-height: none !important;
+  object-fit: fill !important;
 }
 
 .leaflet-div-icon,

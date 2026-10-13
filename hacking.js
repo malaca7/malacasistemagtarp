@@ -407,9 +407,21 @@ function updateHUD() {
     if (valMaxStreak) valMaxStreak.textContent = state.maxStreak;
 }
 
-// Atalhos de Teclado (WASD, Setas, Enter, Espaço)
+// Atalhos de Teclado (WASD, Setas, Enter, Espaço) com Feedback Visual Físico
+const dpadUpEl = document.getElementById('dpad-up');
+const dpadDownEl = document.getElementById('dpad-down');
+const dpadLeftEl = document.getElementById('dpad-left');
+const dpadRightEl = document.getElementById('dpad-right');
+const btnSubmitEl = document.getElementById('btn-submit');
+
 window.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
+
+    if (key === 'w' || key === 'arrowup') dpadUpEl?.classList.add('pressed');
+    else if (key === 's' || key === 'arrowdown') dpadDownEl?.classList.add('pressed');
+    else if (key === 'a' || key === 'arrowleft') dpadLeftEl?.classList.add('pressed');
+    else if (key === 'd' || key === 'arrowright') dpadRightEl?.classList.add('pressed');
+    else if (key === 'enter') btnSubmitEl?.classList.add('pressed');
 
     if (state.gameState === 'lost' || state.gameState === 'won') {
         if (key === 'enter' || key === ' ') {
@@ -442,17 +454,38 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
+window.addEventListener('keyup', (e) => {
+    const key = e.key.toLowerCase();
+    if (key === 'w' || key === 'arrowup') dpadUpEl?.classList.remove('pressed');
+    else if (key === 's' || key === 'arrowdown') dpadDownEl?.classList.remove('pressed');
+    else if (key === 'a' || key === 'arrowleft') dpadLeftEl?.classList.remove('pressed');
+    else if (key === 'd' || key === 'arrowright') dpadRightEl?.classList.remove('pressed');
+    else if (key === 'enter') btnSubmitEl?.classList.remove('pressed');
+});
+
 // Botões interativos
-document.getElementById('btn-submit')?.addEventListener('click', submitSelection);
+btnSubmitEl?.addEventListener('click', submitSelection);
 document.getElementById('btn-next-puzzle')?.addEventListener('click', initGame);
 document.getElementById('btn-retry-puzzle')?.addEventListener('click', initGame);
 
-// D-Pad Virtual e Hitboxes Físicas da carcaça do Cyberdeck
-document.getElementById('dpad-up')?.addEventListener('click', () => moveCursor(-10));
-document.getElementById('dpad-down')?.addEventListener('click', () => moveCursor(10));
-document.getElementById('dpad-left')?.addEventListener('click', () => moveCursor(-1));
-document.getElementById('dpad-right')?.addEventListener('click', () => moveCursor(1));
-document.getElementById('dpad-right')?.addEventListener('click', () => moveCursor(1));
+// D-Pad Virtual e Botões Táteis sobre a imagem física do Cyberdeck
+const bindDpadAction = (el, action) => {
+    if (!el) return;
+    el.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        el.classList.add('pressed');
+        action();
+    });
+    const release = () => el.classList.remove('pressed');
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointerleave', release);
+    el.addEventListener('pointercancel', release);
+};
+
+bindDpadAction(dpadUpEl, () => moveCursor(-10));
+bindDpadAction(dpadDownEl, () => moveCursor(10));
+bindDpadAction(dpadLeftEl, () => moveCursor(-1));
+bindDpadAction(dpadRightEl, () => moveCursor(1));
 
 // Seletores de Configuração
 document.querySelectorAll('.charset-btn').forEach((btn) => {

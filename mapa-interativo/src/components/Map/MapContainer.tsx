@@ -146,14 +146,14 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       zoomSnap: 0.05,
       zoomDelta: 0.4,
       wheelPxPerZoomLevel: 80,
-      maxBounds: bounds,
-      maxBoundsViscosity: 1.0,
+      maxBounds: extendedBounds,
+      maxBoundsViscosity: 0.8,
       zoomControl: false,
       attributionControl: false,
       bounceAtZoomLimits: false,
       preferCanvas: true,
       fadeAnimation: true,
-      markerZoomAnimation: true,
+      markerZoomAnimation: false,
       inertia: true,
       inertiaDeceleration: 3000,
       inertiaMaxSpeed: 1500,
@@ -167,6 +167,12 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       interactive: false,
     }).addTo(map);
     overlayRef.current = overlay;
+
+    map.on('zoom', () => {
+      if (overlayRef.current) {
+        overlayRef.current.setBounds(L.latLngBounds(bounds));
+      }
+    });
 
     overlay.on('load', () => {
       applyThemeToMapOverlay(mapTheme);
@@ -449,7 +455,11 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         iconAnchor: [22, 22],
       });
 
-      const marker = L.marker([loc.y, loc.x], { icon: customIcon, riseOnHover: true });
+      const numY = Number(loc.y);
+      const numX = Number(loc.x);
+      if (isNaN(numY) || isNaN(numX)) return;
+
+      const marker = L.marker([numY, numX], { icon: customIcon, riseOnHover: true });
 
       const handleSelect = (e: any) => {
         if (e && e.originalEvent) {
@@ -606,15 +616,14 @@ export const MapContainer: React.FC<MapContainerProps> = ({
         }
         .gta-map-image-layer,
         .leaflet-image-layer {
-          object-fit: cover !important;
-          transform: translateZ(0);
-          will-change: transform;
-          backface-visibility: hidden;
+          object-fit: fill !important;
+          max-width: none !important;
+          max-height: none !important;
+          image-rendering: auto;
         }
         .custom-map-pin-wrapper {
-          transform: translateZ(0);
           will-change: transform;
-          backface-visibility: hidden;
+          pointer-events: auto !important;
         }
       `}</style>
 
