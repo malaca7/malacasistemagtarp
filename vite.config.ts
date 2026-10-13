@@ -38,6 +38,7 @@ export default defineConfig({
         los_santos_caixinha: resolve(__dirname, "cidades/los-santos/caixinha/index.html"),
         los_santos_hacking: resolve(__dirname, "cidades/los-santos/hacking/index.html"),
         mapa: resolve(__dirname, "mapa-interativo/index.html"),
+        mapa_root: resolve(__dirname, "mapa/index.html"),
         lockpick: resolve(__dirname, "lockpick/index.html"),
         caixinha: resolve(__dirname, "caixinha/index.html"),
         hacking: resolve(__dirname, "hacking/index.html"),

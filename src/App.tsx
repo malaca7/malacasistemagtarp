@@ -6,6 +6,7 @@ import { RealtimeSync } from './services/realtimeSync';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { MapContainer } from './components/map/MapContainer';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { LocationDrawer } from './components/map/LocationDrawer';
 import { AdminModal } from './components/admin/AdminModal';
 import { AppearanceModal } from './components/AppearanceModal';
@@ -813,18 +814,20 @@ export const App: React.FC = () => {
 
           {/* Map Container View */}
           <main className="flex-1 relative h-full w-full">
-            <MapContainer
-              mapImageUrl={
-                currentServer?.map_image_url ||
-                '/images/mapa_cda_optimized.webp'
-              }
-              locations={locations}
-              selectedLocation={selectedLocation}
-              onSelectLocation={(loc) => setSelectedLocation(loc)}
-              selectedCategories={selectedCategories}
-              isAdminPinMode={isAdminPinMode}
-              onAdminMapClick={handleAdminMapClick}
-            />
+            <ErrorBoundary>
+              <MapContainer
+                mapImageUrl={
+                  currentServer?.map_image_url ||
+                  '/images/mapa_cda_optimized.webp'
+                }
+                locations={locations}
+                selectedLocation={selectedLocation}
+                onSelectLocation={(loc) => setSelectedLocation(loc)}
+                selectedCategories={selectedCategories}
+                isAdminPinMode={isAdminPinMode}
+                onAdminMapClick={handleAdminMapClick}
+              />
+            </ErrorBoundary>
 
             {/* Selected Location Drawer */}
             <LocationDrawer

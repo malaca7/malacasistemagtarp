@@ -128,8 +128,7 @@ export const AuthService = {
       }
 
       if (!session || !session.user) {
-        localStorage.removeItem('malaca_user_profile');
-        return null;
+        return AuthService.getSavedProfile();
       }
 
       const user = session.user;

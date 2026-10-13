@@ -128,6 +128,17 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // Safety: ensure any previous map or leaflet instance attached to this container is cleanly unmounted
+    if (mapRef.current) {
+      try {
+        mapRef.current.remove();
+      } catch (e) {}
+      mapRef.current = null;
+    }
+    if ((containerRef.current as any)._leaflet_id) {
+      delete (containerRef.current as any)._leaflet_id;
+    }
+
     const map = L.map(containerRef.current, {
       crs: L.CRS.Simple,
       minZoom: -10,
@@ -163,10 +174,22 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     // Immediately apply in case already in DOM
     applyThemeToMapOverlay(mapTheme);
 
+    const calculateCoverZoom = (): number => {
+      try {
+        const size = map.getSize();
+        if (size && size.x > 0 && size.y > 0) {
+          const calculated = map.getBoundsZoom(bounds, true);
+          if (Number.isFinite(calculated)) {
+            return calculated;
+          }
+        }
+      } catch (e) {}
+      return -0.4;
+    };
+
     const updateZoomLimits = () => {
-      map.setMinZoom(-10);
-      // inside: true garante cálculo de zoom 'cover' (maior escala entre x e y), preenchendo 100% da tela sem nenhuma borda preta
-      const coverZoom = map.getBoundsZoom(bounds, true);
+      if (!mapRef.current) return;
+      const coverZoom = calculateCoverZoom();
       map.setMinZoom(coverZoom);
       if (map.getZoom() < coverZoom) {
         map.setZoom(coverZoom);
@@ -180,19 +203,33 @@ export const MapContainer: React.FC<MapContainerProps> = ({
       updateZoomLimits();
     };
 
-    // Inicializa enquadrado em [500, 500] cobrindo toda a tela perfeitamente
+    // Inicializa enquadrado em [500, 500] cobrindo toda a tela com zoom seguro
     map.setMinZoom(-10);
-    const initialCoverZoom = map.getBoundsZoom(bounds, true);
+    const initialCoverZoom = calculateCoverZoom();
     map.setMinZoom(initialCoverZoom);
     map.setView([500, 500], initialCoverZoom);
 
-    // Guarantee exact size calculation on layout stabilization
-    const sizeTimer = setTimeout(() => {
+    // Multi-stage invalidation to ensure Leaflet recalculates correctly across layout steps
+    const timer1 = setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+        updateZoomLimits();
+      }
+    }, 50);
+
+    const timer2 = setTimeout(() => {
       if (mapRef.current) {
         mapRef.current.invalidateSize();
         updateZoomLimits();
       }
     }, 150);
+
+    const timer3 = setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+        updateZoomLimits();
+      }
+    }, 350);
 
     // ResizeObserver para detectar instantaneamente mudanças na largura da sidebar ou da tela
     let resizeObserver: ResizeObserver | null = null;
@@ -250,17 +287,37 @@ export const MapContainer: React.FC<MapContainerProps> = ({
     mapRef.current = map;
 
     return () => {
-      clearTimeout(sizeTimer);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
       if (coordsRafId) cancelAnimationFrame(coordsRafId);
       if (resizeObserver) resizeObserver.disconnect();
       if (typeof window !== 'undefined') {
         window.removeEventListener('resize', handleResize);
         window.removeEventListener('orientationchange', handleResize);
       }
-      map.off('resize', handleResize);
-      map.remove();
+      if (mapRef.current) {
+        try {
+          mapRef.current.off('resize', handleResize);
+          mapRef.current.remove();
+        } catch (e) {}
+        mapRef.current = null;
+      }
+      if (containerRef.current && (containerRef.current as any)._leaflet_id) {
+        delete (containerRef.current as any)._leaflet_id;
+      }
     };
-  }, [mapImageUrl]);
+  }, []);
+
+  // Update map image seamlessly when mapImageUrl changes without destroying Leaflet instance
+  useEffect(() => {
+    if (overlayRef.current && mapImageUrl) {
+      overlayRef.current.setUrl(mapImageUrl);
+      overlayRef.current.once('load', () => {
+        applyThemeToMapOverlay(mapTheme);
+      });
+    }
+  }, [mapImageUrl, mapTheme]);
 
   // Handle Admin Click for Coordinates
   useEffect(() => {
