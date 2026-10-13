@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, ArrowLeft } from 'lucide-react';
 import type { Server, MapLocation, LocationCategory, Suggestion, SuggestionType, ConfirmedUser } from './types';
-import { ApiService } from './services/api';
+import { ApiService, getLocationsForServer } from './services/api';
 import { RealtimeSync } from './services/realtimeSync';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
@@ -16,9 +16,45 @@ import { supabase } from './lib/supabase';
 
 export const App: React.FC = () => {
   const [servers, setServers] = useState<Server[]>([]);
-  const [currentServer, setCurrentServer] = useState<Server | null>(null);
+  const [currentServer, setCurrentServer] = useState<Server | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const cityParam = params.get('cidade') || params.get('server') || params.get('id');
+      const pathParts = window.location.pathname.toLowerCase().split('/').filter(Boolean);
+      const isValley = cityParam === 'valley' || pathParts.includes('valley');
+      if (isValley) {
+        return {
+          id: 'valley-server-uuid',
+          name: 'VALLEY RP',
+          slug: 'valley',
+          subtitle: 'VALLEY ROLEPLAY HUB',
+          description: 'Servidor Valley com rastreamento de pontos ilegais, lavanderia e localizações do andarilho.',
+          banner_image_url: '/images/bg_wallpaper.jpg',
+          map_image_url: '/images/mapa_cda_optimized.webp',
+          active: true,
+        };
+      }
+    }
+    return {
+      id: 'cda-server-uuid',
+      name: 'CIDADE ALTA RP',
+      slug: 'cda',
+      subtitle: 'SERVIDORES CDA & VALLEY',
+      description: 'Mapa Interativo em tempo real para os servidores CDA e VALLEY com virada do Andarilho, além de Lockpick, Caixinha e Hacking.',
+      banner_image_url: '/images/hero_banner.jpg',
+      map_image_url: '/images/mapa_cda_optimized.webp',
+      active: true,
+    };
+  });
 
-  const [locations, setLocations] = useState<MapLocation[]>([]);
+  const [locations, setLocations] = useState<MapLocation[]>(() => {
+    if (typeof window !== 'undefined') {
+      const pathParts = window.location.pathname.toLowerCase().split('/').filter(Boolean);
+      const isValley = pathParts.includes('valley');
+      return getLocationsForServer(isValley ? 'valley-server-uuid' : 'cda-server-uuid');
+    }
+    return getLocationsForServer('cda-server-uuid');
+  });
   const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(null);
 
   const [selectedCategories, setSelectedCategories] = useState<LocationCategory[]>([
@@ -675,19 +711,7 @@ export const App: React.FC = () => {
         onOpenDiscordAuth={() => setDiscordAuthOpen(true)}
       />
 
-      {authLoading ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-6 bg-[#030712] text-slate-300">
-          <div className="relative mb-4">
-            <div className="w-12 h-12 rounded-full border-2 border-[#00d2ff]/30 border-t-[#00d2ff] animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Lock className="w-5 h-5 text-[#00d2ff]" />
-            </div>
-          </div>
-          <span className="text-xs font-mono font-bold tracking-widest text-[#38bdf8] uppercase">
-            Verificando Credenciais...
-          </span>
-        </div>
-      ) : user?.is_banned ? (
+      {user?.is_banned ? (
         <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-b from-[#180909] via-[#0d0404] to-[#050202]">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(239,68,68,0.15),_transparent_70%)] pointer-events-none" />
           <div className="max-w-md w-full relative z-10 bg-[#120505]/95 backdrop-blur-2xl border border-rose-500/40 rounded-2xl p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(239,68,68,0.2)] text-center">
@@ -726,73 +750,6 @@ export const App: React.FC = () => {
               <i className="fa-solid fa-arrow-right-from-bracket text-sm" />
               <span>Desconectar Conta</span>
             </button>
-          </div>
-        </div>
-      ) : !user ? (
-        <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-b from-[#030712] via-[#080d1a] to-[#020408]">
-          {/* Subtle Ambient Background Gradients */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#00d2ff]/10 via-transparent to-transparent pointer-events-none" />
-          <div className="absolute top-1/4 -left-20 w-80 h-80 bg-[#5865F2]/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-[#00d2ff]/10 rounded-full blur-3xl pointer-events-none" />
-
-          {/* Central Security Card */}
-          <div className="max-w-md w-full relative z-10 bg-[#0b0f19]/90 backdrop-blur-2xl border border-[#00d2ff]/30 rounded-2xl p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.85)] text-center">
-            {/* Glowing Shield / Lock Icon */}
-            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-tr from-[#5865F2]/20 via-[#00d2ff]/20 to-[#38bdf8]/10 border border-[#00d2ff]/40 flex items-center justify-center text-[#00d2ff] shadow-[0_0_30px_rgba(0,210,255,0.25)]">
-              <Lock className="w-8 h-8 text-[#00d2ff]" />
-            </div>
-
-            {/* Badges */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#5865F2]/15 border border-[#5865F2]/30 text-[#a5b4fc] text-[10px] font-black uppercase tracking-wider mb-3">
-              <i className="fa-brands fa-discord text-xs" /> Acesso Restrito • Exclusivo para Membros
-            </div>
-
-            <h2 className="text-xl md:text-2xl font-black text-white font-['Orbitron',sans-serif] tracking-wider mb-2">
-              SISTEMA PROTEGIDO
-            </h2>
-
-            <p className="text-xs md:text-sm text-slate-300 leading-relaxed mb-6">
-              Para acessar o <strong className="text-white">Mapa Interativo</strong> em tempo real, acompanhar as viradas do <strong className="text-[#a78bfa]">Andarilho</strong> e visualizar todas as marcações de <strong className="text-[#38bdf8]">{currentServer?.name || 'CDA & VALLEY'}</strong>, faça login com sua conta do Discord.
-            </p>
-
-            {/* Benefícios / Segurança */}
-            <div className="bg-[#050811] border border-white/10 rounded-xl p-3.5 mb-6 text-left space-y-2.5 text-xs text-slate-300">
-              <div className="flex items-center gap-2.5">
-                <span className="text-[#00d2ff] text-base leading-none">🧭</span>
-                <span>Coordenadas exatas sincronizadas em tempo real</span>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <span className="text-[#a78bfa] text-base leading-none">🚶</span>
-                <span>Rastreamento e confirmações oficiais do Andarilho</span>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <span className="text-[#10b981] text-base leading-none">🏥</span>
-                <span>Hospitais, Mercados, Lavanderias e Desmanches com GPS</span>
-              </div>
-            </div>
-
-            {/* Ações */}
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => AuthService.loginWithDiscord()}
-                className="w-full py-3.5 px-4 rounded-xl bg-[#5865F2] hover:bg-[#4752c4] text-white font-black text-xs tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(88,101,242,0.4)] hover:shadow-[0_0_30px_rgba(88,101,242,0.6)] flex items-center justify-center gap-2.5 cursor-pointer"
-              >
-                <i className="fa-brands fa-discord text-base" />
-                <span>Entrar com o Discord</span>
-              </button>
-
-              <a
-                href={currentServer ? `/cidades/${currentServer.slug}/` : '/cidades/'}
-                className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs tracking-wider transition-colors flex items-center justify-center gap-2"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Voltar para a Cidade</span>
-              </a>
-            </div>
-
-            <p className="mt-4 text-[10px] text-slate-500 font-mono">
-              Autenticação segura via OAuth2 oficial do Discord.
-            </p>
           </div>
         </div>
       ) : (
