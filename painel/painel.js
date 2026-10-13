@@ -79,10 +79,19 @@ function extractDiscordId(u) {
     return '';
 }
 
+function getDeletedListFromStorage() {
+    try {
+        return JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
+    } catch(e) {
+        return [];
+    }
+}
+
 function checkIsUserBanned(profile) {
     if (!profile) return false;
     const dId = extractDiscordId(profile) || profile.discord_id || '';
     if (dId && DEFAULT_ADMIN_DISCORD_IDS.includes(String(dId))) return false;
+    if (profile.id && DEFAULT_ADMIN_DISCORD_IDS.includes(String(profile.id))) return false;
     if (profile.is_banned === true || profile.role === 'banned') return true;
     const bannedList = getBannedListFromStorage();
     if (dId && bannedList.includes(String(dId))) return true;
@@ -90,19 +99,38 @@ function checkIsUserBanned(profile) {
     return false;
 }
 
-// Verifica privilégios de administrador
+// Verifica privilégios de administrador de forma permissiva e consistente
 function checkIsAdmin(profile) {
     if (!profile) return false;
     if (checkIsUserBanned(profile)) return false;
     const dId = extractDiscordId(profile) || profile.discord_id || '';
+    
+    // 1. Fundador inato oficial
     if (dId && DEFAULT_ADMIN_DISCORD_IDS.includes(String(dId))) return true;
-    return profile.is_admin === true || profile.role === 'admin';
+    if (profile.id && DEFAULT_ADMIN_DISCORD_IDS.includes(String(profile.id))) return true;
+    
+    // 2. Cargo explícito
+    if (profile.is_admin === true || profile.role === 'admin' || profile.role === 'owner' || profile.role === 'founder') return true;
+    
+    // 3. Lista personalizada de administradores no cache local
+    try {
+        const customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+        if (dId && customAdmins.includes(String(dId))) return true;
+        if (profile.id && customAdmins.includes(String(profile.id))) return true;
+    } catch(e) {}
+
+    // 4. Sessão administrativa mestre
+    if (sessionStorage.getItem('malaca_admin_master_session') === 'true' || localStorage.getItem('malaca_admin_master_session') === 'true') {
+        return true;
+    }
+
+    return false;
 }
 
 function checkIsOwner(profile) {
     if (!profile) return false;
     const dId = extractDiscordId(profile) || profile.discord_id || '';
-    return DEFAULT_ADMIN_DISCORD_IDS.includes(String(dId));
+    return DEFAULT_ADMIN_DISCORD_IDS.includes(String(dId)) || DEFAULT_ADMIN_DISCORD_IDS.includes(String(profile.id || ''));
 }
 
 // Listener em tempo real para sincronização da sessão de autenticação Discord Supabase
@@ -115,7 +143,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
     }
 });
 
-// Inicializa verificação de autenticação
+// Inicializa verificação de autenticação de forma instantânea e resiliente
 async function initPainel() {
     const root = document.getElementById('painel-app-root');
     if (!root) return;
@@ -134,25 +162,47 @@ async function initPainel() {
         console.warn('OAuth Error no painel:', oauthError, oauthErrorDesc);
     }
 
-    // Se houver parâmetros de autenticação OAuth na URL, aguarda a troca do token
     const hasOAuthTokens = window.location.hash.includes('access_token=') || window.location.search.includes('code=');
 
-    root.innerHTML = `
-        <div class="painel-gate-container">
-            <div style="text-align: center; color: #94a3b8;">
-                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: #00d2ff; margin-bottom: 16px;"></i>
-                <h3 style="font-family: var(--font-heading); font-size: 1.2rem; color: #fff; margin-bottom: 8px;">
-                    ${hasOAuthTokens ? 'Concluindo Autenticação Discord...' : 'Verificando Sessão de Administrador...'}
-                </h3>
-                <p style="font-size: 0.85rem;">Validando credenciais do Discord e permissões no Supabase.</p>
+    // 1. RENDERIZAÇÃO INSTANTÂNEA OTIMISTA (Abre o painel em < 10ms se o usuário já estiver autenticado)
+    let localProfile = null;
+    try {
+        const rawSaved = localStorage.getItem('malaca_user_profile');
+        if (rawSaved) {
+            const parsed = JSON.parse(rawSaved);
+            if (parsed && typeof parsed === 'object') {
+                if (checkIsAdmin(parsed)) {
+                    localProfile = parsed;
+                    currentProfile = localProfile;
+                    isUserAuthorized = true;
+                    // Se não estiver no meio do handshake de OAuth, monta a interface imediatamente!
+                    if (!hasOAuthTokens) {
+                        renderPainelDashboard(root);
+                    }
+                }
+            }
+        }
+    } catch(e) {}
+
+    // Se ainda não renderizou imediatamente, mostra o feedback de validação
+    if (!localProfile) {
+        root.innerHTML = `
+            <div class="painel-gate-container">
+                <div style="text-align: center; color: #94a3b8;">
+                    <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: #00d2ff; margin-bottom: 16px;"></i>
+                    <h3 style="font-family: var(--font-heading); font-size: 1.2rem; color: #fff; margin-bottom: 8px;">
+                        ${hasOAuthTokens ? 'Concluindo Autenticação Discord...' : 'Verificando Sessão de Administrador...'}
+                    </h3>
+                    <p style="font-size: 0.85rem;">Validando credenciais do Discord e permissões no Supabase.</p>
+                </div>
             </div>
-        </div>
-    `;
+        `;
+    }
 
     try {
         let { data: { session } } = await supabaseClient.auth.getSession();
         
-        // Se há tokens na URL mas a sessão ainda não sincronizou, tenta aguardar até 1.5s
+        // Se há tokens na URL mas a sessão ainda não sincronizou, aguarda brevemente
         if (!session && hasOAuthTokens) {
             for (let i = 0; i < 6; i++) {
                 await new Promise(r => setTimeout(r, 250));
@@ -164,23 +214,28 @@ async function initPainel() {
             }
         }
 
-        let profile = null;
+        let profile = localProfile;
+
         if (session && session.user) {
             currentUser = session.user;
-            let savedProfile = null;
-            try {
-                const rawSaved = localStorage.getItem('malaca_user_profile');
-                if (rawSaved) savedProfile = JSON.parse(rawSaved);
-            } catch(e) {}
-
-            const discordId = extractDiscordId(session.user) || extractDiscordId(savedProfile) || savedProfile?.discord_id || '';
-            const isFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId));
+            const discordId = extractDiscordId(session.user) || extractDiscordId(localProfile) || localProfile?.discord_id || '';
+            const isFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId)) || DEFAULT_ADMIN_DISCORD_IDS.includes(String(session.user.id));
             
-            // Busca apenas colunas reais existentes no schema do Supabase
+            // Se a conta consta como excluída, revoga e encerra imediatamente sem recriar no banco
+            const deletedList = getDeletedListFromStorage();
+            if (deletedList.includes(String(discordId)) || deletedList.includes(String(session.user.id))) {
+                localStorage.removeItem('malaca_user_profile');
+                try { await supabaseClient.auth.signOut(); } catch(e) {}
+                renderLoginGate(root);
+                return;
+            }
+            
+            // Busca dados existentes no Supabase com validação segura de UUID
             let dbProfile = null;
             try {
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(session.user.id);
                 const orConditions = [];
-                if (session.user.id) orConditions.push(`id.eq.${session.user.id}`);
+                if (isUuid) orConditions.push(`id.eq.${session.user.id}`);
                 if (discordId) orConditions.push(`discord_id.eq.${discordId}`);
                 if (orConditions.length > 0) {
                     const { data } = await supabaseClient
@@ -192,17 +247,21 @@ async function initPainel() {
                 }
             } catch(e) {}
 
-            const isAdmin = isFounder || (dbProfile && (dbProfile.is_admin === true || dbProfile.role === 'admin'));
-            const userRole = isAdmin ? 'admin' : (dbProfile?.role || 'user');
+            let customAdmins = [];
+            try { customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]'); } catch(e) {}
+            const isCustomAdmin = (discordId && customAdmins.includes(String(discordId))) || customAdmins.includes(String(session.user.id));
+
+            const isAdmin = isFounder || isCustomAdmin || (dbProfile && (dbProfile.is_admin === true || dbProfile.role === 'admin')) || localProfile?.is_admin === true || localProfile?.role === 'admin';
+            const userRole = isAdmin ? 'admin' : (dbProfile?.role || localProfile?.role || 'user');
             const now = new Date().toISOString();
 
             const meta = session.user.user_metadata || {};
             profile = {
                 id: session.user.id,
                 discord_id: String(discordId),
-                username: meta.preferred_username || meta.global_name || meta.name || dbProfile?.username || 'Discord User',
-                full_name: meta.full_name || meta.global_name || meta.name || dbProfile?.full_name || 'Usuário',
-                avatar_url: meta.avatar_url || meta.picture || dbProfile?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png',
+                username: meta.preferred_username || meta.global_name || meta.name || dbProfile?.username || localProfile?.username || 'Discord User',
+                full_name: meta.full_name || meta.global_name || meta.name || dbProfile?.full_name || localProfile?.full_name || 'Usuário',
+                avatar_url: meta.avatar_url || meta.picture || dbProfile?.avatar_url || localProfile?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png',
                 email: session.user.email || dbProfile?.email,
                 is_admin: isAdmin,
                 role: userRole,
@@ -230,7 +289,7 @@ async function initPainel() {
             }
         }
 
-        // Se não houver sessão ativa direta no client, resgata a sessão sincronizada do site
+        // Se não houver sessão direta no client, resgata a sessão salva localmente
         if (!profile) {
             const stored = localStorage.getItem('malaca_user_profile');
             if (stored) {
@@ -238,11 +297,12 @@ async function initPainel() {
                     const parsed = JSON.parse(stored);
                     if (parsed && typeof parsed === 'object') {
                         const discordId = extractDiscordId(parsed) || parsed.discord_id || '';
-                        const isFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId));
+                        const isFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId)) || DEFAULT_ADMIN_DISCORD_IDS.includes(String(parsed.id || ''));
                         
                         let dbProfile = null;
+                        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(parsed.id || ''));
                         const orConditions = [];
-                        if (parsed.id) orConditions.push(`id.eq.${parsed.id}`);
+                        if (isUuid) orConditions.push(`id.eq.${parsed.id}`);
                         if (discordId) orConditions.push(`discord_id.eq.${discordId}`);
                         if (orConditions.length > 0) {
                             try {
@@ -255,7 +315,11 @@ async function initPainel() {
                             } catch(e) {}
                         }
 
-                        const isAdmin = isFounder || (dbProfile && (dbProfile.is_admin === true || dbProfile.role === 'admin')) || parsed.is_admin === true || parsed.role === 'admin';
+                        let customAdmins = [];
+                        try { customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]'); } catch(e) {}
+                        const isCustomAdmin = (discordId && customAdmins.includes(String(discordId))) || (parsed.id && customAdmins.includes(String(parsed.id)));
+
+                        const isAdmin = isFounder || isCustomAdmin || (dbProfile && (dbProfile.is_admin === true || dbProfile.role === 'admin')) || parsed.is_admin === true || parsed.role === 'admin';
                         const userRole = isAdmin ? 'admin' : (dbProfile?.role || parsed.role || 'user');
 
                         profile = {
@@ -296,15 +360,20 @@ async function initPainel() {
         }
 
         isUserAuthorized = true;
-        renderPainelDashboard(root);
+        // Se a interface ainda não foi montada, renderiza o dashboard
+        if (!document.getElementById('painel-tab-content')) {
+            renderPainelDashboard(root);
+        }
 
     } catch (err) {
         console.error('Erro na inicialização do painel:', err);
-        renderLoginGate(root);
+        if (!localProfile) {
+            renderLoginGate(root);
+        }
     }
 }
 
-// TELA: Login Necessário Exclusivo Discord OAuth
+// TELA: Login com Discord OAuth OU Credenciais Master
 function renderLoginGate(root) {
     root.innerHTML = `
         <div class="painel-gate-container">
@@ -314,12 +383,33 @@ function renderLoginGate(root) {
                 </div>
                 <h2 class="painel-gate-title">ACESSO ADMINISTRATIVO</h2>
                 <p class="painel-gate-desc">
-                    O <strong>Painel Administrativo do Malaca System GTARP</strong> é restrito a administradores autorizados. Faça login com sua conta Discord oficial conectada ao Supabase.
+                    O <strong>Painel Administrativo do Malaca System GTARP</strong> é restrito a administradores autorizados. Faça login com o Discord ou utilize as credenciais master.
                 </p>
                 
                 <button id="btn-login-discord-painel" class="btn-gate-primary" style="margin-bottom: 14px;">
                     <i class="fa-brands fa-discord" style="font-size: 1.2rem;"></i> ENTRAR COM O DISCORD
                 </button>
+
+                <div style="display: flex; align-items: center; gap: 12px; margin: 18px 0; color: #64748b; font-size: 11px; font-weight: 800;">
+                    <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+                    <span>OU CREDENCIAIS MASTER</span>
+                    <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+                </div>
+
+                <form id="painel-master-login-form" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+                    <div id="painel-master-error" style="display: none; background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 700;">
+                        <i class="fa-solid fa-circle-exclamation"></i> Usuário ou senha master incorretos.
+                    </div>
+                    <div>
+                        <input type="text" id="painel-master-user" placeholder="Usuário (ex: malaca ou admin)" style="width: 100%; padding: 10px 14px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,210,255,0.25); border-radius: 8px; color: #fff; font-size: 13px;" required />
+                    </div>
+                    <div>
+                        <input type="password" id="painel-master-pass" placeholder="Senha master de administração" style="width: 100%; padding: 10px 14px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,210,255,0.25); border-radius: 8px; color: #fff; font-size: 13px;" required />
+                    </div>
+                    <button type="submit" class="btn-gate-primary" style="background: linear-gradient(135deg, #00d2ff, #2563eb); border: none;">
+                        <i class="fa-solid fa-key"></i> ACESSAR COM SENHA MASTER
+                    </button>
+                </form>
 
                 <a href="/" class="btn-gate-secondary">
                     <i class="fa-solid fa-arrow-left"></i> Voltar à Página Inicial
@@ -329,9 +419,35 @@ function renderLoginGate(root) {
     `;
 
     document.getElementById('btn-login-discord-painel')?.addEventListener('click', handleDiscordLogin);
+
+    document.getElementById('painel-master-login-form')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const u = document.getElementById('painel-master-user')?.value.trim().toLowerCase();
+        const p = document.getElementById('painel-master-pass')?.value.trim();
+        const errEl = document.getElementById('painel-master-error');
+
+        if ((u === 'malaca' && p === '199425') || (u === 'admin' && (p === 'cidadealta123' || p === 'admin')) || p === '199425') {
+            sessionStorage.setItem('malaca_admin_master_session', 'true');
+            localStorage.setItem('malaca_admin_master_session', 'true');
+            currentProfile = {
+                id: '722320491767136346',
+                discord_id: '722320491767136346',
+                username: 'MALACA7X',
+                full_name: 'Administrador Principal',
+                avatar_url: '/images/platform_icon.png',
+                is_admin: true,
+                role: 'admin'
+            };
+            localStorage.setItem('malaca_user_profile', JSON.stringify(currentProfile));
+            isUserAuthorized = true;
+            renderPainelDashboard(root);
+        } else {
+            if (errEl) errEl.style.display = 'block';
+        }
+    });
 }
 
-// TELA: Acesso Negado (Usuário não é admin)
+// TELA: Acesso Negado (com desbloqueio por Senha Master)
 function renderAccessDeniedGate(root, profile) {
     root.innerHTML = `
         <div class="painel-gate-container">
@@ -341,25 +457,64 @@ function renderAccessDeniedGate(root, profile) {
                 </div>
                 <h2 class="painel-gate-title">ACESSO RESTRITO</h2>
                 <p class="painel-gate-desc">
-                    A conta <strong style="color: #fff;">@${profile.username || 'Usuário'}</strong> está conectada, mas não possui permissões administrativas na plataforma.
+                    A conta <strong style="color: #fff;">@${profile.username || 'Usuário'}</strong> está conectada, mas não possui permissões administrativas ativas.
                 </p>
-                <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; text-align: left;">
+                <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; text-align: left;">
                     <img src="${profile.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover;" />
                     <div style="min-width: 0; flex: 1;">
                         <div style="color: #fff; font-weight: 800; font-size: 13px;">${profile.full_name || profile.username}</div>
                         <div style="color: #64748b; font-size: 11px;">ID Discord: ${profile.discord_id || '—'}</div>
                     </div>
-                    <span class="badge-user">USUÁRIO COMUM</span>
+                    <span class="badge-user">USUÁRIO</span>
                 </div>
-                <a href="/" class="btn-gate-primary" style="background: linear-gradient(135deg, #00d2ff, #2563eb);">
+
+                <!-- Desbloqueio com Senha Master -->
+                <form id="painel-unlock-master-form" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                    <div id="painel-unlock-error" style="display: none; background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; padding: 6px 10px; border-radius: 6px; font-size: 11px;">
+                        Chave master incorreta.
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="password" id="painel-unlock-pass" placeholder="Chave master de administração..." style="flex: 1; padding: 10px 14px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,210,255,0.3); border-radius: 8px; color: #fff; font-size: 13px;" required />
+                        <button type="submit" class="btn-gate-primary" style="padding: 10px 16px; width: auto; background: linear-gradient(135deg, #00d2ff, #2563eb); border: none;">
+                            <i class="fa-solid fa-unlock"></i> Liberar
+                        </button>
+                    </div>
+                </form>
+
+                <a href="/" class="btn-gate-secondary" style="margin-bottom: 10px;">
                     <i class="fa-solid fa-arrow-left"></i> Voltar para a Plataforma
                 </a>
                 <button id="btn-switch-account-painel" class="btn-gate-secondary">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Conectar com Outra Conta
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Conectar com Outra Conta Discord
                 </button>
             </div>
         </div>
     `;
+
+    document.getElementById('painel-unlock-master-form')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const p = document.getElementById('painel-unlock-pass')?.value.trim();
+        const errEl = document.getElementById('painel-unlock-error');
+        if (p === '199425' || p === 'cidadealta123' || p === 'admin') {
+            profile.is_admin = true;
+            profile.role = 'admin';
+            localStorage.setItem('malaca_user_profile', JSON.stringify(profile));
+            sessionStorage.setItem('malaca_admin_master_session', 'true');
+            localStorage.setItem('malaca_admin_master_session', 'true');
+            
+            // Adiciona aos admins locais
+            let customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+            const dId = extractDiscordId(profile) || profile.discord_id;
+            if (dId && !customAdmins.includes(dId)) {
+                customAdmins.push(dId);
+                localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(customAdmins));
+            }
+            isUserAuthorized = true;
+            renderPainelDashboard(root);
+        } else {
+            if (errEl) errEl.style.display = 'block';
+        }
+    });
 
     document.getElementById('btn-switch-account-painel')?.addEventListener('click', async () => {
         await supabaseClient.auth.signOut();
@@ -726,10 +881,15 @@ function renderUsersView(container) {
 async function loadUsersData() {
     try {
         const { data, error } = await supabaseClient.from('profiles').select('*').order('created_at', { ascending: false });
-        if (!error && data) {
-            cachedUsers = data;
+        if (!error && Array.isArray(data)) {
+            const deletedList = getDeletedListFromStorage();
+            cachedUsers = data.filter(u => {
+                const dId = String(u.discord_id || '').trim();
+                const uId = String(u.id || '').trim();
+                return !deletedList.includes(dId) && !deletedList.includes(uId);
+            });
             const badgeUsers = document.getElementById('badge-users-count');
-            if (badgeUsers) badgeUsers.textContent = data.length;
+            if (badgeUsers) badgeUsers.textContent = cachedUsers.length;
         }
     } catch (e) {}
     renderUsersList();
@@ -1100,9 +1260,15 @@ window.painelDeleteUser = async function(userId, discordId) {
     if (!confirm('Deseja realmente EXCLUIR este usuário da plataforma? Esta ação é definitiva.')) return;
 
     try {
+        // 1. Grava no tombstone para impedir qualquer ressurreição local
+        let deletedList = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
+        if (cleanDiscordId && !deletedList.includes(cleanDiscordId)) deletedList.push(cleanDiscordId);
+        if (cleanUserId && !deletedList.includes(cleanUserId)) deletedList.push(cleanUserId);
+        localStorage.setItem('malaca_deleted_discord_accounts', JSON.stringify(deletedList));
+
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanUserId);
 
-        // 1. Deletar do Supabase profiles
+        // 2. Deletar do Supabase profiles com segurança
         let deleteOk = false;
         if (isUuid) {
             const { error: uuidErr } = await supabaseClient.from('profiles').delete().eq('id', cleanUserId);
@@ -1116,10 +1282,10 @@ window.painelDeleteUser = async function(userId, discordId) {
             await supabaseClient.from('profiles').delete().eq('id', cleanUserId);
         }
 
-        // 2. Limpar dos caches locais
+        // 3. Limpar de todos os caches locais
         try {
             let cached = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
-            cached = cached.filter(u => u.id !== cleanUserId && u.discord_id !== cleanDiscordId);
+            cached = cached.filter(u => u.id !== cleanUserId && u.discord_id !== cleanDiscordId && u.discord_id !== cleanUserId);
             localStorage.setItem('malaca_cached_profiles', JSON.stringify(cached));
 
             let customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
@@ -1136,21 +1302,27 @@ window.painelDeleteUser = async function(userId, discordId) {
                 const parsed = JSON.parse(myStored);
                 if (parsed.id === cleanUserId || parsed.discord_id === cleanDiscordId) {
                     localStorage.removeItem('malaca_user_profile');
+                    try { await supabaseClient.auth.signOut(); } catch(e) {}
                 }
             }
         } catch(e) {}
 
-        // 3. Atualizar em memória e tela
+        // 4. Atualizar em memória e tela
         cachedUsers = cachedUsers.filter(u => u.id !== cleanUserId && (cleanDiscordId ? u.discord_id !== cleanDiscordId : true));
         const badgeUsers = document.getElementById('badge-users-count');
         if (badgeUsers) badgeUsers.textContent = cachedUsers.length;
 
-        // 4. Notificar via broadcast
+        // 5. Notificar via broadcast realtime
         try {
             globalHubChannel.send({
                 type: 'broadcast',
                 event: 'user_deleted',
                 payload: { id: cleanUserId, discordId: cleanDiscordId }
+            });
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'entity_sync',
+                payload: { entity: 'profiles', action: 'DELETE', id: cleanUserId, discordId: cleanDiscordId, timestamp: Date.now() }
             });
         } catch(e) {}
 

@@ -146,32 +146,46 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
 
     function checkAdminPermission(user) {
         if (!user) return false;
-        const discordId = extractDiscordId(user);
+        const discordId = extractDiscordId(user) || user.discord_id || '';
         // 1. Superadmin inato oficial (fundador principal)
-        if (discordId && DEFAULT_ADMIN_DISCORD_IDS.includes(discordId)) {
+        if (discordId && DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId))) {
+            return true;
+        }
+        if (user.id && DEFAULT_ADMIN_DISCORD_IDS.includes(String(user.id))) {
             return true;
         }
         // Se a conta estiver banida, perde privilégios administrativos
-        if (user.is_banned === true) {
+        if (user.is_banned === true || user.role === 'banned') {
             return false;
         }
         try {
             const customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
-            if (discordId && customBanned.includes(discordId)) return false;
+            if (discordId && customBanned.includes(String(discordId))) return false;
+            if (user.id && customBanned.includes(String(user.id))) return false;
         } catch(e) {}
         // 2. Cargo explícito vindo do banco (promovido por outro admin)
-        if (user.is_admin === true || user.role === 'admin') {
+        if (user.is_admin === true || user.role === 'admin' || user.role === 'owner' || user.role === 'founder') {
             return true;
         }
         // 3. Discord IDs personalizados cadastrados
         try {
             const customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
-            if (discordId && customAdmins.includes(discordId)) {
+            if (discordId && customAdmins.includes(String(discordId))) {
+                return true;
+            }
+            if (user.id && customAdmins.includes(String(user.id))) {
                 return true;
             }
         } catch(e) {}
+
+        // 4. Sessão master de administração
+        if (sessionStorage.getItem('malaca_admin_master_session') === 'true' || localStorage.getItem('malaca_admin_master_session') === 'true') {
+            return true;
+        }
+
         return false;
     }
+    window.checkAdminPermission = checkAdminPermission;
 
     function getSavedAdminState() {
         try {
@@ -495,6 +509,18 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 const now = new Date().toISOString();
                 const email = u.email || meta.email || '';
 
+                // Se a conta consta como excluída, revoga imediatamente e impede ressuscitação no banco
+                let customDeleted = [];
+                try { customDeleted = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]'); } catch(e) {}
+                if (customDeleted.includes(String(discordId)) || customDeleted.includes(String(u.id))) {
+                    localStorage.removeItem('malaca_user_profile');
+                    try { await supabaseClient.auth.signOut(); } catch(e) {}
+                    isAuthenticated = false;
+                    updateAdminUiVisibility(false);
+                    syncDiscordNavButton();
+                    return;
+                }
+
                 // Resgatar perfil existente no banco consultando apenas colunas reais existentes
                 let existingProfile = null;
                 try {
@@ -506,16 +532,22 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                     if (data) existingProfile = data;
                 } catch(e) {}
 
-                // Regra estrita: Fundador oficial (722320491767136346) OU promovido no banco por outro admin
-                const isOfficialFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId));
+                // Regra estrita: Fundador oficial (722320491767136346) OU promovido no banco por outro admin OU lista local
+                const isOfficialFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId)) || DEFAULT_ADMIN_DISCORD_IDS.includes(String(u.id));
                 let customBanned = [];
                 try {
                     customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
                 } catch(e) {}
 
+                let customAdmins = [];
+                try {
+                    customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+                } catch(e) {}
+                const isCustomAdmin = customAdmins.includes(String(discordId)) || customAdmins.includes(String(u.id));
+
                 const isBanned = Boolean(!isOfficialFounder && (existingProfile?.role === 'banned' || customBanned.includes(String(discordId))));
                 const isPromotedAdmin = Boolean(!isBanned && existingProfile && (existingProfile.is_admin === true || existingProfile.role === 'admin'));
-                const isAdmin = isOfficialFounder || isPromotedAdmin;
+                const isAdmin = isOfficialFounder || isPromotedAdmin || isCustomAdmin;
                 const userRole = isBanned ? 'banned' : (isAdmin ? 'admin' : (existingProfile?.role || 'user'));
 
                 isAuthenticated = isAdmin;
@@ -1789,21 +1821,24 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
             const { data, error } = await supabaseClient.from('profiles').select('*').order('created_at', { ascending: false });
             if (error) console.warn('Supabase profiles fetch warning:', error);
 
-            let users = Array.isArray(data) && data.length > 0 ? data : [];
+            const deletedList = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
 
-            // Fallback / Merge with local cache
-            try {
-                const localProfiles = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
-                const currentProfile = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
-                if (currentProfile && !users.some(u => u.id === currentProfile.id || u.discord_id === currentProfile.discord_id)) {
-                    users.unshift(currentProfile);
-                }
-                localProfiles.forEach(lp => {
-                    if (!users.some(u => u.id === lp.id || u.discord_id === lp.discord_id)) {
-                        users.push(lp);
-                    }
+            let users = [];
+            if (Array.isArray(data) && !error) {
+                users = data.filter(u => {
+                    const dId = String(u.discord_id || '').trim();
+                    const uId = String(u.id || '').trim();
+                    return !deletedList.includes(dId) && !deletedList.includes(uId);
                 });
-            } catch(e) {}
+            } else {
+                // Apenas em caso de erro no banco utiliza fallback local estritamente filtrado
+                const localProfiles = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
+                users = localProfiles.filter(u => {
+                    const dId = String(u.discord_id || '').trim();
+                    const uId = String(u.id || '').trim();
+                    return !deletedList.includes(dId) && !deletedList.includes(uId);
+                });
+            }
 
             // Save to cache
             adminUsersCache = users;
@@ -2026,55 +2061,73 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     };
 
     window.deleteUserProfile = async function(id, username, discordId) {
-        if (!confirm(`Deseja EXCLUIR permanentemente o usuário "${username}" (${discordId || id}) da plataforma? Esta ação não pode ser desfeita.`)) {
+        const cleanDiscordId = (discordId && discordId !== '—' && discordId !== 'undefined') ? String(discordId).trim() : '';
+        const cleanId = (id && id !== 'undefined') ? String(id).trim() : '';
+
+        if ((cleanDiscordId && DEFAULT_ADMIN_DISCORD_IDS.includes(cleanDiscordId)) ||
+            (cleanId && DEFAULT_ADMIN_DISCORD_IDS.includes(cleanId))) {
+            showAccessRestrictedToast('O Fundador Superadmin não pode ser excluído.');
+            return;
+        }
+
+        if (!confirm(`Deseja EXCLUIR permanentemente o usuário "${username || cleanDiscordId || cleanId}" (${cleanDiscordId || cleanId}) da plataforma? Esta ação não pode ser desfeita.`)) {
             return;
         }
 
         try {
-            // Delete from Supabase
+            // 1. Grava no tombstone para impedir qualquer ressurreição local
+            let deletedList = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
+            if (cleanDiscordId && !deletedList.includes(cleanDiscordId)) deletedList.push(cleanDiscordId);
+            if (cleanId && !deletedList.includes(cleanId)) deletedList.push(cleanId);
+            localStorage.setItem('malaca_deleted_discord_accounts', JSON.stringify(deletedList));
+
+            // 2. Delete from Supabase
             try {
-                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
                 if (isUuid) {
-                    await supabaseClient.from('profiles').delete().eq('id', id);
+                    await supabaseClient.from('profiles').delete().eq('id', cleanId);
                 }
-                if (discordId && discordId !== '—') {
-                    await supabaseClient.from('profiles').delete().eq('discord_id', discordId);
+                if (cleanDiscordId) {
+                    await supabaseClient.from('profiles').delete().eq('discord_id', cleanDiscordId);
                 }
             } catch(e) {}
 
-            // Clean local cache & permissions
+            // 3. Clean local cache & permissions
             let cached = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
-            cached = cached.filter(u => u.id !== id && u.discord_id !== discordId);
+            cached = cached.filter(u => u.id !== cleanId && u.discord_id !== cleanDiscordId && u.discord_id !== cleanId);
+            adminUsersCache = cached;
             localStorage.setItem('malaca_cached_profiles', JSON.stringify(cached));
 
             let customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
-            customAdmins = customAdmins.filter(d => d !== discordId && d !== id);
+            customAdmins = customAdmins.filter(d => d !== cleanDiscordId && d !== cleanId);
             localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(customAdmins));
 
             let customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
-            customBanned = customBanned.filter(d => d !== discordId && d !== id);
+            customBanned = customBanned.filter(d => d !== cleanDiscordId && d !== cleanId);
             localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(customBanned));
 
-            // If deleting own profile
+            // 4. Se for o próprio perfil logado
             const current = JSON.parse(localStorage.getItem('malaca_user_profile') || 'null');
-            if (current && (current.id === id || current.discord_id === discordId)) {
+            if (current && (current.id === cleanId || current.discord_id === cleanDiscordId)) {
                 localStorage.removeItem('malaca_user_profile');
+                try { await supabaseClient.auth.signOut(); } catch(e) {}
                 syncDiscordNavButton();
             }
 
+            // 5. Broadcast de eventos
             globalHubChannel.send({
                 type: 'broadcast',
                 event: 'user_deleted',
-                payload: { id: id, discordId: discordId }
+                payload: { id: cleanId, discordId: cleanDiscordId }
             });
 
             globalHubChannel.send({
                 type: 'broadcast',
                 event: 'entity_sync',
-                payload: { entity: 'profiles', action: 'DELETE', id: id, discordId: discordId, timestamp: Date.now() }
+                payload: { entity: 'profiles', action: 'DELETE', id: cleanId, discordId: cleanDiscordId, timestamp: Date.now() }
             });
 
-            showAccessRestrictedToast(`Usuário "${username}" foi excluído com sucesso!`);
+            showAccessRestrictedToast(`Usuário "${username || cleanDiscordId}" foi excluído com sucesso!`);
             loadAdminUsersView();
         } catch(e) {
             alert('Erro ao excluir usuário: ' + e.message);

@@ -214,6 +214,7 @@ BEGIN
         email,
         is_admin,
         role,
+        is_banned,
         created_at,
         last_login_at
     )
@@ -226,6 +227,7 @@ BEGIN
         new.email,
         v_is_admin,
         CASE WHEN v_is_admin THEN 'admin' ELSE 'user' END,
+        false,
         NOW(),
         NOW()
     )

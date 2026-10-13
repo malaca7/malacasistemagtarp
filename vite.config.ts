@@ -43,6 +43,7 @@ export default defineConfig({
         caixinha: resolve(__dirname, "caixinha/index.html"),
         hacking: resolve(__dirname, "hacking/index.html"),
         painel: resolve(__dirname, "painel/index.html"),
+        painel_fallback: resolve(__dirname, "painel.html"),
         admin: resolve(__dirname, "admin/index.html"),
       },
     },

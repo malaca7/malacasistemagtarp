@@ -149,20 +149,37 @@ export const AuthService = {
         if (data) existingProfile = data;
       } catch (err) {}
 
+      // Se a conta foi excluída por um administrador, revoga a sessão e não recria no banco
+      let customDeleted: string[] = [];
+      try {
+        customDeleted = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
+      } catch (e) {}
+      if (customDeleted.includes(String(discordId)) || customDeleted.includes(String(user.id))) {
+        localStorage.removeItem('malaca_user_profile');
+        try { await supabase.auth.signOut(); } catch (e) {}
+        return null;
+      }
+
       // Regra de Permissões Estrita:
       // 1. Superadmin inato oficial: Apenas o Fundador (722320491767136346)
       // 2. Banimento: Contas banidas perdem qualquer privilégio de administrador e são bloqueadas
       // 3. Usuários promovidos por outro administrador no banco de dados
       // 4. Todo novo cadastro é estritamente usuário comum (is_admin = false, role = 'user')
-      const isOfficialFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId));
+      const isOfficialFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId)) || DEFAULT_ADMIN_DISCORD_IDS.includes(String(user.id));
       let customBanned: string[] = [];
       try {
         customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
       } catch (e) {}
 
+      let customAdmins: string[] = [];
+      try {
+        customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+      } catch (e) {}
+      const isCustomAdmin = customAdmins.includes(String(discordId)) || customAdmins.includes(String(user.id));
+
       const isBanned = Boolean(!isOfficialFounder && (existingProfile?.is_banned === true || existingProfile?.role === 'banned' || customBanned.includes(String(discordId))));
       const isPromotedAdmin = Boolean(!isBanned && (existingProfile?.is_admin === true || existingProfile?.role === 'admin'));
-      const isAdmin = isOfficialFounder || isPromotedAdmin;
+      const isAdmin = isOfficialFounder || isPromotedAdmin || isCustomAdmin;
       const userRole = isBanned ? ('user' as const) : (isAdmin ? ('admin' as const) : ('user' as const));
       const now = new Date().toISOString();
 

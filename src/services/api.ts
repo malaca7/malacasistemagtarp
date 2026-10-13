@@ -1025,9 +1025,11 @@ export const ApiService = {
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
-      if (!error && Array.isArray(data) && data.length > 0) {
-        localStorage.setItem('malaca_cached_profiles', JSON.stringify(data));
-        return data;
+      const deletedList: string[] = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
+      if (!error && Array.isArray(data)) {
+        const filtered = data.filter(u => !deletedList.includes(String(u.discord_id)) && !deletedList.includes(String(u.id)));
+        localStorage.setItem('malaca_cached_profiles', JSON.stringify(filtered));
+        return filtered;
       }
     } catch (e) {
       console.warn('fetchProfiles db error, using local fallback:', e);
@@ -1035,14 +1037,20 @@ export const ApiService = {
 
     // Local fallback
     try {
+      const deletedList: string[] = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
       const cached = localStorage.getItem('malaca_cached_profiles');
       if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        const parsed: UserProfile[] = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter(u => !deletedList.includes(String(u.discord_id)) && !deletedList.includes(String(u.id)));
+        }
       }
       const myProfile = localStorage.getItem('malaca_user_profile');
       if (myProfile) {
-        return [JSON.parse(myProfile)];
+        const parsed = JSON.parse(myProfile);
+        if (!deletedList.includes(String(parsed.discord_id)) && !deletedList.includes(String(parsed.id))) {
+          return [parsed];
+        }
       }
     } catch {}
     return [];
@@ -1174,7 +1182,16 @@ export const ApiService = {
   async deleteProfile(id: string): Promise<boolean> {
     RealtimeSync.broadcastEntityChange('profiles', 'DELETE', undefined, id);
 
-    // 1. Tentar deletar no Supabase com seguranca
+    // 1. Grava no tombstone para impedir qualquer ressurreição local
+    try {
+      const deletedList: string[] = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
+      if (!deletedList.includes(id)) {
+        deletedList.push(id);
+        localStorage.setItem('malaca_deleted_discord_accounts', JSON.stringify(deletedList));
+      }
+    } catch {}
+
+    // 2. Tentar deletar no Supabase com seguranca
     try {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       if (isUuid) {
@@ -1186,7 +1203,7 @@ export const ApiService = {
       console.warn('Supabase deleteProfile warn:', e);
     }
 
-    // 2. Remover do cache e de todas as listas locais
+    // 3. Remover do cache e de todas as listas locais
     try {
       const cached = localStorage.getItem('malaca_cached_profiles');
       if (cached) {
@@ -1208,6 +1225,7 @@ export const ApiService = {
         const parsed = JSON.parse(myProfile);
         if (parsed.id === id || parsed.discord_id === id) {
           localStorage.removeItem('malaca_user_profile');
+          try { supabase.auth.signOut().catch(() => {}); } catch(e) {}
         }
       }
     } catch {}
