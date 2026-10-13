@@ -1893,7 +1893,13 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         try {
             // Update Supabase
             try {
-                await supabaseClient.from('profiles').update({ is_admin: newAdmin, role: newAdmin ? 'admin' : 'user' }).or(`id.eq.${id},discord_id.eq.${discordId}`);
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+                if (isUuid) {
+                    await supabaseClient.from('profiles').update({ is_admin: newAdmin, role: newAdmin ? 'admin' : 'user' }).eq('id', id);
+                }
+                if (discordId && discordId !== '—') {
+                    await supabaseClient.from('profiles').update({ is_admin: newAdmin, role: newAdmin ? 'admin' : 'user' }).eq('discord_id', discordId);
+                }
             } catch(e) {}
 
             // Update local admin lists
@@ -1950,12 +1956,20 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
                 ...(newBanned ? { is_admin: false } : {})
             };
             try {
-                let res = await supabaseClient.from('profiles').update(updates).or(`id.eq.${id},discord_id.eq.${discordId}`);
-                if (res.error && (res.error.message || '').includes('is_banned')) {
-                    await supabaseClient.from('profiles').update({
-                        role: newBanned ? 'banned' : 'user',
-                        ...(newBanned ? { is_admin: false } : {})
-                    }).or(`id.eq.${id},discord_id.eq.${discordId}`);
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+                if (isUuid) {
+                    let res = await supabaseClient.from('profiles').update(updates).eq('id', id);
+                    if (res && res.error && (res.error.message || '').includes('is_banned')) {
+                        delete updates.is_banned;
+                        await supabaseClient.from('profiles').update(updates).eq('id', id);
+                    }
+                }
+                if (discordId && discordId !== '—') {
+                    let resD = await supabaseClient.from('profiles').update(updates).eq('discord_id', discordId);
+                    if (resD && resD.error && (resD.error.message || '').includes('is_banned')) {
+                        delete updates.is_banned;
+                        await supabaseClient.from('profiles').update(updates).eq('discord_id', discordId);
+                    }
                 }
             } catch(e) {}
 
@@ -2019,7 +2033,13 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
         try {
             // Delete from Supabase
             try {
-                await supabaseClient.from('profiles').delete().eq('id', id);
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+                if (isUuid) {
+                    await supabaseClient.from('profiles').delete().eq('id', id);
+                }
+                if (discordId && discordId !== '—') {
+                    await supabaseClient.from('profiles').delete().eq('discord_id', discordId);
+                }
             } catch(e) {}
 
             // Clean local cache & permissions

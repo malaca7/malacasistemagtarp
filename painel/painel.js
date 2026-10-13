@@ -761,9 +761,12 @@ function renderUsersList() {
 
     list.innerHTML = users.map(u => {
         const dId = String(u.discord_id || '').trim();
-        const isOwner = DEFAULT_ADMIN_DISCORD_IDS.includes(dId);
+        const isOwner = DEFAULT_ADMIN_DISCORD_IDS.includes(dId) || DEFAULT_ADMIN_DISCORD_IDS.includes(String(u.id || ''));
         const isAdmin = u.is_admin === true || isOwner;
         const isBanned = checkIsUserBanned(u);
+
+        const safeId = String(u.id || '').replace(/'/g, "\\'");
+        const safeDid = String(dId || '').replace(/'/g, "\\'");
 
         let badgeHtml = '';
         if (isOwner) {
@@ -797,26 +800,26 @@ function renderUsersList() {
                         </button>
                     ` : `
                         ${isAdmin ? `
-                            <button class="btn-action btn-demote" onclick="window.painelToggleAdmin('${u.id}', '${dId}', false)">
+                            <button class="btn-action btn-demote" onclick="window.painelToggleAdmin('${safeId}', '${safeDid}', false)">
                                 <i class="fa-solid fa-user-minus"></i> REMOVER ADMIN
                             </button>
                         ` : `
-                            <button class="btn-action btn-promote" onclick="window.painelToggleAdmin('${u.id}', '${dId}', true)">
+                            <button class="btn-action btn-promote" onclick="window.painelToggleAdmin('${safeId}', '${safeDid}', true)">
                                 <i class="fa-solid fa-user-shield"></i> PROMOVER ADMIN
                             </button>
                         `}
 
                         ${isBanned ? `
-                            <button class="btn-action btn-unban" onclick="window.painelToggleBan('${u.id}', '${dId}', false)">
+                            <button class="btn-action btn-unban" onclick="window.painelToggleBan('${safeId}', '${safeDid}', false)">
                                 <i class="fa-solid fa-check"></i> DESBANIR
                             </button>
                         ` : `
-                            <button class="btn-action btn-ban" onclick="window.painelToggleBan('${u.id}', '${dId}', true)">
+                            <button class="btn-action btn-ban" onclick="window.painelToggleBan('${safeId}', '${safeDid}', true)">
                                 <i class="fa-solid fa-ban"></i> BANIR
                             </button>
                         `}
 
-                        <button class="btn-delete" title="Excluir Perfil" onclick="window.painelDeleteUser('${u.id}', '${dId}')">
+                        <button class="btn-delete" title="Excluir Perfil" onclick="window.painelDeleteUser('${safeId}', '${safeDid}')">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     `}
@@ -826,88 +829,237 @@ function renderUsersList() {
     }).join('');
 }
 
+// Toast flutuante de feedback moderno no painel
+function showPainelToast(msg, type = 'success') {
+    const existing = document.getElementById('painel-floating-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'painel-floating-toast';
+    const bg = type === 'error' ? 'rgba(239, 68, 68, 0.95)' : type === 'warning' ? 'rgba(245, 158, 11, 0.95)' : 'rgba(16, 185, 129, 0.95)';
+    const icon = type === 'error' ? 'fa-triangle-exclamation' : type === 'warning' ? 'fa-circle-exclamation' : 'fa-circle-check';
+    toast.style.cssText = `position: fixed; top: 24px; left: 50%; transform: translateX(-50%); background: ${bg}; color: #ffffff; padding: 12px 24px; border-radius: 12px; font-weight: 800; font-size: 13px; z-index: 999999; box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(10px); display: flex; align-items: center; gap: 10px; transition: all 0.3s ease;`;
+    toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${msg}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate(-50%, -10px)';
+        setTimeout(() => toast.remove(), 350);
+    }, 3500);
+}
+
 // AÇÃO: Alternar Permissão de Administrador
 window.painelToggleAdmin = async function(userId, discordId, makeAdmin) {
-    if (DEFAULT_ADMIN_DISCORD_IDS.includes(discordId) && !makeAdmin) {
-        alert('O Fundador Superadmin não pode ser rebaixado.');
-        return;
+    const cleanDiscordId = (discordId && discordId !== '—' && discordId !== 'undefined') ? String(discordId).trim() : '';
+    const cleanUserId = (userId && userId !== 'undefined') ? String(userId).trim() : '';
+
+    if ((cleanDiscordId && DEFAULT_ADMIN_DISCORD_IDS.includes(cleanDiscordId)) || 
+        (cleanUserId && DEFAULT_ADMIN_DISCORD_IDS.includes(cleanUserId))) {
+        if (!makeAdmin) {
+            showPainelToast('O Fundador Superadmin não pode ser rebaixado.', 'warning');
+            return;
+        }
     }
 
     try {
-        const { error } = await supabaseClient
-            .from('profiles')
-            .update({ 
-                is_admin: makeAdmin, 
-                role: makeAdmin ? 'admin' : 'user' 
-            })
-            .or(`id.eq.${userId},discord_id.eq.${discordId}`);
+        const updateData = { 
+            is_admin: makeAdmin, 
+            role: makeAdmin ? 'admin' : 'user' 
+        };
+        if (makeAdmin) {
+            updateData.is_banned = false;
+        }
 
-        if (error) throw error;
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanUserId);
 
-        // Atualiza cache local
+        // 1. Atualizar com segurança no Supabase
+        let updateOk = false;
+        if (isUuid) {
+            const { error: uuidErr } = await supabaseClient.from('profiles').update(updateData).eq('id', cleanUserId);
+            if (!uuidErr) updateOk = true;
+        }
+        if (cleanDiscordId) {
+            const { error: dErr } = await supabaseClient.from('profiles').update(updateData).eq('discord_id', cleanDiscordId);
+            if (!dErr) updateOk = true;
+        }
+        if (!updateOk && cleanUserId) {
+            await supabaseClient.from('profiles').update(updateData).eq('id', cleanUserId);
+        }
+
+        // 2. Atualizar lista de administradores no localStorage
+        let customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+        const targetId = cleanDiscordId || cleanUserId;
+        if (makeAdmin) {
+            if (targetId && !customAdmins.includes(targetId)) customAdmins.push(targetId);
+            if (cleanUserId && !customAdmins.includes(cleanUserId)) customAdmins.push(cleanUserId);
+        } else {
+            customAdmins = customAdmins.filter(d => d !== cleanDiscordId && d !== cleanUserId);
+        }
+        localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(customAdmins));
+
+        // Se promovido a admin, remover de banidos locais
+        if (makeAdmin) {
+            let customBanned = getBannedListFromStorage();
+            customBanned = customBanned.filter(d => d !== cleanDiscordId && d !== cleanUserId);
+            localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(customBanned));
+        }
+
+        // 3. Atualizar cache local malaca_cached_profiles
+        try {
+            let cached = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
+            cached = cached.map(u => {
+                if (u.id === cleanUserId || (cleanDiscordId && u.discord_id === cleanDiscordId)) {
+                    return { 
+                        ...u, 
+                        is_admin: makeAdmin, 
+                        role: makeAdmin ? 'admin' : 'user',
+                        ...(makeAdmin ? { is_banned: false } : {})
+                    };
+                }
+                return u;
+            });
+            localStorage.setItem('malaca_cached_profiles', JSON.stringify(cached));
+        } catch(e) {}
+
+        // 4. Se for o próprio perfil logado
+        try {
+            const myStored = localStorage.getItem('malaca_user_profile');
+            if (myStored) {
+                const parsed = JSON.parse(myStored);
+                if (parsed.id === cleanUserId || (cleanDiscordId && parsed.discord_id === cleanDiscordId)) {
+                    parsed.is_admin = makeAdmin;
+                    parsed.role = makeAdmin ? 'admin' : 'user';
+                    if (makeAdmin) parsed.is_banned = false;
+                    localStorage.setItem('malaca_user_profile', JSON.stringify(parsed));
+                }
+            }
+        } catch(e) {}
+
+        // 5. Atualizar cache em memória cachedUsers
         cachedUsers = cachedUsers.map(u => {
-            if (u.id === userId || u.discord_id === discordId) {
-                return { ...u, is_admin: makeAdmin, role: makeAdmin ? 'admin' : 'user' };
+            if (u.id === cleanUserId || (cleanDiscordId && u.discord_id === cleanDiscordId)) {
+                return { 
+                    ...u, 
+                    is_admin: makeAdmin, 
+                    role: makeAdmin ? 'admin' : 'user',
+                    ...(makeAdmin ? { is_banned: false } : {})
+                };
             }
             return u;
         });
 
-        // Notifica outras abas/plataforma via broadcast
-        globalHubChannel.send({
-            type: 'broadcast',
-            event: 'user_permission_updated',
-            payload: { userId, discordId, isAdmin: makeAdmin }
-        });
+        // 6. Notificar outras abas/plataforma via broadcast
+        try {
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'user_permission_updated',
+                payload: { userId: cleanUserId, discordId: cleanDiscordId, isAdmin: makeAdmin }
+            });
+        } catch(e) {}
 
         renderUsersList();
+        showPainelToast(`Usuário ${makeAdmin ? 'PROMOVIDO A ADMINISTRADOR' : 'REMOVIDO DA ADMINISTRAÇÃO'} com sucesso!`);
     } catch (e) {
-        alert('Falha ao atualizar permissões de administrador: ' + e.message);
+        showPainelToast('Falha ao atualizar permissões de administrador: ' + (e.message || e), 'error');
     }
 };
 
 // AÇÃO: Alternar Banimento
 window.painelToggleBan = async function(userId, discordId, makeBanned) {
-    if (DEFAULT_ADMIN_DISCORD_IDS.includes(discordId) || DEFAULT_ADMIN_DISCORD_IDS.includes(userId)) {
-        alert('O Fundador Superadmin não pode ser banido.');
+    const cleanDiscordId = (discordId && discordId !== '—' && discordId !== 'undefined') ? String(discordId).trim() : '';
+    const cleanUserId = (userId && userId !== 'undefined') ? String(userId).trim() : '';
+
+    if ((cleanDiscordId && DEFAULT_ADMIN_DISCORD_IDS.includes(cleanDiscordId)) || 
+        (cleanUserId && DEFAULT_ADMIN_DISCORD_IDS.includes(cleanUserId))) {
+        showPainelToast('O Fundador Superadmin não pode ser banido.', 'warning');
         return;
     }
 
     const actionText = makeBanned ? 'banir' : 'desbanir';
-    if (!confirm(`Tem certeza que deseja ${actionText} este usuário?`)) return;
+    if (!confirm(`Tem certeza que deseja ${actionText.toUpperCase()} este usuário?`)) return;
 
     try {
         const updateData = { 
+            is_banned: makeBanned,
             role: makeBanned ? 'banned' : 'user',
             ...(makeBanned ? { is_admin: false } : {})
         };
 
-        const updateResult = await supabaseClient
-            .from('profiles')
-            .update(updateData)
-            .or(`id.eq.${userId},discord_id.eq.${discordId}`);
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanUserId);
 
-        if (updateResult.error) throw updateResult.error;
+        // 1. Atualizar no Supabase com resiliência
+        try {
+            if (isUuid) {
+                const res = await supabaseClient.from('profiles').update(updateData).eq('id', cleanUserId);
+                if (res.error && (res.error.message || '').includes('is_banned')) {
+                    delete updateData.is_banned;
+                    await supabaseClient.from('profiles').update(updateData).eq('id', cleanUserId);
+                }
+            }
+            if (cleanDiscordId) {
+                const resD = await supabaseClient.from('profiles').update(updateData).eq('discord_id', cleanDiscordId);
+                if (resD.error && (resD.error.message || '').includes('is_banned')) {
+                    delete updateData.is_banned;
+                    await supabaseClient.from('profiles').update(updateData).eq('discord_id', cleanDiscordId);
+                }
+            }
+        } catch(dbErr) {
+            console.warn('Erro ao sincronizar banimento no banco:', dbErr);
+        }
 
-        // Atualiza a lista local permanente de banidos no localStorage
+        // 2. Atualizar lista permanente de banidos no localStorage
         let customBanned = getBannedListFromStorage();
         if (makeBanned) {
-            if (discordId && !customBanned.includes(discordId)) customBanned.push(discordId);
-            if (userId && !customBanned.includes(userId)) customBanned.push(userId);
+            if (cleanDiscordId && !customBanned.includes(cleanDiscordId)) customBanned.push(cleanDiscordId);
+            if (cleanUserId && !customBanned.includes(cleanUserId)) customBanned.push(cleanUserId);
         } else {
-            customBanned = customBanned.filter(d => d !== discordId && d !== userId);
+            customBanned = customBanned.filter(d => d !== cleanDiscordId && d !== cleanUserId);
         }
         localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(customBanned));
 
-        // Se banido, remove também da lista de admins locais
+        // 3. Se banido, remover também da lista de admins locais
         if (makeBanned) {
             let customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
-            customAdmins = customAdmins.filter(d => d !== discordId && d !== userId);
+            customAdmins = customAdmins.filter(d => d !== cleanDiscordId && d !== cleanUserId);
             localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(customAdmins));
         }
 
-        // Atualiza cache local de usuários
+        // 4. Atualizar cache de perfis malaca_cached_profiles
+        try {
+            let cached = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
+            cached = cached.map(u => {
+                if (u.id === cleanUserId || (cleanDiscordId && u.discord_id === cleanDiscordId)) {
+                    return { 
+                        ...u, 
+                        is_banned: makeBanned,
+                        is_admin: makeBanned ? false : u.is_admin,
+                        role: makeBanned ? 'banned' : (u.is_admin ? 'admin' : 'user')
+                    };
+                }
+                return u;
+            });
+            localStorage.setItem('malaca_cached_profiles', JSON.stringify(cached));
+        } catch(e) {}
+
+        // 5. Atualizar perfil da sessão ativa se for o próprio
+        try {
+            const myStored = localStorage.getItem('malaca_user_profile');
+            if (myStored) {
+                const parsed = JSON.parse(myStored);
+                if (parsed.id === cleanUserId || (cleanDiscordId && parsed.discord_id === cleanDiscordId)) {
+                    parsed.is_banned = makeBanned;
+                    if (makeBanned) {
+                        parsed.is_admin = false;
+                        parsed.role = 'banned';
+                    }
+                    localStorage.setItem('malaca_user_profile', JSON.stringify(parsed));
+                }
+            }
+        } catch(e) {}
+
+        // 6. Atualizar cache em memória cachedUsers
         cachedUsers = cachedUsers.map(u => {
-            if (u.id === userId || u.discord_id === discordId) {
+            if (u.id === cleanUserId || (cleanDiscordId && u.discord_id === cleanDiscordId)) {
                 return { 
                     ...u, 
                     is_banned: makeBanned,
@@ -918,40 +1070,94 @@ window.painelToggleBan = async function(userId, discordId, makeBanned) {
             return u;
         });
 
-        // Notifica outras abas/plataforma via broadcast em tempo real
-        globalHubChannel.send({
-            type: 'broadcast',
-            event: 'user_ban_updated',
-            payload: { userId, discordId, isBanned: makeBanned }
-        });
+        // 7. Notificar outras abas/plataforma via broadcast
+        try {
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'user_ban_updated',
+                payload: { userId: cleanUserId, discordId: cleanDiscordId, isBanned: makeBanned }
+            });
+        } catch(e) {}
 
         renderUsersList();
+        showPainelToast(`Usuário ${makeBanned ? 'BANIDO' : 'DESBANIDO'} com sucesso!`, makeBanned ? 'warning' : 'success');
     } catch (e) {
-        alert('Falha ao alterar banimento: ' + e.message);
+        showPainelToast('Falha ao alterar banimento: ' + (e.message || e), 'error');
     }
 };
 
 // AÇÃO: Excluir Usuário
 window.painelDeleteUser = async function(userId, discordId) {
-    if (DEFAULT_ADMIN_DISCORD_IDS.includes(discordId)) {
-        alert('O Fundador Superadmin não pode ser excluído.');
+    const cleanDiscordId = (discordId && discordId !== '—' && discordId !== 'undefined') ? String(discordId).trim() : '';
+    const cleanUserId = (userId && userId !== 'undefined') ? String(userId).trim() : '';
+
+    if ((cleanDiscordId && DEFAULT_ADMIN_DISCORD_IDS.includes(cleanDiscordId)) ||
+        (cleanUserId && DEFAULT_ADMIN_DISCORD_IDS.includes(cleanUserId))) {
+        showPainelToast('O Fundador Superadmin não pode ser excluído.', 'warning');
         return;
     }
 
-    if (!confirm('Deseja realmente excluir este usuário da plataforma?')) return;
+    if (!confirm('Deseja realmente EXCLUIR este usuário da plataforma? Esta ação é definitiva.')) return;
 
     try {
-        const { error } = await supabaseClient
-            .from('profiles')
-            .delete()
-            .or(`id.eq.${userId},discord_id.eq.${discordId}`);
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanUserId);
 
-        if (error) throw error;
+        // 1. Deletar do Supabase profiles
+        let deleteOk = false;
+        if (isUuid) {
+            const { error: uuidErr } = await supabaseClient.from('profiles').delete().eq('id', cleanUserId);
+            if (!uuidErr) deleteOk = true;
+        }
+        if (cleanDiscordId) {
+            const { error: dErr } = await supabaseClient.from('profiles').delete().eq('discord_id', cleanDiscordId);
+            if (!dErr) deleteOk = true;
+        }
+        if (!deleteOk && cleanUserId) {
+            await supabaseClient.from('profiles').delete().eq('id', cleanUserId);
+        }
 
-        cachedUsers = cachedUsers.filter(u => u.id !== userId && u.discord_id !== discordId);
+        // 2. Limpar dos caches locais
+        try {
+            let cached = JSON.parse(localStorage.getItem('malaca_cached_profiles') || '[]');
+            cached = cached.filter(u => u.id !== cleanUserId && u.discord_id !== cleanDiscordId);
+            localStorage.setItem('malaca_cached_profiles', JSON.stringify(cached));
+
+            let customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+            customAdmins = customAdmins.filter(d => d !== cleanDiscordId && d !== cleanUserId);
+            localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(customAdmins));
+
+            let customBanned = JSON.parse(localStorage.getItem('malaca_banned_discord_accounts') || '[]');
+            customBanned = customBanned.filter(d => d !== cleanDiscordId && d !== cleanUserId);
+            localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(customBanned));
+
+            // Se for o próprio perfil logado
+            const myStored = localStorage.getItem('malaca_user_profile');
+            if (myStored) {
+                const parsed = JSON.parse(myStored);
+                if (parsed.id === cleanUserId || parsed.discord_id === cleanDiscordId) {
+                    localStorage.removeItem('malaca_user_profile');
+                }
+            }
+        } catch(e) {}
+
+        // 3. Atualizar em memória e tela
+        cachedUsers = cachedUsers.filter(u => u.id !== cleanUserId && (cleanDiscordId ? u.discord_id !== cleanDiscordId : true));
+        const badgeUsers = document.getElementById('badge-users-count');
+        if (badgeUsers) badgeUsers.textContent = cachedUsers.length;
+
+        // 4. Notificar via broadcast
+        try {
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'user_deleted',
+                payload: { id: cleanUserId, discordId: cleanDiscordId }
+            });
+        } catch(e) {}
+
         renderUsersList();
+        showPainelToast('Usuário excluído com sucesso da plataforma.');
     } catch (e) {
-        alert('Falha ao excluir usuário: ' + e.message);
+        showPainelToast('Falha ao excluir usuário: ' + (e.message || e), 'error');
     }
 };
 

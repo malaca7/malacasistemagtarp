@@ -635,7 +635,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     const newBanned = !u.is_banned;
     const updates: Partial<UserProfile> = {
       is_banned: newBanned,
-      ...(newBanned ? { is_admin: false, role: 'user' as const } : {}),
+      role: newBanned ? 'banned' : 'user',
+      ...(newBanned ? { is_admin: false } : {}),
     };
     const ok = await ApiService.updateProfile(u.id, updates);
     if (ok) {

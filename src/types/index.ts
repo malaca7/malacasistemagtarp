@@ -135,7 +135,7 @@ export interface UserProfile {
   avatar_url?: string;
   email?: string;
   is_admin?: boolean;
-  role?: 'admin' | 'moderator' | 'user' | 'vip';
+  role?: 'admin' | 'moderator' | 'user' | 'vip' | 'banned';
   is_banned?: boolean;
   created_at?: string;
   last_login_at?: string;

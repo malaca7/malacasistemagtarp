@@ -1060,10 +1060,21 @@ export const ApiService = {
       } else if (updates.is_banned === false && dbUpdates.role === 'banned') {
         dbUpdates.role = 'user';
       }
-      const res = await supabase.from('profiles').update(dbUpdates).or(`id.eq.${id},discord_id.eq.${id}`);
-      if (res.error && (res.error.message || '').includes('is_banned')) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      let res;
+      if (isUuid) {
+        res = await supabase.from('profiles').update(dbUpdates).eq('id', id);
+      } else {
+        res = await supabase.from('profiles').update(dbUpdates).eq('discord_id', id);
+      }
+
+      if (res && res.error && (res.error.message || '').includes('is_banned')) {
         delete dbUpdates.is_banned;
-        await supabase.from('profiles').update(dbUpdates).or(`id.eq.${id},discord_id.eq.${id}`);
+        if (isUuid) {
+          await supabase.from('profiles').update(dbUpdates).eq('id', id);
+        } else {
+          await supabase.from('profiles').update(dbUpdates).eq('discord_id', id);
+        }
       }
     } catch (e) {
       console.warn('Supabase updateProfile warn:', e);
@@ -1163,9 +1174,14 @@ export const ApiService = {
   async deleteProfile(id: string): Promise<boolean> {
     RealtimeSync.broadcastEntityChange('profiles', 'DELETE', undefined, id);
 
-    // 1. Tentar deletar no Supabase
+    // 1. Tentar deletar no Supabase com seguranca
     try {
-      await supabase.from('profiles').delete().or(`id.eq.${id},discord_id.eq.${id}`);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      if (isUuid) {
+        await supabase.from('profiles').delete().eq('id', id);
+      } else {
+        await supabase.from('profiles').delete().eq('discord_id', id);
+      }
     } catch (e) {
       console.warn('Supabase deleteProfile warn:', e);
     }
