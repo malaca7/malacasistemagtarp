@@ -149,14 +149,45 @@ export const AuthService = {
         if (data) existingProfile = data;
       } catch (err) {}
 
-      // Se a conta foi excluída por um administrador, revoga a sessão e não recria no banco
+      // Se a conta foi excluída por um administrador, revoga a sessão, limpa tokens e não recria no banco
       let customDeleted: string[] = [];
       try {
         customDeleted = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
       } catch (e) {}
+
+      try {
+        const { data: ps } = await supabase
+          .from('platform_settings')
+          .select('disabled_systems')
+          .eq('id', 'deleted_accounts')
+          .maybeSingle();
+        if (ps && Array.isArray(ps.disabled_systems)) {
+          ps.disabled_systems.forEach(d => {
+            const clean = String(d || '').trim();
+            if (clean && !customDeleted.includes(clean)) customDeleted.push(clean);
+          });
+          localStorage.setItem('malaca_deleted_discord_accounts', JSON.stringify(customDeleted));
+        }
+      } catch (e) {}
+
       if (customDeleted.includes(String(discordId)) || customDeleted.includes(String(user.id))) {
         localStorage.removeItem('malaca_user_profile');
-        try { await supabase.auth.signOut(); } catch (e) {}
+        localStorage.removeItem('malaca_admin_master_session');
+        sessionStorage.removeItem('malaca_admin_master_session');
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('sb-') || k.includes('auth-token'))) {
+            localStorage.removeItem(k);
+          }
+        }
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+          const k = sessionStorage.key(i);
+          if (k && (k.startsWith('sb-') || k.includes('auth-token'))) {
+            sessionStorage.removeItem(k);
+          }
+        }
+        try { await supabase.auth.signOut({ scope: 'global' }); } catch (e) {}
+        window.dispatchEvent(new Event('auth_state_changed'));
         return null;
       }
 
@@ -520,5 +551,40 @@ export const AuthService = {
       console.error('Error registering direct player:', e);
       return null;
     }
+  },
+
+  async handleForceLogout(targetId?: string, targetDiscordId?: string) {
+    const raw = localStorage.getItem('malaca_user_profile');
+    if (!raw) return;
+    try {
+      const profile = JSON.parse(raw);
+      const myId = String(profile.id || '');
+      const myDid = String(profile.discord_id || '');
+      const tId = String(targetId || '');
+      const tDid = String(targetDiscordId || '');
+
+      const isMatch = (tId && myId === tId) || (tDid && myDid === tDid);
+      if (isMatch) {
+        localStorage.removeItem('malaca_user_profile');
+        localStorage.removeItem('malaca_admin_master_session');
+        sessionStorage.removeItem('malaca_admin_master_session');
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('sb-') || k.includes('auth-token'))) {
+            localStorage.removeItem(k);
+          }
+        }
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+          const k = sessionStorage.key(i);
+          if (k && (k.startsWith('sb-') || k.includes('auth-token'))) {
+            sessionStorage.removeItem(k);
+          }
+        }
+        try { await supabase.auth.signOut({ scope: 'global' }); } catch (e) {}
+        window.dispatchEvent(new Event('auth_state_changed'));
+        alert('Sua conta foi excluída por um administrador. Sua sessão foi desconectada.');
+        window.location.replace('/');
+      }
+    } catch (e) {}
   },
 };

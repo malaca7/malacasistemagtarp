@@ -26,6 +26,32 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
 
 // Escuta em tempo real para sincronização entre janelas/abas
 globalHubChannel
+    .on('broadcast', { event: 'force_user_logout' }, async (payload) => {
+        const p = payload?.payload;
+        if (!p) return;
+        const myDid = extractDiscordId(currentProfile) || currentProfile?.discord_id || '';
+        const myId = currentProfile?.id || '';
+        const sessDid = extractDiscordId(currentUser) || '';
+        const sessId = currentUser?.id || '';
+        if ((p.id && (myId === p.id || sessId === p.id)) ||
+            (p.discordId && (myDid === p.discordId || sessDid === p.discordId))) {
+            await forceSignOutDeletedSession('Sua conta foi excluída por um administrador. Sessão desconectada.');
+        }
+    })
+    .on('broadcast', { event: 'user_deleted' }, async (payload) => {
+        const p = payload?.payload;
+        if (!p) return;
+        const myDid = extractDiscordId(currentProfile) || currentProfile?.discord_id || '';
+        const myId = currentProfile?.id || '';
+        const sessDid = extractDiscordId(currentUser) || '';
+        const sessId = currentUser?.id || '';
+        if ((p.id && (myId === p.id || sessId === p.id)) ||
+            (p.discordId && (myDid === p.discordId || sessDid === p.discordId))) {
+            await forceSignOutDeletedSession('Sua conta foi excluída por um administrador. Sessão desconectada.');
+        } else {
+            loadUsersData();
+        }
+    })
     .on('broadcast', { event: 'user_permission_updated' }, (payload) => {
         if (payload?.payload?.userId === currentProfile?.id || payload?.payload?.discordId === currentProfile?.discord_id) {
             initPainel();
@@ -79,12 +105,81 @@ function extractDiscordId(u) {
     return '';
 }
 
+async function getGlobalDeletedAccounts() {
+    let list = [];
+    try {
+        const local = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
+        if (Array.isArray(local)) list = [...local];
+    } catch(e) {}
+    try {
+        const { data } = await supabaseClient.from('platform_settings').select('disabled_systems').eq('id', 'deleted_accounts').maybeSingle();
+        if (data && Array.isArray(data.disabled_systems)) {
+            data.disabled_systems.forEach(id => {
+                const clean = String(id || '').trim();
+                if (clean && !list.includes(clean)) list.push(clean);
+            });
+            localStorage.setItem('malaca_deleted_discord_accounts', JSON.stringify(list));
+        }
+    } catch(e) {}
+    return list;
+}
+
 function getDeletedListFromStorage() {
     try {
         return JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
     } catch(e) {
         return [];
     }
+}
+
+async function markGlobalDeletedAccount(id, discordId) {
+    let list = await getGlobalDeletedAccounts();
+    const cleanDid = (discordId && discordId !== '—' && discordId !== 'undefined') ? String(discordId).trim() : '';
+    const cleanId = (id && id !== 'undefined') ? String(id).trim() : '';
+    if (cleanDid && !list.includes(cleanDid)) list.push(cleanDid);
+    if (cleanId && !list.includes(cleanId)) list.push(cleanId);
+    
+    localStorage.setItem('malaca_deleted_discord_accounts', JSON.stringify(list));
+    
+    try {
+        await supabaseClient.from('platform_settings').upsert({
+            id: 'deleted_accounts',
+            disabled_systems: list,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+    } catch(e) {
+        console.warn('Erro ao salvar tombstone global no Supabase:', e);
+    }
+    return list;
+}
+
+async function forceSignOutDeletedSession(msg = 'Sua conta foi excluída por um administrador. Sessão desconectada.') {
+    try {
+        await supabaseClient.auth.signOut({ scope: 'global' });
+    } catch(e) {}
+    try {
+        localStorage.removeItem('malaca_user_profile');
+        localStorage.removeItem('malaca_admin_master_session');
+        sessionStorage.removeItem('malaca_admin_master_session');
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && (k.startsWith('sb-') || k.includes('supabase.auth.token') || k.includes('auth-token'))) {
+                localStorage.removeItem(k);
+            }
+        }
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+            const k = sessionStorage.key(i);
+            if (k && (k.startsWith('sb-') || k.includes('supabase.auth.token') || k.includes('auth-token'))) {
+                sessionStorage.removeItem(k);
+            }
+        }
+    } catch(e) {}
+    
+    currentUser = null;
+    currentProfile = null;
+    isUserAuthorized = false;
+    if (msg) alert(msg);
+    window.location.replace('/');
 }
 
 function checkIsUserBanned(profile) {
@@ -221,12 +316,10 @@ async function initPainel() {
             const discordId = extractDiscordId(session.user) || extractDiscordId(localProfile) || localProfile?.discord_id || '';
             const isFounder = DEFAULT_ADMIN_DISCORD_IDS.includes(String(discordId)) || DEFAULT_ADMIN_DISCORD_IDS.includes(String(session.user.id));
             
-            // Se a conta consta como excluída, revoga e encerra imediatamente sem recriar no banco
-            const deletedList = getDeletedListFromStorage();
+            // Se a conta consta como excluída, revoga e desloga completamente sem recriar no banco
+            const deletedList = await getGlobalDeletedAccounts();
             if (deletedList.includes(String(discordId)) || deletedList.includes(String(session.user.id))) {
-                localStorage.removeItem('malaca_user_profile');
-                try { await supabaseClient.auth.signOut(); } catch(e) {}
-                renderLoginGate(root);
+                await forceSignOutDeletedSession('Esta conta foi excluída permanentemente por um administrador.');
                 return;
             }
             
@@ -1260,11 +1353,8 @@ window.painelDeleteUser = async function(userId, discordId) {
     if (!confirm('Deseja realmente EXCLUIR este usuário da plataforma? Esta ação é definitiva.')) return;
 
     try {
-        // 1. Grava no tombstone para impedir qualquer ressurreição local
-        let deletedList = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
-        if (cleanDiscordId && !deletedList.includes(cleanDiscordId)) deletedList.push(cleanDiscordId);
-        if (cleanUserId && !deletedList.includes(cleanUserId)) deletedList.push(cleanUserId);
-        localStorage.setItem('malaca_deleted_discord_accounts', JSON.stringify(deletedList));
+        // 1. Grava no tombstone global no Supabase e no cache local
+        await markGlobalDeletedAccount(cleanUserId, cleanDiscordId);
 
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanUserId);
 
@@ -1296,13 +1386,13 @@ window.painelDeleteUser = async function(userId, discordId) {
             customBanned = customBanned.filter(d => d !== cleanDiscordId && d !== cleanUserId);
             localStorage.setItem('malaca_banned_discord_accounts', JSON.stringify(customBanned));
 
-            // Se for o próprio perfil logado
+            // Se for o próprio perfil logado nesta sessão
             const myStored = localStorage.getItem('malaca_user_profile');
             if (myStored) {
                 const parsed = JSON.parse(myStored);
                 if (parsed.id === cleanUserId || parsed.discord_id === cleanDiscordId) {
-                    localStorage.removeItem('malaca_user_profile');
-                    try { await supabaseClient.auth.signOut(); } catch(e) {}
+                    await forceSignOutDeletedSession('Sua conta foi excluída com sucesso.');
+                    return;
                 }
             }
         } catch(e) {}
@@ -1312,8 +1402,13 @@ window.painelDeleteUser = async function(userId, discordId) {
         const badgeUsers = document.getElementById('badge-users-count');
         if (badgeUsers) badgeUsers.textContent = cachedUsers.length;
 
-        // 5. Notificar via broadcast realtime
+        // 5. Notificar via broadcast realtime para desconectar imediatamente em qualquer dispositivo
         try {
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'force_user_logout',
+                payload: { id: cleanUserId, discordId: cleanDiscordId, timestamp: Date.now() }
+            });
             globalHubChannel.send({
                 type: 'broadcast',
                 event: 'user_deleted',

@@ -1182,13 +1182,26 @@ export const ApiService = {
   async deleteProfile(id: string): Promise<boolean> {
     RealtimeSync.broadcastEntityChange('profiles', 'DELETE', undefined, id);
 
-    // 1. Grava no tombstone para impedir qualquer ressurreição local
+    // 1. Grava no tombstone global no Supabase e local
     try {
       const deletedList: string[] = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
       if (!deletedList.includes(id)) {
         deletedList.push(id);
         localStorage.setItem('malaca_deleted_discord_accounts', JSON.stringify(deletedList));
       }
+
+      const { data: ps } = await supabase
+        .from('platform_settings')
+        .select('disabled_systems')
+        .eq('id', 'deleted_accounts')
+        .maybeSingle();
+      const arr = Array.isArray(ps?.disabled_systems) ? ps.disabled_systems : [];
+      if (!arr.includes(id)) arr.push(id);
+      await supabase.from('platform_settings').upsert({
+        id: 'deleted_accounts',
+        disabled_systems: arr,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
     } catch {}
 
     // 2. Tentar deletar no Supabase com seguranca
@@ -1225,9 +1238,24 @@ export const ApiService = {
         const parsed = JSON.parse(myProfile);
         if (parsed.id === id || parsed.discord_id === id) {
           localStorage.removeItem('malaca_user_profile');
-          try { supabase.auth.signOut().catch(() => {}); } catch(e) {}
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && (k.startsWith('sb-') || k.includes('auth-token'))) {
+              localStorage.removeItem(k);
+            }
+          }
+          try { await supabase.auth.signOut({ scope: 'global' }); } catch(e) {}
         }
       }
+    } catch {}
+
+    // 4. Enviar broadcast para deslogar a sessão do usuário em tempo real
+    try {
+      supabase.channel('malaca_realtime_global_hub').send({
+        type: 'broadcast',
+        event: 'force_user_logout',
+        payload: { id, discordId: id, timestamp: Date.now() },
+      });
     } catch {}
 
     return true;

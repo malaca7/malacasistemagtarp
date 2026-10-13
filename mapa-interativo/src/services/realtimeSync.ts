@@ -191,6 +191,22 @@ class RealtimeSyncManager {
         .on('broadcast', { event: 'wanderer_cycle_reset' }, (response) => {
           this.broadcastCycleReset(response?.payload?.reason || 'admin_cycle_reset');
         })
+        .on('broadcast', { event: 'force_user_logout' }, (response) => {
+          const payload = response?.payload;
+          if (payload) {
+            import('./auth').then(({ AuthService }) => {
+              AuthService.handleForceLogout(payload.id, payload.discordId);
+            });
+          }
+        })
+        .on('broadcast', { event: 'user_deleted' }, (response) => {
+          const payload = response?.payload;
+          if (payload) {
+            import('./auth').then(({ AuthService }) => {
+              AuthService.handleForceLogout(payload.id, payload.discordId);
+            });
+          }
+        })
         // 5. Postgres Changes (Se as tabelas existirem no Supabase)
         .on(
           'postgres_changes',
@@ -645,7 +661,7 @@ class RealtimeSyncManager {
   }
 
   public broadcastEntityChange(
-    entity: 'locations' | 'comments' | 'suggestions' | 'servers' | 'systems' | 'wanderer' | 'profiles' | 'settings',
+    entity: 'locations' | 'comments' | 'suggestions' | 'servers' | 'systems' | 'profiles' | 'settings',
     action: RealtimeChangeType,
     data?: any,
     id?: string,

@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Server, System, MapLocation, Comment, Suggestion, SuggestionType, SuggestionStatus, UserProfile, AccessLog, PlatformSettings, ConfirmedUser } from '../types';
+import type { Server, System, MapLocation, Comment, Suggestion, SuggestionType, SuggestionStatus, UserProfile, PlatformSettings, ConfirmedUser } from '../types';
 import { getAnonymousUserId } from '../utils/anonymousId';
 import {
   calculateWandererCycle,
@@ -1182,13 +1182,26 @@ export const ApiService = {
   async deleteProfile(id: string): Promise<boolean> {
     RealtimeSync.broadcastEntityChange('profiles', 'DELETE', undefined, id);
 
-    // 1. Grava no tombstone para impedir qualquer ressurreição local
+    // 1. Grava no tombstone global no Supabase e local
     try {
       const deletedList: string[] = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
       if (!deletedList.includes(id)) {
         deletedList.push(id);
         localStorage.setItem('malaca_deleted_discord_accounts', JSON.stringify(deletedList));
       }
+
+      const { data: ps } = await supabase
+        .from('platform_settings')
+        .select('disabled_systems')
+        .eq('id', 'deleted_accounts')
+        .maybeSingle();
+      const arr = Array.isArray(ps?.disabled_systems) ? ps.disabled_systems : [];
+      if (!arr.includes(id)) arr.push(id);
+      await supabase.from('platform_settings').upsert({
+        id: 'deleted_accounts',
+        disabled_systems: arr,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
     } catch {}
 
     // 2. Tentar deletar no Supabase com seguranca
@@ -1225,9 +1238,24 @@ export const ApiService = {
         const parsed = JSON.parse(myProfile);
         if (parsed.id === id || parsed.discord_id === id) {
           localStorage.removeItem('malaca_user_profile');
-          try { supabase.auth.signOut().catch(() => {}); } catch(e) {}
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && (k.startsWith('sb-') || k.includes('auth-token'))) {
+              localStorage.removeItem(k);
+            }
+          }
+          try { await supabase.auth.signOut({ scope: 'global' }); } catch(e) {}
         }
       }
+    } catch {}
+
+    // 4. Enviar broadcast para deslogar a sessão do usuário em tempo real
+    try {
+      supabase.channel('malaca_realtime_global_hub').send({
+        type: 'broadcast',
+        event: 'force_user_logout',
+        payload: { id, discordId: id, timestamp: Date.now() },
+      });
     } catch {}
 
     return true;
@@ -1254,7 +1282,7 @@ export const ApiService = {
       userConfirmedIds: Array.from(new Set([...cycleState.userConfirmedIds, locationId])),
     });
 
-    RealtimeSync.broadcastEntityChange('wanderer', 'UPDATE', {
+    RealtimeSync.broadcastEntityChange('locations', 'UPDATE', {
       location_id: locationId,
       server_id: serverId,
       username: adminUsername,
@@ -1323,27 +1351,6 @@ export const ApiService = {
       return !error;
     } catch {
       return true;
-    }
-  },
-
-  async fetchAccessLogs(): Promise<AccessLog[]> {
-    try {
-      const { data, error } = await supabase
-        .from('access_logs')
-        .select('*')
-        .order('logged_at', { ascending: false })
-        .limit(100);
-      if (!error && data) return data;
-    } catch {}
-    return [];
-  },
-
-  async clearAccessLogs(): Promise<boolean> {
-    try {
-      await supabase.from('access_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      return true;
-    } catch {
-      return false;
     }
   },
 };
