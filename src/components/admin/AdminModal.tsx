@@ -827,7 +827,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
 
   return (
-    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-0 sm:p-4">
       {/* Toast Banner */}
       {toastMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 bg-[#00d2ff] text-white font-bold text-xs px-5 py-3 rounded-full shadow-2xl border border-[#38bdf8] z-50 animate-in fade-in duration-200">
@@ -835,33 +835,34 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         </div>
       )}
 
-      <div className="bg-[#060d1a] border border-[#00d2ff]/35 rounded-2xl w-[90vw] h-[90vh] max-w-[90vw] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl z-50">
+      <div className="bg-[#060d1a] border-0 sm:border sm:border-[#00d2ff]/35 rounded-none sm:rounded-2xl w-full h-full sm:w-[94vw] sm:h-[92vh] sm:max-w-7xl max-h-[100dvh] sm:max-h-[92vh] overflow-hidden flex flex-col shadow-2xl z-50">
         {/* Top Header Bar */}
-        <div className="p-4 border-b border-[#00d2ff]/20 flex items-center justify-between bg-[#000000]/90">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#00d2ff] to-[#38bdf8] p-[1.5px] shadow-md flex items-center justify-center">
+        <div className="p-3 sm:p-4 border-b border-[#00d2ff]/20 flex items-center justify-between bg-[#000000]/90 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-tr from-[#00d2ff] to-[#38bdf8] p-[1.5px] shadow-md flex items-center justify-center shrink-0">
               <img src="/images/platform_icon.png" alt="MALACA ICON" className="w-full h-full object-contain p-0.5" />
             </div>
-            <div>
-              <h2 className="font-extrabold text-white text-sm leading-tight">Painel Administrativo — Malaca System GTARP</h2>
-              <p className="text-[10px] text-[#7dd3fc] font-semibold uppercase tracking-wider">Gestão de Cidades, Sistemas, Mapa & Moderação</p>
+            <div className="min-w-0">
+              <h2 className="font-extrabold text-white text-xs sm:text-sm leading-tight truncate">Painel Administrativo — Malaca System</h2>
+              <p className="hidden sm:block text-[10px] text-[#7dd3fc] font-semibold uppercase tracking-wider">Gestão de Cidades, Sistemas, Mapa & Moderação</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {isAuthenticated && (
               <button
                 onClick={() => setIsAuthenticated(false)}
-                className="px-3 py-1.5 rounded-lg bg-[#000000] border border-slate-800 text-slate-400 hover:text-rose-400 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#000000] border border-slate-800 text-slate-400 hover:text-rose-400 text-xs font-semibold flex items-center gap-1.5 transition-colors"
                 title="Sair do Painel"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span>Sair</span>
+                <span className="hidden xs:inline">Sair</span>
               </button>
             )}
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Fechar Modal"
             >
               <X className="w-5 h-5" />
             </button>
@@ -937,7 +938,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           /* Authenticated Admin Dashboard Layout */
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Tab Navigation */}
-            <div className="flex border-b border-slate-800 bg-slate-900/40 px-4 gap-1 overflow-x-auto">
+            <div className="flex border-b border-slate-800 bg-slate-900/60 px-2 sm:px-4 gap-1 overflow-x-auto touch-pan-x shrink-0 no-scrollbar">
               <button
                 onClick={() => setActiveTab('dashboard')}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
@@ -1025,7 +1026,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             </div>
 
             {/* Tab Contents View */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-6">
               {/* TAB 1: DASHBOARD OVERVIEW */}
               {activeTab === 'dashboard' && (
                 <div className="space-y-6">
@@ -1770,8 +1771,58 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
                 return (
                   <div className="space-y-6">
+                    {/* Seletor Prominente de Cidades para Gestão do Andarilho */}
+                    <div className="space-y-2 bg-[#060d1a] p-3 sm:p-4 rounded-xl border border-slate-800">
+                      <div className="text-[11px] font-extrabold text-[#00d2ff] uppercase tracking-wider flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>Selecione a Cidade para Filtrar e Gerenciar Marcações:</span>
+                      </div>
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar touch-pan-x">
+                        <button
+                          type="button"
+                          onClick={() => setWandFilterCity('all')}
+                          className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap border ${
+                            wandFilterCity === 'all'
+                              ? 'bg-[#00d2ff]/20 text-white border-[#00d2ff] shadow-lg shadow-[#00d2ff]/20'
+                              : 'bg-black/50 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white'
+                          }`}
+                        >
+                          <Building2 className="w-3.5 h-3.5 text-[#00d2ff]" />
+                          <span>Todas as Cidades</span>
+                          <span className="px-1.5 py-0.5 rounded bg-black/60 border border-slate-700 text-[10px] text-[#38bdf8]">
+                            {wandererPoints.length}
+                          </span>
+                        </button>
+                        {serversList.map((s) => {
+                          const cityPoints = wandererPoints.filter((l) => l.server_id === s.id || l.server_id?.toLowerCase().includes(s.slug));
+                          const isSelected = wandFilterCity === s.id;
+                          return (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => {
+                                setWandFilterCity(s.id);
+                                setWandServerId(s.id);
+                              }}
+                              className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap border ${
+                                isSelected
+                                  ? 'bg-[#00d2ff]/20 text-white border-[#00d2ff] shadow-lg shadow-[#00d2ff]/20'
+                                  : 'bg-black/50 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white'
+                              }`}
+                            >
+                              <Building2 className="w-3.5 h-3.5 text-[#38bdf8]" />
+                              <span>{s.name}</span>
+                              <span className="px-1.5 py-0.5 rounded bg-black/60 border border-slate-700 text-[10px] text-[#38bdf8]">
+                                {cityPoints.length}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     {/* Status & Ciclo Automático */}
-                    <div className="bg-gradient-to-br from-[#00d2ff]/15 via-slate-900/80 to-black p-5 rounded-xl border border-[#00d2ff]/30 space-y-4">
+                    <div className="bg-gradient-to-br from-[#00d2ff]/15 via-slate-900/80 to-black p-4 sm:p-5 rounded-xl border border-[#00d2ff]/30 space-y-4">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
                           <Clock className="w-4 h-4 text-[#00d2ff]" />

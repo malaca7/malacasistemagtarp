@@ -20,6 +20,10 @@ let activeTab = 'dashboard';
 let cachedUsers = [];
 let cachedServers = [];
 let cachedSystems = [];
+let cachedWandererLocations = [];
+let selectedWandererCity = 'all';
+let wandererSearchFilter = '';
+let editingWandererId = null;
 let userSearchFilter = '';
 
 const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
@@ -64,6 +68,17 @@ globalHubChannel
             initPainel();
         } else {
             loadUsersData();
+        }
+    })
+    .on('broadcast', { event: 'wanderer_confirmed' }, () => {
+        loadWandererLocations();
+    })
+    .on('broadcast', { event: 'wanderer_cycle_reset' }, () => {
+        loadWandererLocations();
+    })
+    .on('broadcast', { event: 'entity_sync' }, (payload) => {
+        if (payload?.payload?.entity === 'map_locations') {
+            loadWandererLocations();
         }
     })
     .subscribe();
@@ -765,6 +780,7 @@ function renderPainelDashboard(root) {
                 <button class="painel-nav-item ${activeTab === 'andarilho' ? 'active' : ''}" data-tab="andarilho">
                     <i class="fa-solid fa-person-walking"></i>
                     <span>Andarilho & Mapa</span>
+                    <span class="painel-nav-badge" id="badge-wanderer-count">—</span>
                 </button>
 
                 <div class="painel-nav-category">ECOSSISTEMA RP</div>
@@ -864,11 +880,16 @@ async function loadDashboardData() {
             if (badgeSystems) badgeSystems.textContent = systems.length;
         }
 
+        await loadWandererLocations();
+
         if (activeTab === 'dashboard') {
             const container = document.getElementById('painel-tab-content');
             if (container) renderDashboardView(container);
         } else if (activeTab === 'users') {
             renderUsersList();
+        } else if (activeTab === 'andarilho') {
+            const container = document.getElementById('painel-tab-content');
+            if (container) renderWandererView(container);
         }
     } catch (e) {
         console.warn('Erro ao carregar dados do dashboard:', e);
@@ -1469,56 +1490,606 @@ window.painelDeleteUser = async function(userId, discordId) {
     }
 };
 
-// ABA 3: ANDARILHO & MAPA
+// ==========================================================================
+// ABA 3: ANDARILHO & MAPA — GESTÃO AVANÇADA COM SELETOR DE CIDADE
+// ==========================================================================
+
+function getWandererCycleInfo() {
+    const now = new Date();
+    // Horário oficial de Brasília (UTC-3)
+    const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+    const brTime = new Date(utcTime - 3 * 3600000);
+    const brHours = brTime.getHours();
+    const isMorning = brHours >= 6 && brHours < 18;
+
+    const next = new Date(brTime);
+    next.setMinutes(0, 0, 0);
+    if (isMorning) {
+        next.setHours(18);
+    } else {
+        if (brHours >= 18) {
+            next.setDate(next.getDate() + 1);
+        }
+        next.setHours(6);
+    }
+
+    const diffMs = Math.max(0, next.getTime() - brTime.getTime());
+    const diffH = Math.floor(diffMs / 3600000);
+    const diffM = Math.floor((diffMs % 3600000) / 60000);
+    const diffS = Math.floor((diffMs % 60000) / 1000);
+
+    return {
+        isMorning,
+        cycleLabel: isMorning ? 'Ciclo da Manhã (06:00 - 18:00)' : 'Ciclo da Noite (18:00 - 06:00)',
+        formattedStartTime: isMorning ? '06:00' : '18:00',
+        formattedEndTime: isMorning ? '18:00 (Brasília)' : '06:00 (Brasília)',
+        formattedTimeLeft: `${String(diffH).padStart(2, '0')}h ${String(diffM).padStart(2, '0')}m ${String(diffS).padStart(2, '0')}s`
+    };
+}
+
+function getOfficialWandererLocations() {
+    return [
+        // CDA
+        { id: 'cda-and-1', server_id: 'cda-server-uuid', name: 'Andarilho - Grapeseed Norte', category: 'local_possivel', description: 'Possível localização do Andarilho em Grapeseed. Muda de localização a cada 12 horas (06:00 e 18:00).', x: 670, y: 700, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-2', server_id: 'cda-server-uuid', name: 'Andarilho - Grapeseed Centro', category: 'local_possivel', description: 'Possível localização do Andarilho em Grapeseed Centro. Muda de localização a cada 12 horas (06:00 e 18:00).', x: 520, y: 660, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-3', server_id: 'cda-server-uuid', name: 'Andarilho - Grapeseed Leste', category: 'local_possivel', description: 'Possível localização do Andarilho em Grapeseed Leste.', x: 593, y: 723, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-4', server_id: 'cda-server-uuid', name: 'Andarilho - Grapeseed Sul', category: 'local_possivel', description: 'Possível localização do Andarilho em Grapeseed Sul.', x: 570, y: 680, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-5', server_id: 'cda-server-uuid', name: 'Andarilho - Grapeseed Oeste', category: 'local_possivel', description: 'Possível localização do Andarilho em Grapeseed Oeste.', x: 568, y: 679, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-6', server_id: 'cda-server-uuid', name: 'Andarilho - Bennys', category: 'local_possivel', description: 'Possível localização do Andarilho próximo à oficina Bennys.', x: 433, y: 214, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-7', server_id: 'cda-server-uuid', name: 'Andarilho - Bennys Pátio', category: 'local_possivel', description: 'Possível localização do Andarilho no pátio próximo à Bennys.', x: 535, y: 187, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-8', server_id: 'cda-server-uuid', name: 'Andarilho - Porto Mecânica', category: 'local_possivel', description: 'Possível localização do Andarilho na Mecânica do Porto.', x: 483, y: 64, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-9', server_id: 'cda-server-uuid', name: 'Andarilho - Porto Galpão', category: 'local_possivel', description: 'Possível localização do Andarilho nos galpões do Porto.', x: 456, y: 109, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-10', server_id: 'cda-server-uuid', name: 'Andarilho - Praia Calçadão', category: 'local_possivel', description: 'Possível localização do Andarilho na Praia.', x: 345, y: 244, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-11', server_id: 'cda-server-uuid', name: 'Andarilho - Praia Construção', category: 'local_possivel', description: 'Dentro de uma construção ao lado da lixeira, cercado de madeira.', x: 333, y: 238, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-12', server_id: 'cda-server-uuid', name: 'Andarilho - Praia Pier', category: 'local_possivel', description: 'Possível localização do Andarilho na Praia próximo ao Pier.', x: 413, y: 188, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-13', server_id: 'cda-server-uuid', name: 'Andarilho - Paleto Galinheiro', category: 'local_possivel', description: 'Possível localização do Andarilho em Paleto Galinheiro.', x: 448, y: 823, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-14', server_id: 'cda-server-uuid', name: 'Andarilho - Paleto Leste', category: 'local_possivel', description: 'Possível localização do Andarilho em Paleto Leste.', x: 578, y: 836, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'cda-and-15', server_id: 'cda-server-uuid', name: 'Andarilho - Paleto Norte', category: 'local_possivel', description: 'Possível localização do Andarilho em Paleto Norte.', x: 440, y: 840, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        // VALLEY
+        { id: 'val-and-1', server_id: 'valley-server-uuid', name: 'Andarilho - Valley Grapeseed Norte', category: 'local_possivel', description: 'Possível localização do Andarilho no servidor Valley GG.', x: 670, y: 700, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'val-and-2', server_id: 'valley-server-uuid', name: 'Andarilho - Valley Centro', category: 'local_possivel', description: 'Possível localização do Andarilho no servidor Valley GG.', x: 520, y: 660, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'val-and-3', server_id: 'valley-server-uuid', name: 'Andarilho - Valley Bennys', category: 'local_possivel', description: 'Possível localização do Andarilho próximo à Bennys no Valley.', x: 433, y: 214, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'val-and-4', server_id: 'valley-server-uuid', name: 'Andarilho - Valley Praia', category: 'local_possivel', description: 'Possível localização do Andarilho na orla da praia Valley.', x: 345, y: 244, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'val-and-5', server_id: 'valley-server-uuid', name: 'Andarilho - Valley Paleto', category: 'local_possivel', description: 'Possível localização do Andarilho em Paleto Bay no Valley.', x: 448, y: 823, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        // LOS SANTOS
+        { id: 'ls-and-1', server_id: 'los-santos-server-uuid', name: 'Andarilho - Los Santos Legion Square', category: 'local_possivel', description: 'Localização do Andarilho em Los Santos RP.', x: 440, y: 550, color: '#a78bfa', is_active: true, confirmations_count: 0 },
+        { id: 'ls-and-2', server_id: 'los-santos-server-uuid', name: 'Andarilho - Los Santos Pier', category: 'local_possivel', description: 'Localização do Andarilho no Del Perro Pier.', x: 350, y: 230, color: '#a78bfa', is_active: true, confirmations_count: 0 }
+    ];
+}
+
+async function loadWandererLocations() {
+    try {
+        const { data: dbLocs } = await supabaseClient
+            .from('map_locations')
+            .select('*')
+            .in('category', ['andarilho', 'local_possivel'])
+            .order('created_at', { ascending: false });
+
+        let locs = [];
+        if (dbLocs && dbLocs.length > 0) {
+            locs = dbLocs;
+        }
+
+        const defaults = getOfficialWandererLocations();
+        let custom = [];
+        try {
+            custom = JSON.parse(localStorage.getItem('malaca_custom_locations') || '[]');
+        } catch(e) {}
+
+        const map = new Map();
+        defaults.forEach(l => map.set(l.id, l));
+        custom.filter(l => l.category === 'andarilho' || l.category === 'local_possivel').forEach(l => map.set(l.id, l));
+        locs.forEach(l => map.set(l.id, { ...map.get(l.id), ...l }));
+
+        cachedWandererLocations = Array.from(map.values());
+
+        const badge = document.getElementById('badge-wanderer-count');
+        if (badge) badge.textContent = cachedWandererLocations.length;
+    } catch (e) {
+        console.warn('Erro ao carregar locais do Andarilho:', e);
+    }
+}
+
+function getCityMeta(serverId) {
+    const sId = String(serverId || '').toLowerCase();
+    if (sId.includes('cda') || sId === 'cda-server-uuid') return { name: 'Cidade Alta (CDA)', slug: 'cda', color: '#00d2ff' };
+    if (sId.includes('valley') || sId === 'valley-server-uuid') return { name: 'Valley RP', slug: 'valley', color: '#10b981' };
+    if (sId.includes('los-santos') || sId.includes('santos') || sId === 'los-santos-server-uuid') return { name: 'Los Santos', slug: 'los-santos', color: '#fbbf24' };
+    const found = cachedServers.find(s => s.id === serverId || s.slug === serverId);
+    if (found) return { name: found.name, slug: found.slug, color: '#a855f7' };
+    return { name: 'Cidade RP', slug: 'cda', color: '#00d2ff' };
+}
+
 function renderWandererView(container) {
+    const cycle = getWandererCycleInfo();
+    const servers = cachedServers.length > 0 ? cachedServers : [
+        { id: 'cda-server-uuid', slug: 'cda', name: 'Cidade Alta (CDA)' },
+        { id: 'valley-server-uuid', slug: 'valley', name: 'Valley GG' },
+        { id: 'los-santos-server-uuid', slug: 'los-santos', name: 'Los Santos RP' }
+    ];
+
+    const totalVotes = cachedWandererLocations.reduce((acc, l) => acc + (l.confirmations_count || 0), 0);
+
+    // Contagem por cidade para as pills
+    const countAll = cachedWandererLocations.length;
+    const countCda = cachedWandererLocations.filter(l => String(l.server_id).includes('cda')).length;
+    const countValley = cachedWandererLocations.filter(l => String(l.server_id).includes('valley')).length;
+    const countLS = cachedWandererLocations.filter(l => String(l.server_id).includes('santos') || String(l.server_id).includes('ls')).length;
+
+    // Filtragem ativa
+    const filteredLocations = cachedWandererLocations.filter(l => {
+        let matchCity = true;
+        if (selectedWandererCity !== 'all') {
+            const sId = String(l.server_id).toLowerCase();
+            const filterId = String(selectedWandererCity).toLowerCase();
+            matchCity = sId === filterId || sId.includes(filterId) || (filterId.includes('cda') && sId.includes('cda')) || (filterId.includes('valley') && sId.includes('valley')) || (filterId.includes('santos') && sId.includes('santos'));
+        }
+        let matchText = true;
+        if (wandererSearchFilter) {
+            const q = wandererSearchFilter.toLowerCase();
+            matchText = (l.name && l.name.toLowerCase().includes(q)) || (l.description && l.description.toLowerCase().includes(q));
+        }
+        return matchCity && matchText;
+    });
+
+    const editingLoc = editingWandererId ? cachedWandererLocations.find(l => l.id === editingWandererId) : null;
+
     container.innerHTML = `
         <div class="painel-page-title-area">
             <div>
-                <h1 class="painel-page-title">CICLOS DO ANDARILHO & COORDENADAS</h1>
-                <p class="painel-page-desc">Gerenciamento de ciclos diários, horários de virada e aprovação de marcadores.</p>
+                <h1 class="painel-page-title">GESTÃO DE ANDARILHOS & VIRADA</h1>
+                <p class="painel-page-desc">Controle em tempo real de ciclos diários, horários de virada, marcações e confirmações por cidade.</p>
             </div>
-            <button class="painel-btn-secondary" onclick="window.painelTriggerCycleChange()">
-                <i class="fa-solid fa-clock-rotate-left"></i> Forçar Virada de Ciclo
-            </button>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button class="painel-btn-secondary" onclick="window.painelResetWandererCycle()" title="Zerar votos e sincronizar virada com todos os usuários">
+                    <i class="fa-solid fa-clock-rotate-left" style="color: #fbbf24;"></i> <span>Zerar Votos / Virada</span>
+                </button>
+                <button class="painel-btn-secondary" onclick="window.painelRefreshWandererData()">
+                    <i class="fa-solid fa-rotate"></i> <span>Atualizar</span>
+                </button>
+            </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-            <div class="painel-card">
-                <div class="painel-card-header">
-                    <h3 class="painel-card-title"><i class="fa-solid fa-hourglass-half" style="color: #fbbf24;"></i> Ciclo Vigente</h3>
+        <!-- SELETOR PROMINENTE DE CIDADE (PILLS COM CONTADORES) -->
+        <div style="margin-bottom: 20px;">
+            <div style="font-size: 11px; font-weight: 800; color: #00d2ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-location-crosshairs"></i> SELECIONE A CIDADE PARA GESTÃO:
+            </div>
+            <div class="painel-city-selector">
+                <button class="painel-city-btn ${selectedWandererCity === 'all' ? 'active' : ''}" onclick="window.painelSelectWandererCity('all')">
+                    <i class="fa-solid fa-globe"></i> Todas as Cidades <span class="painel-city-badge">${countAll}</span>
+                </button>
+                <button class="painel-city-btn ${selectedWandererCity.includes('cda') ? 'active' : ''}" onclick="window.painelSelectWandererCity('cda-server-uuid')">
+                    <i class="fa-solid fa-city"></i> Cidade Alta (CDA) <span class="painel-city-badge">${countCda}</span>
+                </button>
+                <button class="painel-city-btn ${selectedWandererCity.includes('valley') ? 'active' : ''}" onclick="window.painelSelectWandererCity('valley-server-uuid')">
+                    <i class="fa-solid fa-mountain"></i> Valley RP <span class="painel-city-badge">${countValley}</span>
+                </button>
+                <button class="painel-city-btn ${selectedWandererCity.includes('santos') || selectedWandererCity.includes('ls') ? 'active' : ''}" onclick="window.painelSelectWandererCity('los-santos-server-uuid')">
+                    <i class="fa-solid fa-building"></i> Los Santos RP <span class="painel-city-badge">${countLS}</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- HERO BANNER: CICLO VIGENTE & AUTOMATIZAÇÃO -->
+        <div class="painel-wanderer-hero">
+            <div class="painel-wanderer-hero-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(0,210,255,0.2); border: 1px solid rgba(0,210,255,0.5); display: flex; align-items: center; justify-content: center; color: #00d2ff; font-size: 16px;">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-family: var(--font-heading); color: #fff; font-size: 1.15rem; margin: 0;">${cycle.cycleLabel}</h3>
+                        <span style="font-size: 11px; color: #38bdf8; font-weight: 700;">Virada Automática às 06:00 e 18:00 (Horário de Brasília)</span>
+                    </div>
                 </div>
-                <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(251,191,36,0.3); border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 20px;">
-                    <span style="font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Próxima Virada Automática:</span>
-                    <h2 style="font-family: var(--font-heading); font-size: 2rem; color: #fbbf24; margin: 8px 0;">06:00 / 18:00 (Brasília)</h2>
-                    <p style="font-size: 12px; color: #64748b;">A virada reseta a localização e limpa os relatórios de confirmação dos jogadores.</p>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <a href="/cidades/cda/mapa/" target="_blank" class="painel-btn-secondary" style="flex: 1; justify-content: center;">
-                        <i class="fa-solid fa-map"></i> Ver no Mapa CDA
+                <div style="display: flex; gap: 8px;">
+                    <a href="/cidades/cda/mapa/" target="_blank" class="painel-btn-secondary" style="font-size: 11px; padding: 6px 12px;">
+                        <i class="fa-solid fa-map"></i> Mapa CDA
                     </a>
-                    <a href="/cidades/valley/mapa/" target="_blank" class="painel-btn-secondary" style="flex: 1; justify-content: center;">
-                        <i class="fa-solid fa-map"></i> Ver no Mapa Valley
+                    <a href="/cidades/valley/mapa/" target="_blank" class="painel-btn-secondary" style="font-size: 11px; padding: 6px 12px;">
+                        <i class="fa-solid fa-map"></i> Mapa Valley
                     </a>
                 </div>
             </div>
 
-            <div class="painel-card">
-                <div class="painel-card-header">
-                    <h3 class="painel-card-title"><i class="fa-solid fa-shield-check" style="color: #10b981;"></i> Moderação de Coordenadas</h3>
+            <div class="painel-cycle-stats-row">
+                <div class="painel-cycle-stat-box">
+                    <div class="painel-cycle-stat-title"><i class="fa-solid fa-hourglass-start" style="color: #00d2ff;"></i> Próxima Virada Em</div>
+                    <div class="painel-cycle-stat-number" style="color: #38bdf8;">${cycle.formattedTimeLeft}</div>
+                    <div class="painel-cycle-stat-hint">Auto-reset programado às ${cycle.formattedEndTime}</div>
                 </div>
-                <p style="color: #94a3b8; font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
-                    Os jogadores podem sugerir a posição atual do Andarilho ou novos pontos de interesse diretamente no mapa interativo. Coordenadas com alta taxa de confirmação são validadas automaticamente.
-                </p>
-                <div style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; padding: 14px; color: #6ee7b7; font-size: 12px; font-weight: 700;">
-                    <i class="fa-solid fa-check-double"></i> Sistema de Anti-Spam de Coordenadas Ativo.
+
+                <div class="painel-cycle-stat-box">
+                    <div class="painel-cycle-stat-title"><i class="fa-solid fa-check-to-slot" style="color: #10b981;"></i> Votos Registrados no Ciclo</div>
+                    <div class="painel-cycle-stat-number" style="color: #10b981;">${totalVotes} votos</div>
+                    <div class="painel-cycle-stat-hint">Confirmados pela comunidade em tempo real</div>
+                </div>
+
+                <div class="painel-cycle-stat-box">
+                    <div class="painel-cycle-stat-title"><i class="fa-solid fa-map-pin" style="color: #ffc046;"></i> Marcações Ativas</div>
+                    <div class="painel-cycle-stat-number" style="color: #ffc046;">${cachedWandererLocations.filter(l => (l.confirmations_count || 0) >= 1).length} pontos</div>
+                    <div class="painel-cycle-stat-hint">Visíveis para jogadores no mapa interativo</div>
                 </div>
             </div>
+        </div>
+
+        <!-- FORMULÁRIO DE CRIAÇÃO / EDIÇÃO DE MARCAÇÃO -->
+        <div class="painel-card" id="painel-wanderer-form-card" style="border-color: rgba(0,210,255,0.35);">
+            <div class="painel-card-header">
+                <h3 class="painel-card-title">
+                    <i class="fa-solid ${editingLoc ? 'fa-pen-to-square' : 'fa-compass'}" style="color: #00d2ff;"></i>
+                    ${editingLoc ? `Editar Marcação: "${editingLoc.name}"` : 'Cadastrar Nova Marcação do Andarilho'}
+                </h3>
+                ${editingLoc ? `
+                    <button class="painel-btn-secondary" onclick="window.painelCancelEditWanderer()" style="color: #ef4444; border-color: rgba(239,68,68,0.3);">
+                        <i class="fa-solid fa-xmark"></i> Cancelar Edição
+                    </button>
+                ` : ''}
+            </div>
+
+            <form id="painel-wanderer-form" onsubmit="window.painelSaveWandererLocation(event)">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 14px;">
+                    <div>
+                        <label style="font-size: 11px; font-weight: 800; color: #94a3b8; display: block; margin-bottom: 6px; text-transform: uppercase;">
+                            Nome / Identificador *
+                        </label>
+                        <input type="text" id="w-form-name" required placeholder="Ex: Andarilho - Paleto Bay Galinheiro" value="${editingLoc ? editingLoc.name : ''}" style="width: 100%; padding: 10px 14px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,210,255,0.25); border-radius: 10px; color: #fff; font-size: 13px; outline: none;" />
+                    </div>
+
+                    <div>
+                        <label style="font-size: 11px; font-weight: 800; color: #94a3b8; display: block; margin-bottom: 6px; text-transform: uppercase;">
+                            Cidade / Servidor *
+                        </label>
+                        <select id="w-form-city" style="width: 100%; padding: 10px 14px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,210,255,0.25); border-radius: 10px; color: #fff; font-size: 13px; outline: none;">
+                            ${servers.map(s => {
+                                const selected = editingLoc ? (editingLoc.server_id === s.id || editingLoc.server_id === s.slug) : (selectedWandererCity !== 'all' ? (selectedWandererCity === s.id || selectedWandererCity.includes(s.slug)) : s.slug === 'cda');
+                                return `<option value="${s.id}" ${selected ? 'selected' : ''}>${s.name}</option>`;
+                            }).join('')}
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <label style="font-size: 11px; font-weight: 800; color: #94a3b8; display: block; margin-bottom: 6px; text-transform: uppercase;">Coord. X *</label>
+                            <input type="number" step="0.1" id="w-form-x" required placeholder="ex: 448.2" value="${editingLoc ? editingLoc.x : ''}" style="width: 100%; padding: 10px 12px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,210,255,0.25); border-radius: 10px; color: #fff; font-size: 13px; outline: none;" />
+                        </div>
+                        <div>
+                            <label style="font-size: 11px; font-weight: 800; color: #94a3b8; display: block; margin-bottom: 6px; text-transform: uppercase;">Coord. Y *</label>
+                            <input type="number" step="0.1" id="w-form-y" required placeholder="ex: 823.5" value="${editingLoc ? editingLoc.y : ''}" style="width: 100%; padding: 10px 12px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,210,255,0.25); border-radius: 10px; color: #fff; font-size: 13px; outline: none;" />
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 11px; font-weight: 800; color: #94a3b8; display: block; margin-bottom: 6px; text-transform: uppercase;">
+                        Dica / Pista do Andarilho (Exibida no balão do mapa para jogadores)
+                    </label>
+                    <input type="text" id="w-form-hint" placeholder="Ex: Atrás da cerca de madeira ao lado do galinheiro abandonado em Paleto Bay." value="${editingLoc ? (editingLoc.description || '') : ''}" style="width: 100%; padding: 10px 14px; background: rgba(0,0,0,0.6); border: 1px solid rgba(0,210,255,0.25); border-radius: 10px; color: #fff; font-size: 13px; outline: none;" />
+                </div>
+
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <button type="submit" class="btn-gate-primary" style="width: auto; padding: 10px 24px; font-size: 12px; border: none; background: linear-gradient(135deg, #00d2ff, #2563eb);">
+                        <i class="fa-solid ${editingLoc ? 'fa-check' : 'fa-plus'}"></i>
+                        ${editingLoc ? 'SALVAR ALTERAÇÕES DA MARCAÇÃO' : 'CADASTRAR MARCAÇÃO NO MAPA'}
+                    </button>
+                    ${editingLoc ? `
+                        <button type="button" class="painel-btn-secondary" onclick="window.painelCancelEditWanderer()">
+                            Cancelar
+                        </button>
+                    ` : ''}
+                </div>
+            </form>
+        </div>
+
+        <!-- LISTA E GERENCIAMENTO DE MARCAÇÕES -->
+        <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1; max-width: 420px;">
+                <div class="painel-search-box" style="width: 100%;">
+                    <i class="fa-solid fa-magnifying-glass" style="color: #64748b;"></i>
+                    <input type="text" class="painel-search-input" placeholder="Filtrar por nome ou dica..." value="${wandererSearchFilter}" oninput="window.painelFilterWanderer(this.value)" />
+                </div>
+            </div>
+
+            <div style="font-size: 12px; color: #94a3b8; font-weight: 700;">
+                Exibindo <strong style="color: #00d2ff;">${filteredLocations.length}</strong> de <strong>${cachedWandererLocations.length}</strong> marcações
+            </div>
+        </div>
+
+        <div class="painel-wanderer-grid">
+            ${filteredLocations.length === 0 ? `
+                <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: #64748b; background: rgba(10,16,32,0.5); border-radius: 16px; border: 1px dashed rgba(255,255,255,0.1);">
+                    <i class="fa-solid fa-location-dot" style="font-size: 2rem; color: #00d2ff; margin-bottom: 12px; display: block;"></i>
+                    Nenhuma marcação do Andarilho encontrada com os filtros selecionados.
+                </div>
+            ` : filteredLocations.map(loc => {
+                const meta = getCityMeta(loc.server_id);
+                const isConfirmed = (loc.confirmations_count || 0) >= 1;
+
+                return `
+                    <div class="painel-wanderer-card ${isConfirmed ? 'active-cycle' : ''}" id="w-card-${loc.id}">
+                        <div>
+                            <div class="painel-wanderer-card-header">
+                                <span class="painel-wanderer-city-tag" style="border-color: ${meta.color}; color: ${meta.color}; background: rgba(0,210,255,0.1);">
+                                    ${meta.name}
+                                </span>
+                                <span class="painel-wanderer-coords">
+                                    X: ${loc.x} | Y: ${loc.y}
+                                </span>
+                            </div>
+
+                            <div style="margin: 10px 0 6px 0;">
+                                <div class="painel-wanderer-title">${loc.name}</div>
+                            </div>
+
+                            ${loc.description ? `
+                                <div class="painel-wanderer-hint">
+                                    <strong style="color: #e2e8f0;">💡 Dica:</strong> ${loc.description}
+                                </div>
+                            ` : ''}
+
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px; font-size: 11px;">
+                                <span style="font-weight: 800; color: ${isConfirmed ? '#10b981' : '#94a3b8'};">
+                                    <i class="fa-solid fa-users" style="font-size: 10px;"></i> Votos no Ciclo: ${loc.confirmations_count || 0}
+                                </span>
+                                ${isConfirmed ? `
+                                    <span style="color: #10b981; font-weight: 900; display: inline-flex; align-items: center; gap: 4px;">
+                                        <i class="fa-solid fa-circle-check"></i> ATIVO NO CICLO
+                                    </span>
+                                ` : `
+                                    <span style="color: #64748b; font-weight: 700;">
+                                        Ponto Sugerido
+                                    </span>
+                                `}
+                            </div>
+                        </div>
+
+                        <div class="painel-wanderer-actions">
+                            <button class="btn-wanderer-confirm ${isConfirmed ? 'is-active' : ''}" onclick="window.painelSetActiveWanderer('${loc.id}')" title="Marcar como localização oficial do Andarilho neste ciclo">
+                                <i class="fa-solid fa-check-double"></i> ${isConfirmed ? 'Confirmado' : 'Ativar no Ciclo'}
+                            </button>
+
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <button class="btn-action" onclick="window.painelEditWanderer('${loc.id}')" title="Editar Marcação" style="padding: 7px 10px;">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button class="btn-delete" onclick="window.painelDeleteWanderer('${loc.id}', '${loc.name.replace(/'/g, "\\'")}')" title="Excluir Marcação" style="padding: 7px 10px;">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
         </div>
     `;
 }
 
+// Window Handlers para ações do Andarilho no Painel
+window.painelSelectWandererCity = function(cityId) {
+    selectedWandererCity = cityId;
+    const container = document.getElementById('painel-tab-content');
+    if (container) renderWandererView(container);
+};
+
+window.painelFilterWanderer = function(text) {
+    wandererSearchFilter = text.trim();
+    const container = document.getElementById('painel-tab-content');
+    if (container) renderWandererView(container);
+};
+
+window.painelRefreshWandererData = async function() {
+    showPainelToast('Atualizando dados do Andarilho...');
+    await loadWandererLocations();
+    const container = document.getElementById('painel-tab-content');
+    if (container) renderWandererView(container);
+    showPainelToast('Dados do Andarilho sincronizados com sucesso!');
+};
+
+window.painelEditWanderer = function(locId) {
+    editingWandererId = locId;
+    const container = document.getElementById('painel-tab-content');
+    if (container) renderWandererView(container);
+    document.getElementById('painel-wanderer-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+window.painelCancelEditWanderer = function() {
+    editingWandererId = null;
+    const container = document.getElementById('painel-tab-content');
+    if (container) renderWandererView(container);
+};
+
+window.painelSaveWandererLocation = async function(e) {
+    e.preventDefault();
+    const name = document.getElementById('w-form-name')?.value.trim();
+    const server_id = document.getElementById('w-form-city')?.value;
+    const x = parseFloat(document.getElementById('w-form-x')?.value);
+    const y = parseFloat(document.getElementById('w-form-y')?.value);
+    const hint = document.getElementById('w-form-hint')?.value.trim();
+
+    if (!name || isNaN(x) || isNaN(y)) {
+        showPainelToast('Preencha os campos obrigatórios corretamente.', 'warning');
+        return;
+    }
+
+    try {
+        if (editingWandererId) {
+            // Atualização
+            const updates = {
+                name,
+                server_id,
+                x,
+                y,
+                description: hint,
+                category: 'andarilho',
+                is_active: true
+            };
+
+            await supabaseClient.from('map_locations').update(updates).eq('id', editingWandererId);
+
+            // Atualiza cache local
+            cachedWandererLocations = cachedWandererLocations.map(l => l.id === editingWandererId ? { ...l, ...updates } : l);
+            try {
+                let custom = JSON.parse(localStorage.getItem('malaca_custom_locations') || '[]');
+                custom = custom.map(l => l.id === editingWandererId ? { ...l, ...updates } : l);
+                localStorage.setItem('malaca_custom_locations', JSON.stringify(custom));
+            } catch(e) {}
+
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'entity_sync',
+                payload: { entity: 'map_locations', action: 'UPDATE', data: { id: editingWandererId, ...updates } }
+            });
+
+            editingWandererId = null;
+            showPainelToast(`Marcação "${name}" atualizada com sucesso!`);
+        } else {
+            // Criação
+            const newPoint = {
+                id: 'and-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+                name,
+                server_id,
+                category: 'andarilho',
+                description: hint,
+                x,
+                y,
+                color: '#a78bfa',
+                is_active: true,
+                confirmations_count: 0,
+                created_at: new Date().toISOString()
+            };
+
+            const { data } = await supabaseClient.from('map_locations').insert([newPoint]).select().maybeSingle();
+            const savedPoint = data || newPoint;
+
+            cachedWandererLocations.unshift(savedPoint);
+
+            try {
+                let custom = JSON.parse(localStorage.getItem('malaca_custom_locations') || '[]');
+                custom.unshift(savedPoint);
+                localStorage.setItem('malaca_custom_locations', JSON.stringify(custom));
+            } catch(e) {}
+
+            globalHubChannel.send({
+                type: 'broadcast',
+                event: 'entity_sync',
+                payload: { entity: 'map_locations', action: 'INSERT', data: savedPoint }
+            });
+
+            showPainelToast(`Marcação "${name}" adicionada ao mapa com sucesso!`);
+        }
+
+        const container = document.getElementById('painel-tab-content');
+        if (container) renderWandererView(container);
+    } catch (err) {
+        showPainelToast('Falha ao salvar marcação: ' + (err.message || err), 'error');
+    }
+};
+
+window.painelSetActiveWanderer = async function(locId) {
+    const loc = cachedWandererLocations.find(l => l.id === locId);
+    if (!loc) return;
+
+    try {
+        const newCount = 5; // Define confirmação oficial de admin
+        await supabaseClient.from('map_locations').update({ confirmations_count: newCount, is_active: true }).eq('id', locId);
+
+        loc.confirmations_count = newCount;
+
+        // Atualiza cache local
+        try {
+            let custom = JSON.parse(localStorage.getItem('malaca_custom_locations') || '[]');
+            custom = custom.map(l => l.id === locId ? { ...l, confirmations_count: newCount } : l);
+            localStorage.setItem('malaca_custom_locations', JSON.stringify(custom));
+        } catch(e) {}
+
+        // Broadcast Realtime instantâneo para todos os mapas abertos
+        globalHubChannel.send({
+            type: 'broadcast',
+            event: 'wanderer_confirmed',
+            payload: { locationId: locId, serverId: loc.server_id, timestamp: Date.now() }
+        });
+        globalHubChannel.send({
+            type: 'broadcast',
+            event: 'entity_sync',
+            payload: { entity: 'map_locations', action: 'UPDATE', data: { id: locId, confirmations_count: newCount } }
+        });
+
+        const container = document.getElementById('painel-tab-content');
+        if (container) renderWandererView(container);
+
+        showPainelToast(`Marcação "${loc.name}" ATIVADA como localização oficial do Andarilho neste ciclo!`);
+    } catch (err) {
+        showPainelToast('Erro ao ativar marcação: ' + (err.message || err), 'error');
+    }
+};
+
+window.painelDeleteWanderer = async function(locId, locName) {
+    if (!confirm(`Deseja realmente remover a marcação "${locName}" do Andarilho?`)) return;
+
+    try {
+        await supabaseClient.from('map_locations').delete().eq('id', locId);
+
+        cachedWandererLocations = cachedWandererLocations.filter(l => l.id !== locId);
+
+        try {
+            let custom = JSON.parse(localStorage.getItem('malaca_custom_locations') || '[]');
+            custom = custom.filter(l => l.id !== locId);
+            localStorage.setItem('malaca_custom_locations', JSON.stringify(custom));
+        } catch(e) {}
+
+        globalHubChannel.send({
+            type: 'broadcast',
+            event: 'entity_sync',
+            payload: { entity: 'map_locations', action: 'DELETE', id: locId }
+        });
+
+        const container = document.getElementById('painel-tab-content');
+        if (container) renderWandererView(container);
+
+        showPainelToast(`Marcação "${locName}" excluída com sucesso!`);
+    } catch (err) {
+        showPainelToast('Falha ao excluir marcação: ' + (err.message || err), 'error');
+    }
+};
+
+window.painelResetWandererCycle = async function() {
+    if (!confirm('Deseja realmente ZERAR todos os votos do ciclo do Andarilho e forçar uma virada imediata para todos os jogadores?')) return;
+
+    try {
+        // Zera contagens no banco
+        await supabaseClient.from('map_locations').update({ confirmations_count: 0 }).in('category', ['andarilho', 'local_possivel']);
+        
+        try {
+            await supabaseClient.from('wanderer_confirmations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        } catch(e) {}
+
+        cachedWandererLocations.forEach(l => l.confirmations_count = 0);
+
+        try {
+            let custom = JSON.parse(localStorage.getItem('malaca_custom_locations') || '[]');
+            custom = custom.map(l => ({ ...l, confirmations_count: 0 }));
+            localStorage.setItem('malaca_custom_locations', JSON.stringify(custom));
+        } catch(e) {}
+
+        // Broadcast Realtime de Reset do Ciclo
+        globalHubChannel.send({
+            type: 'broadcast',
+            event: 'wanderer_cycle_reset',
+            payload: { timestamp: Date.now() }
+        });
+
+        const container = document.getElementById('painel-tab-content');
+        if (container) renderWandererView(container);
+
+        showPainelToast('Ciclo do Andarilho reiniciado com sucesso! Todos os votos foram zerados.');
+    } catch (err) {
+        showPainelToast('Erro ao zerar ciclo: ' + (err.message || err), 'error');
+    }
+};
+
 window.painelTriggerCycleChange = function() {
-    alert('Virada de ciclo disparada com sucesso! Coordenadas do Andarilho sincronizadas.');
+    window.painelResetWandererCycle();
 };
 
 // ABA 4: CIDADES / SERVIDORES

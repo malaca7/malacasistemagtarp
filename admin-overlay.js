@@ -1439,6 +1439,22 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
 
                     <!-- Lista de Todas as Marcações de Andarilho -->
                     <div>
+                        <div style="margin-bottom: 10px;">
+                            <div style="font-size: 11px; font-weight: 800; color: #00d2ff; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                                <i class="fa-solid fa-location-crosshairs"></i> Filtrar por Cidade:
+                            </div>
+                            <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;" class="no-scrollbar">
+                                <button type="button" onclick="setAdminWandererPillCity('all')" class="wand-city-pill" id="wand-pill-all" style="padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; background: rgba(0,210,255,0.2); border: 1px solid #00d2ff; color: #fff; white-space: nowrap;">
+                                    <i class="fa-solid fa-globe"></i> Todas as Cidades
+                                </button>
+                                ${servers.map(s => `
+                                    <button type="button" onclick="setAdminWandererPillCity('${s.id}')" class="wand-city-pill" id="wand-pill-${s.id}" style="padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; white-space: nowrap;">
+                                        <i class="fa-solid fa-city"></i> ${s.name}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                             <h4 style="font-family: var(--font-header); color: #fff; font-size: 0.95rem; margin: 0;">
                                 <i class="fa-solid fa-map-pin" style="color: #00d2ff;"></i> Marcações Cadastradas do Andarilho
@@ -2387,6 +2403,25 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     window.filterAdminWandererByCity = function(cityId) {
         const q = document.getElementById('wand-search-input')?.value || '';
         window.filterAdminWandererList(q);
+    };
+
+    window.setAdminWandererPillCity = function(cityId) {
+        const sel = document.getElementById('wand-filter-city-select');
+        if (sel) {
+            sel.value = cityId;
+        }
+        document.querySelectorAll('.wand-city-pill').forEach(btn => {
+            btn.style.background = 'rgba(255,255,255,0.05)';
+            btn.style.borderColor = 'rgba(255,255,255,0.12)';
+            btn.style.color = '#cbd5e1';
+        });
+        const target = document.getElementById('wand-pill-' + cityId);
+        if (target) {
+            target.style.background = 'rgba(0,210,255,0.2)';
+            target.style.borderColor = '#00d2ff';
+            target.style.color = '#fff';
+        }
+        window.filterAdminWandererByCity(cityId);
     };
 
     window.startEditWandererPoint = function(id) {

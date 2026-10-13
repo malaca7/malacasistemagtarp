@@ -779,23 +779,521 @@ body {
     color: #fff;
 }
 
-/* RESPONSIVE */
+/* ==========================================================================
+   SELETOR DE CIDADES E COMPONENTES DO ANDARILHO
+   ========================================================================== */
+
+.painel-city-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.painel-city-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #cbd5e1;
+    font-family: var(--font-heading);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.painel-city-btn:hover {
+    background: rgba(0, 210, 255, 0.1);
+    border-color: rgba(0, 210, 255, 0.4);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.painel-city-btn.active {
+    background: linear-gradient(135deg, rgba(0, 210, 255, 0.22) 0%, rgba(37, 99, 235, 0.3) 100%);
+    border-color: #00d2ff;
+    color: #ffffff;
+    box-shadow: 0 0 16px rgba(0, 210, 255, 0.35);
+}
+
+.painel-city-badge {
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 10px;
+    font-weight: 900;
+    color: #38bdf8;
+}
+
+.painel-city-btn.active .painel-city-badge {
+    background: rgba(0, 210, 255, 0.3);
+    border-color: rgba(0, 210, 255, 0.6);
+    color: #ffffff;
+}
+
+/* WANDERER CYCLE HERO BANNER */
+.painel-wanderer-hero {
+    background: linear-gradient(135deg, rgba(0, 210, 255, 0.12) 0%, rgba(14, 20, 38, 0.9) 60%, rgba(6, 10, 22, 0.95) 100%);
+    border: 1px solid rgba(0, 210, 255, 0.35);
+    border-radius: 18px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    position: relative;
+    overflow: hidden;
+}
+
+.painel-wanderer-hero::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle, rgba(0, 210, 255, 0.18) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.painel-wanderer-hero-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.painel-cycle-stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.painel-cycle-stat-box {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+
+.painel-cycle-stat-title {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.painel-cycle-stat-number {
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: #ffffff;
+}
+
+.painel-cycle-stat-hint {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+/* WANDERER GRID & CARDS */
+.painel-wanderer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.painel-wanderer-card {
+    background: rgba(10, 16, 32, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
+    transition: all 0.2s ease;
+}
+
+.painel-wanderer-card:hover {
+    border-color: rgba(0, 210, 255, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.painel-wanderer-card.active-cycle {
+    border-color: rgba(16, 185, 129, 0.6);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(10, 16, 32, 0.85) 100%);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+}
+
+.painel-wanderer-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.painel-wanderer-city-tag {
+    font-size: 10px;
+    font-weight: 900;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(0, 210, 255, 0.15);
+    color: var(--primary-cyan);
+    border: 1px solid rgba(0, 210, 255, 0.35);
+    text-transform: uppercase;
+}
+
+.painel-wanderer-coords {
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.painel-wanderer-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.3;
+}
+
+.painel-wanderer-hint {
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.5;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.painel-wanderer-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-wanderer-confirm {
+    padding: 7px 12px;
+    border-radius: 8px;
+    background: rgba(16, 185, 129, 0.18);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #6ee7b7;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-wanderer-confirm:hover {
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.5);
+}
+
+.btn-wanderer-confirm.is-active {
+    background: #10b981;
+    color: #ffffff;
+    border-color: #34d399;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+/* ==========================================================================
+   RESPONSIVIDADE PREMIUM — TABLETS & MOBILE DEVICES
+   ========================================================================== */
+
 @media (max-width: 900px) {
     .painel-layout {
         flex-direction: column;
     }
+    
     .painel-sidebar {
         width: 100%;
+        position: sticky;
+        top: 66px;
+        z-index: 95;
         border-right: none;
         border-bottom: 1px solid var(--border-subtle);
-        padding: 12px 16px;
+        padding: 8px 12px;
         flex-direction: row;
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        background: rgba(6, 10, 22, 0.96);
+        backdrop-filter: blur(20px);
     }
+    
+    .painel-sidebar::-webkit-scrollbar {
+        display: none;
+    }
+
     .painel-nav-category {
         display: none;
     }
+
+    .painel-nav-item {
+        flex-shrink: 0;
+        white-space: nowrap;
+        width: auto;
+        padding: 8px 14px;
+        font-size: 12px;
+        border-radius: 10px;
+    }
+
     .painel-content {
-        padding: 20px 16px;
+        padding: 20px 14px 40px 14px;
     }
 }
+
+@media (max-width: 768px) {
+    /* Top Header */
+    .painel-header {
+        padding: 10px 14px;
+        gap: 10px;
+    }
+
+    .painel-brand {
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .painel-brand-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        padding: 4px;
+        flex-shrink: 0;
+    }
+
+    .painel-brand-title {
+        font-size: 0.95rem;
+        gap: 6px;
+        white-space: nowrap;
+    }
+
+    .painel-brand-badge {
+        font-size: 9px;
+        padding: 1px 6px;
+    }
+
+    .painel-brand-sub {
+        display: none;
+    }
+
+    .painel-header-actions {
+        gap: 8px;
+    }
+
+    .painel-btn-secondary {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    .painel-admin-profile {
+        padding: 3px 8px;
+        gap: 6px;
+    }
+
+    .painel-admin-avatar {
+        width: 28px;
+        height: 28px;
+    }
+
+    .painel-admin-name {
+        font-size: 11px;
+        max-width: 85px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .painel-admin-role {
+        display: none;
+    }
+
+    .painel-btn-logout {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    .painel-btn-logout span {
+        display: none;
+    }
+
+    /* Sticky Sidebar */
+    .painel-sidebar {
+        top: 54px;
+        padding: 8px 10px;
+        gap: 6px;
+    }
+
+    .painel-nav-item {
+        padding: 8px 12px;
+        font-size: 11px;
+        gap: 6px;
+    }
+
+    .painel-nav-item i {
+        font-size: 12px;
+        width: 16px;
+    }
+
+    /* Content Area */
+    .painel-content {
+        padding: 16px 12px 60px 12px;
+    }
+
+    .painel-page-title-area {
+        margin-bottom: 18px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .painel-page-title {
+        font-size: 1.25rem;
+        line-height: 1.2;
+    }
+
+    .painel-page-desc {
+        font-size: 0.8rem;
+    }
+
+    /* Grid Overrides */
+    .painel-stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .painel-stat-card {
+        padding: 16px;
+        border-radius: 14px;
+    }
+
+    .painel-stat-value {
+        font-size: 1.6rem;
+    }
+
+    .painel-card {
+        padding: 16px;
+        border-radius: 14px;
+        margin-bottom: 18px;
+    }
+
+    .painel-card-header {
+        margin-bottom: 14px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .painel-card-title {
+        font-size: 1.05rem;
+    }
+
+    div[style*="grid-template-columns: 2fr 1fr"],
+    div[style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+
+    .painel-users-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+
+    .painel-wanderer-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+
+    .painel-search-box {
+        width: 100% !important;
+    }
+
+    /* Hero */
+    .painel-wanderer-hero {
+        padding: 16px;
+        border-radius: 14px;
+    }
+
+    .painel-cycle-stats-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    /* City Selector on mobile */
+    .painel-city-selector {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 4px;
+        margin-bottom: 16px;
+    }
+
+    .painel-city-selector::-webkit-scrollbar {
+        display: none;
+    }
+
+    .painel-city-btn {
+        flex-shrink: 0;
+        padding: 7px 12px;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .painel-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .painel-brand-title {
+        font-size: 0.85rem;
+    }
+
+    .painel-header-actions .painel-btn-secondary span {
+        display: none;
+    }
+
+    .painel-user-card {
+        padding: 14px;
+    }
+
+    .painel-user-actions {
+        flex-direction: column;
+    }
+
+    .btn-action,
+    .btn-delete {
+        width: 100%;
+        justify-content: center;
+    }
+}
+

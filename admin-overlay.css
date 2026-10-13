@@ -289,3 +289,47 @@
     height: 100%;
     object-fit: cover;
 }
+
+/* ==========================================================================
+   RESPONSIVIDADE MOBILE — ADMIN OVERLAY MODAL
+   ========================================================================== */
+@media (max-width: 768px) {
+    .global-admin-overlay {
+        padding: 0 !important;
+    }
+    .global-admin-dialog {
+        width: 100vw !important;
+        height: 100dvh !important;
+        max-width: 100vw !important;
+        max-height: 100dvh !important;
+        border-radius: 0 !important;
+        border: none !important;
+    }
+    .global-admin-header {
+        padding: 12px 14px !important;
+    }
+    .global-admin-badge {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 0.95rem !important;
+    }
+    .global-admin-title {
+        font-size: 0.88rem !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: 180px !important;
+    }
+    .global-admin-subtitle {
+        display: none !important;
+    }
+    .global-admin-nav {
+        padding: 0 8px !important;
+        gap: 4px !important;
+    }
+    .global-admin-nav-btn {
+        padding: 10px 12px !important;
+        font-size: 0.68rem !important;
+        white-space: nowrap !important;
+    }
+}
