@@ -140,66 +140,50 @@ export const App: React.FC = () => {
       }
     });
 
-    const liveChannel = supabase.channel('malaca_realtime_global_hub')
-      .on('broadcast', { event: 'user_permission_updated' }, ({ payload }) => {
-        if (!payload) return;
-        setUser((prev) => {
-          if (prev && (prev.id === payload.id || prev.discord_id === payload.discordId)) {
-            const updated = { ...prev, is_admin: payload.is_admin, role: payload.role };
-            localStorage.setItem('malaca_user_profile', JSON.stringify(updated));
-            if (!payload.is_admin) setAdminOpen(false);
-            return updated;
-          }
-          return prev;
-        });
-      })
-      .on('broadcast', { event: 'user_ban_updated' }, ({ payload }) => {
-        if (!payload) return;
-        setUser((prev) => {
-          if (prev && (prev.id === payload.id || prev.discord_id === payload.discordId)) {
-            const updated = {
-              ...prev,
-              is_banned: payload.is_banned,
-              ...(payload.is_banned ? { is_admin: false, role: 'user' as const } : {}),
-            };
-            localStorage.setItem('malaca_user_profile', JSON.stringify(updated));
-            if (payload.is_banned) setAdminOpen(false);
-            return updated;
-          }
-          return prev;
-        });
-      })
-      .on('broadcast', { event: 'user_deleted' }, ({ payload }) => {
-        if (!payload) return;
-        setUser((prev) => {
-          if (prev && (prev.id === payload.id || prev.discord_id === payload.discordId)) {
-            localStorage.removeItem('malaca_user_profile');
-            return null;
-          }
-          return prev;
-        });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
-        const changed = (payload.new || payload.old) as any;
-        if (!changed) return;
-        setUser((prev) => {
-          if (prev && (prev.id === changed.id || prev.discord_id === changed.discord_id)) {
-            if (payload.eventType === 'DELETE') {
-              localStorage.removeItem('malaca_user_profile');
-              return null;
-            }
-            const updated = { ...prev, ...changed };
-            localStorage.setItem('malaca_user_profile', JSON.stringify(updated));
-            return updated;
-          }
-          return prev;
-        });
-      })
-      .subscribe();
+    const unsubscribeProfiles = RealtimeSync.onProfilesChange((change) => {
+      const changed = change.data as any;
+      if (!changed) return;
+      setUser((prev) => {
+        if (!prev) return prev;
+        const targetId = String(changed.id || changed.userId || '');
+        const targetDid = String(changed.discordId || changed.discord_id || '');
+        const myId = String(prev.id || '');
+        const myDid = String(extractDiscordId(prev) || prev.discord_id || '');
+
+        const matches = (targetId && (myId === targetId || myDid === targetId)) ||
+                        (targetDid && (myDid === targetDid || myId === targetDid));
+
+        if (!matches) return prev;
+
+        if (change.action === 'DELETE' || changed.eventType === 'DELETE') {
+          localStorage.removeItem('malaca_user_profile');
+          setAdminOpen(false);
+          return null;
+        }
+
+        const isBanned = changed.is_banned ?? changed.isBanned;
+        const isAdmin = changed.is_admin ?? changed.isAdmin;
+        const role = changed.role ?? (isAdmin ? 'admin' : (isBanned ? 'user' : prev.role));
+
+        const updated: UserProfile = {
+          ...prev,
+          ...changed,
+          ...(isBanned !== undefined ? { is_banned: isBanned } : {}),
+          ...(isAdmin !== undefined ? { is_admin: isAdmin, role } : {}),
+          ...(isBanned ? { is_admin: false, role: 'user' as const } : {}),
+        };
+
+        localStorage.setItem('malaca_user_profile', JSON.stringify(updated));
+        if (isBanned === true || isAdmin === false) {
+          setAdminOpen(false);
+        }
+        return updated;
+      });
+    });
 
     return () => {
       subscription.unsubscribe();
-      supabase.removeChannel(liveChannel);
+      unsubscribeProfiles();
     };
   }, []);
 

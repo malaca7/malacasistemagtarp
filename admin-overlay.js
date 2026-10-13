@@ -765,8 +765,10 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
     });
 
     // Realtime Hub Broadcast & Database Sync Listeners
-    globalHubChannel
-        .on('broadcast', { event: 'servers_updated' }, (payload) => {
+    try {
+      if (globalHubChannel && globalHubChannel.state !== 'SUBSCRIBED' && globalHubChannel.state !== 'SUBSCRIBING') {
+        globalHubChannel
+          .on('broadcast', { event: 'servers_updated' }, (payload) => {
             if (payload?.payload?.servers && Array.isArray(payload.payload.servers)) {
                 localStorage.setItem('malaca_custom_servers', JSON.stringify(payload.payload.servers));
                 if (typeof window.loadCustomCities === 'function') window.loadCustomCities();
@@ -971,6 +973,10 @@ const globalHubChannel = supabaseClient.channel('malaca_realtime_global_hub');
             if (typeof window.loadAdminWandererListView === 'function') window.loadAdminWandererListView();
         })
         .subscribe();
+      }
+    } catch (err) {
+      console.warn('Realtime subscription skipped or already active:', err);
+    }
 
     async function syncGlobalDatabaseData() {
         try {

@@ -122,6 +122,22 @@ class RealtimeSyncManager {
 
   private initSupabaseChannel() {
     try {
+      const existing = supabase.getChannels().find(
+        (c) => c.topic === 'realtime:malaca_realtime_global_hub'
+      );
+      if (existing) {
+        const st = (existing as any).state as string;
+        if (st === 'joined' || st === 'joining' || st === 'SUBSCRIBED' || st === 'SUBSCRIBING') {
+          this.supabaseChannel = existing;
+          this.isConnected = st === 'joined' || st === 'SUBSCRIBED';
+          return;
+        } else {
+          try {
+            supabase.removeChannel(existing);
+          } catch {}
+        }
+      }
+
       this.supabaseChannel = supabase
         .channel('malaca_realtime_global_hub', {
           config: {
@@ -191,11 +207,49 @@ class RealtimeSyncManager {
         .on('broadcast', { event: 'wanderer_cycle_reset' }, (response) => {
           this.broadcastCycleReset(response?.payload?.reason || 'admin_cycle_reset');
         })
+        .on('broadcast', { event: 'wanderer_confirmed' }, () => {
+          this.notifyEntityChange('locations', {
+            entity: 'locations',
+            action: 'UPDATE',
+            timestamp: Date.now(),
+          });
+        })
+        .on('broadcast', { event: 'user_permission_updated' }, (response) => {
+          const payload = response?.payload;
+          if (payload) {
+            this.notifyEntityChange('profiles', {
+              entity: 'profiles',
+              action: 'UPDATE',
+              id: payload.id || payload.userId,
+              data: payload,
+              timestamp: Date.now(),
+            });
+          }
+        })
+        .on('broadcast', { event: 'user_ban_updated' }, (response) => {
+          const payload = response?.payload;
+          if (payload) {
+            this.notifyEntityChange('profiles', {
+              entity: 'profiles',
+              action: 'UPDATE',
+              id: payload.id || payload.userId,
+              data: payload,
+              timestamp: Date.now(),
+            });
+          }
+        })
         .on('broadcast', { event: 'force_user_logout' }, (response) => {
           const payload = response?.payload;
           if (payload) {
             import('./auth').then(({ AuthService }) => {
               AuthService.handleForceLogout(payload.id, payload.discordId);
+            });
+            this.notifyEntityChange('profiles', {
+              entity: 'profiles',
+              action: 'DELETE',
+              id: payload.id,
+              data: payload,
+              timestamp: Date.now(),
             });
           }
         })
@@ -204,6 +258,13 @@ class RealtimeSyncManager {
           if (payload) {
             import('./auth').then(({ AuthService }) => {
               AuthService.handleForceLogout(payload.id, payload.discordId);
+            });
+            this.notifyEntityChange('profiles', {
+              entity: 'profiles',
+              action: 'DELETE',
+              id: payload.id,
+              data: payload,
+              timestamp: Date.now(),
             });
           }
         })
