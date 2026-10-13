@@ -99,6 +99,8 @@ export const AuthService = {
         origin = 'https://cda.malaca.com.br';
       }
       const redirectUrl = origin + window.location.pathname;
+      sessionStorage.setItem('malaca_explicit_login_attempt', Date.now().toString());
+      localStorage.setItem('malaca_explicit_login_attempt', Date.now().toString());
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
@@ -149,7 +151,7 @@ export const AuthService = {
         if (data) existingProfile = data;
       } catch (err) {}
 
-      // Se a conta foi excluída por um administrador, revoga a sessão, limpa tokens e não recria no banco
+      // Se a conta constava como excluída, verifica se o usuário está logando/cadastrando ativamente
       let customDeleted: string[] = [];
       try {
         customDeleted = JSON.parse(localStorage.getItem('malaca_deleted_discord_accounts') || '[]');
@@ -170,25 +172,65 @@ export const AuthService = {
         }
       } catch (e) {}
 
-      if (customDeleted.includes(String(discordId)) || customDeleted.includes(String(user.id))) {
-        localStorage.removeItem('malaca_user_profile');
-        localStorage.removeItem('malaca_admin_master_session');
-        sessionStorage.removeItem('malaca_admin_master_session');
-        for (let i = localStorage.length - 1; i >= 0; i--) {
-          const k = localStorage.key(i);
-          if (k && (k.startsWith('sb-') || k.includes('auth-token'))) {
-            localStorage.removeItem(k);
+      const isDeletedTombstone = customDeleted.includes(String(discordId)) || customDeleted.includes(String(user.id));
+      const hasOAuthParams = typeof window !== 'undefined' && (
+        window.location.hash.includes('access_token=') ||
+        window.location.search.includes('code=') ||
+        Boolean(sessionStorage.getItem('malaca_explicit_login_attempt')) ||
+        Boolean(localStorage.getItem('malaca_explicit_login_attempt'))
+      );
+
+      if (isDeletedTombstone) {
+        if (hasOAuthParams) {
+          // O usuário optou deliberadamente por CADASTRAR/LOGAR novamente com a conta Discord:
+          // Permite novo cadastro 100% LIMPO e isolado, SEM ligação aos dados ou privilégios da conta excluída
+          customDeleted = customDeleted.filter(d => d !== String(discordId) && d !== String(user.id));
+          localStorage.setItem('malaca_deleted_discord_accounts', JSON.stringify(customDeleted));
+          try {
+            await supabase.from('platform_settings').upsert({
+              id: 'deleted_accounts',
+              disabled_systems: customDeleted,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+          } catch (e) {}
+
+          sessionStorage.removeItem('malaca_explicit_login_attempt');
+          localStorage.removeItem('malaca_explicit_login_attempt');
+          sessionStorage.removeItem('malaca_admin_master_session');
+          localStorage.removeItem('malaca_admin_master_session');
+          localStorage.removeItem('malaca_user_profile');
+
+          // Limpa permissões antigas do cache
+          try {
+            let customAdmins = JSON.parse(localStorage.getItem('malaca_admin_discord_accounts') || '[]');
+            customAdmins = customAdmins.filter((d: string) => d !== String(discordId) && d !== String(user.id));
+            localStorage.setItem('malaca_admin_discord_accounts', JSON.stringify(customAdmins));
+          } catch (e) {}
+
+          // Sem qualquer ligação aos dados antigos da conta excluída
+          existingProfile = null;
+        } else {
+          // Sessão residual antiga de antes da exclusão sem login ativo:
+          // Desconecta a sessão residual silenciosamente sem recriar nada no banco
+          localStorage.removeItem('malaca_user_profile');
+          localStorage.removeItem('malaca_admin_master_session');
+          sessionStorage.removeItem('malaca_admin_master_session');
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && (k.startsWith('sb-') || k.includes('auth-token'))) {
+              localStorage.removeItem(k);
+            }
           }
-        }
-        for (let i = sessionStorage.length - 1; i >= 0; i--) {
-          const k = sessionStorage.key(i);
-          if (k && (k.startsWith('sb-') || k.includes('auth-token'))) {
-            sessionStorage.removeItem(k);
+          for (let i = sessionStorage.length - 1; i >= 0; i--) {
+            const k = sessionStorage.key(i);
+            if (k && (k.startsWith('sb-') || k.includes('auth-token'))) {
+              sessionStorage.removeItem(k);
+            }
           }
+          try { await supabase.auth.signOut({ scope: 'global' }); } catch (e) {}
+          window.dispatchEvent(new Event('auth_state_changed'));
+          return null;
         }
-        try { await supabase.auth.signOut({ scope: 'global' }); } catch (e) {}
-        window.dispatchEvent(new Event('auth_state_changed'));
-        return null;
       }
 
       // Regra de Permissões Estrita:

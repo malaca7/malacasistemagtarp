@@ -1212,6 +1212,9 @@ export const ApiService = {
       } else {
         await supabase.from('profiles').delete().eq('discord_id', id);
       }
+      try {
+        await supabase.from('wanderer_confirmations').delete().eq('user_id', id);
+      } catch {}
     } catch (e) {
       console.warn('Supabase deleteProfile warn:', e);
     }
