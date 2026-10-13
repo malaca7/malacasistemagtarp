@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="0; url=/painel/">
+    <title>Painel Administrativo | Malaca System GTARP</title>
+    <meta name="description" content="Central independente de administração do Malaca System GTARP. Controle de usuários, cidades, sistemas e ciclo do Andarilho.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Favicon Icon -->
+    <link rel="icon" type="image/png" href="/images/platform_icon.png">
+    
+    <script>
+        (function() {
+            var target = '/painel/' + (window.location.search || '') + (window.location.hash || '');
+            window.location.replace(target);
+        })();
+    </script>
+</head>
+<body style="background: #05070e; color: #fff; font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+    <div style="text-align: center; padding: 24px;">
+        <div style="width: 56px; height: 56px; border-radius: 50%; border: 3px solid rgba(0,210,255,0.2); border-top-color: #00d2ff; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+        <h2 style="font-family: 'Orbitron', sans-serif; font-size: 1.25rem; color: #00d2ff; margin-bottom: 8px; letter-spacing: 0.05em;">
+            CARREGANDO PAINEL ADMINISTRATIVO...
+        </h2>
+        <p style="color: #94a3b8; font-size: 0.85rem; max-width: 380px; margin: 0 auto;">
+            Redirecionando para a central de governança do Malaca System GTARP.
+        </p>
+    </div>
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</body>
+</html>
